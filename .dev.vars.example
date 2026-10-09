@@ -1,0 +1,7 @@
+# Kopier til .dev.vars for lokal utvikling
+APP_URL=http://localhost:5173
+DEV_MODE=true
+ANTHROPIC_API_KEY=sk-ant-...
+RESEND_API_KEY=
+# Sett til http://localhost:8788 for å teste mot mock-Claude (npm run mock:claude)
+# ANTHROPIC_BASE_URL=http://localhost:8788

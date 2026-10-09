@@ -1,0 +1,46 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "plank",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  // React-appen (bygget av Vite) serveres som statiske filer. Alt under /api og /files går til Workeren.
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "plank",
+      // Bytt ut med ID fra `wrangler d1 create plank`
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  "r2_buckets": [
+    { "binding": "FILES", "bucket_name": "plank-files" }
+  ],
+
+  // Workers AI brukes til å konvertere PDF/Office/bilder til markdown (toMarkdown).
+  "ai": { "binding": "AI" },
+
+  // Planlagte agenter sjekkes hvert 15. minutt.
+  "triggers": { "crons": ["*/15 * * * *"] },
+
+  "vars": {
+    "APP_URL": "https://plank.example.no",
+    "EMAIL_FROM": "Plank <noreply@example.no>",
+    "DEFAULT_MODEL": "claude-sonnet-5-5",
+    "ALLOWED_EMAIL_DOMAINS": "",
+    "DEV_MODE": "false"
+  }
+  // Hemmeligheter settes med `wrangler secret put`:
+  //   ANTHROPIC_API_KEY, RESEND_API_KEY
+}
