@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
-import { Box, Building2, DoorOpen, Ellipsis, LayoutDashboard, Layers, MapPin, Pencil, Plus, Sparkles, Trash2, Upload } from "lucide-react";
+import { Box, Building2, DoorOpen, Ellipsis, FileText, LayoutDashboard, Layers, MapPin, Pencil, Plus, Sparkles, Trash2, Upload } from "lucide-react";
 import type { Artifact, Building, Component, Document, Floor, Property, Room, Task } from "@shared/types";
 import { useAgentPanel, useOrg, useOrgApi, useOrgQuery, useSetFocus } from "@/lib/app";
 import { formatArea, formatDate } from "@/lib/format";
-import { Button, Card, CardHeader, EmptyState, ErrorState, IconButton, KeyValues, Loading, Menu, MenuItem, PageHeader, Stat, Tabs, useConfirm } from "@/components/ui";
+import { Button, Card, CardHeader, cn, EmptyState, ErrorState, IconButton, KeyValues, Loading, Menu, MenuItem, PageHeader, Stat, Tabs, useConfirm, useToast } from "@/components/ui";
 import { BuildingFormModal, ComponentFormModal, FloorFormModal, PropertyFormModal, RoomFormModal, TaskFormModal, UploadModal } from "@/components/forms";
+import { FloorplanModal } from "@/features/floorplan/FloorplanModal";
+import { PlaceCover, PlaceFrame } from "@/features/places/PlacePhoto";
 import { ComponentTable, DocumentTable, TableShell, TaskTable } from "@/components/lists";
 
 function useDelete(path: string, label: string, after: string) {
@@ -25,8 +27,8 @@ function useDelete(path: string, label: string, after: string) {
 
 export function PropertyPage() {
   const { id } = useParams();
-  const { orgId } = useOrg();
-  const q = useOrgQuery<Property & { buildings: (Building & { floor_count: number; open_tasks: number; document_count: number })[] }>(`/portfolio/properties/${id}`);
+  const { orgId, canEdit } = useOrg();
+  const q = useOrgQuery<Property & { document_count: number; buildings: (Building & { floor_count: number; open_tasks: number; document_count: number })[] }>(`/portfolio/properties/${id}`);
   const tasks = useOrgQuery<Task[]>(`/tasks?property_id=${id}`);
   useSetFocus("property", id, q.data?.name);
   const panel = useAgentPanel();
@@ -49,46 +51,56 @@ export function PropertyPage() {
             <Button icon={<Sparkles className="size-4" />} onClick={() => panel.ask(`Gi meg en kort statusoversikt for eiendommen «${p.name}»: bygg, åpne oppgaver, service som forfaller og viktige mangler.`)}>
               Statusoversikt
             </Button>
-            <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setNewBuilding(true)}>
-              Nytt bygg
-            </Button>
-            <Menu trigger={() => <IconButton label="Mer"><Ellipsis className="size-4" /></IconButton>}>
-              {(close) => (
-                <>
-                  <MenuItem icon={<Pencil className="size-4" />} onClick={() => (close(), setEdit(true))}>
-                    Rediger
-                  </MenuItem>
-                  <MenuItem danger icon={<Trash2 className="size-4" />} onClick={() => (close(), del.run())}>
-                    Slett eiendom
-                  </MenuItem>
-                </>
-              )}
-            </Menu>
+            {canEdit && (
+              <>
+                <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setNewBuilding(true)}>
+                  Nytt bygg
+                </Button>
+                <Menu trigger={() => <IconButton label="Mer"><Ellipsis className="size-4" /></IconButton>}>
+                  {(close) => (
+                    <>
+                      <MenuItem icon={<Pencil className="size-4" />} onClick={() => (close(), setEdit(true))}>
+                        Rediger
+                      </MenuItem>
+                      <MenuItem danger icon={<Trash2 className="size-4" />} onClick={() => (close(), del.run())}>
+                        Slett eiendom
+                      </MenuItem>
+                    </>
+                  )}
+                </Menu>
+              </>
+            )}
           </>
         }
       />
+      <PlaceCover kind="properties" id={p.id} name={p.name} hasImage={p.has_image} updatedAt={p.updated_at} />
       {p.description && <p className="-mt-2 mb-6 max-w-3xl text-[14px] text-ink-2">{p.description}</p>}
+
+      {p.document_count > 0 && (
+        <Link to={`/o/${orgId}/documents?eiendom=${p.id}`} className="mb-6 flex items-center gap-3 rounded-xl border border-line bg-panel px-4 py-3 hover:border-line-strong">
+          <FileText className="size-4 shrink-0 text-muted" />
+          <span className="text-[14px] font-medium">{p.document_count === 1 ? "Ett dokument" : `${p.document_count} dokumenter`} på eiendommen</span>
+        </Link>
+      )}
 
       <h2 className="mb-3 text-[15px] font-semibold">Bygg</h2>
       {p.buildings.length === 0 ? (
-        <EmptyState icon={<Building2 className="size-5" />} title="Ingen bygg ennå" description="Legg til byggene på eiendommen for å registrere etasjer, rom og komponenter." action={<Button variant="primary" onClick={() => setNewBuilding(true)}>Nytt bygg</Button>} />
+        <EmptyState icon={<Building2 className="size-5" />} title="Ingen bygg ennå" description="Legg til byggene på eiendommen for å registrere etasjer, rom og komponenter." action={canEdit ? <Button variant="primary" onClick={() => setNewBuilding(true)}>Nytt bygg</Button> : undefined} />
       ) : (
         <div className="grid gap-3 @xl:grid-cols-2 @4xl:grid-cols-3">
           {p.buildings.map((b) => (
-            <Link key={b.id} to={`/o/${orgId}/buildings/${b.id}`} className="group rounded-xl border border-line bg-panel p-4 transition-colors hover:border-line-strong">
-              <div className="flex items-start gap-3">
-                <span className="flex size-10 items-center justify-center rounded-xl bg-panel-2 text-ink-2 group-hover:bg-accent-soft group-hover:text-accent">
-                  <Building2 className="size-5" />
-                </span>
-                <div className="min-w-0">
-                  <div className="truncate font-semibold">{b.name}</div>
-                  <div className="text-[12.5px] text-muted">{[b.building_type, b.year_built, b.gross_area && formatArea(b.gross_area)].filter(Boolean).join(" · ") || "Bygg"}</div>
-                </div>
+            <Link key={b.id} to={`/o/${orgId}/buildings/${b.id}`} className="group overflow-hidden rounded-xl border border-line bg-panel transition-colors hover:border-line-strong">
+              <PlaceFrame kind="buildings" id={b.id} hasImage={b.has_image} updatedAt={b.updated_at} />
+              <div className="p-4">
+              <div className="min-w-0">
+                <div className="truncate font-semibold">{b.name}</div>
+                <div className="text-[12.5px] text-muted">{[b.building_type, b.year_built, b.gross_area && formatArea(b.gross_area)].filter(Boolean).join(" · ") || "Bygg"}</div>
               </div>
-              <div className="mt-4 flex gap-4 text-[12.5px] text-ink-2">
+              <div className="mt-3 flex gap-4 text-[12.5px] text-ink-2">
                 <span>{b.floor_count} etasjer</span>
                 <span>{b.document_count} dokumenter</span>
                 <span className={b.open_tasks > 0 ? "text-warn" : ""}>{b.open_tasks} åpne oppgaver</span>
+              </div>
               </div>
             </Link>
           ))}
@@ -121,14 +133,14 @@ type Tab = "overview" | "documents" | "components" | "tasks" | "bim" | "artifact
 
 export function BuildingPage() {
   const { id } = useParams();
-  const { orgId } = useOrg();
+  const { orgId, canEdit } = useOrg();
   const [params, setParams] = useSearchParams();
   const tab = (params.get("tab") as Tab) ?? "overview";
   const setTab = (t: Tab) => setParams(t === "overview" ? {} : { tab: t }, { replace: true });
   const q = useOrgQuery<BuildingDetail>(`/portfolio/buildings/${id}`);
   useSetFocus("building", id, q.data?.name);
   const panel = useAgentPanel();
-  const [modal, setModal] = useState<null | "edit" | "floor" | "upload" | "component" | "task">(null);
+  const [modal, setModal] = useState<null | "edit" | "floor" | "plan" | "upload" | "component" | "task">(null);
   const [openTask, setOpenTask] = useState<Task | null>(null);
   const del = useDelete(`/portfolio/buildings/${id}`, "bygget", `/o/${orgId}/properties/${q.data?.property_id ?? ""}`);
 
@@ -147,27 +159,32 @@ export function BuildingPage() {
         subtitle={[b.building_type, b.year_built && `bygget ${b.year_built}`, b.gross_area && `BTA ${formatArea(b.gross_area)}`, b.building_number && `bygningsnr. ${b.building_number}`].filter(Boolean).join(" · ") || "Bygg"}
         actions={
           <>
-            <Button icon={<Upload className="size-4" />} onClick={() => setModal("upload")}>
-              Last opp
-            </Button>
+            {canEdit && (
+              <Button icon={<Upload className="size-4" />} onClick={() => setModal("upload")}>
+                Last opp
+              </Button>
+            )}
             <Button variant="primary" icon={<Sparkles className="size-4" />} onClick={() => panel.ask(`Oppsummer status for bygget «${b.name}»: åpne oppgaver og avvik, service som forfaller, tilstand og dokumentasjonsmangler.`)}>
               Oppsummer
             </Button>
-            <Menu trigger={() => <IconButton label="Mer"><Ellipsis className="size-4" /></IconButton>}>
-              {(close) => (
-                <>
-                  <MenuItem icon={<Pencil className="size-4" />} onClick={() => (close(), setModal("edit"))}>
-                    Rediger bygg
-                  </MenuItem>
-                  <MenuItem danger icon={<Trash2 className="size-4" />} onClick={() => (close(), del.run())}>
-                    Slett bygg
-                  </MenuItem>
-                </>
-              )}
-            </Menu>
+            {canEdit && (
+              <Menu trigger={() => <IconButton label="Mer"><Ellipsis className="size-4" /></IconButton>}>
+                {(close) => (
+                  <>
+                    <MenuItem icon={<Pencil className="size-4" />} onClick={() => (close(), setModal("edit"))}>
+                      Rediger bygg
+                    </MenuItem>
+                    <MenuItem danger icon={<Trash2 className="size-4" />} onClick={() => (close(), del.run())}>
+                      Slett bygg
+                    </MenuItem>
+                  </>
+                )}
+              </Menu>
+            )}
           </>
         }
       />
+      <PlaceCover kind="buildings" id={b.id} name={b.name} hasImage={b.has_image} updatedAt={b.updated_at} />
       <Tabs
         value={tab}
         onChange={setTab}
@@ -186,17 +203,23 @@ export function BuildingPage() {
           <div>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-[15px] font-semibold">Etasjer</h2>
-              <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setModal("floor")}>
-                Ny etasje
-              </Button>
+              <div className={cn("flex gap-2", !canEdit && "hidden")}>
+                <Button size="sm" icon={<Upload className="size-3.5" />} onClick={() => setModal("plan")}>
+                  Fra plantegning
+                </Button>
+                <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setModal("floor")}>
+                  Ny etasje
+                </Button>
+              </div>
             </div>
             {b.floors.length === 0 ? (
               <EmptyState
                 icon={<Layers className="size-5" />}
                 title="Ingen etasjer"
-                description="Legg til etasjer manuelt, eller last opp en IFC-modell og importer etasjer og rom fra den."
+                description={canEdit ? "Last opp en plantegning, så leser vi etasjer og rom og kan lage en BIM-modell. Du kan også legge dem inn selv, eller hente dem fra en IFC-modell." : "Det er ikke registrert etasjer i bygget ennå."}
                 action={
-                  <div className="flex gap-2">
+                  canEdit && <div className="flex flex-wrap gap-2">
+                    <Button variant="primary" onClick={() => setModal("plan")}>Fra plantegning</Button>
                     <Button onClick={() => setModal("floor")}>Ny etasje</Button>
                     <Button variant="ghost" onClick={() => setTab("bim")}>
                       Importer fra IFC
@@ -256,14 +279,22 @@ export function BuildingPage() {
         </div>
       )}
 
-      {tab === "documents" && <BuildingDocuments buildingId={b.id} onUpload={() => setModal("upload")} />}
+      {tab === "documents" && <BuildingDocuments buildingId={b.id} propertyId={b.property_id} propertyName={b.property_name} onUpload={() => setModal("upload")} />}
       {tab === "components" && <BuildingComponents buildingId={b.id} onNew={() => setModal("component")} />}
       {tab === "tasks" && <BuildingTasks buildingId={b.id} onNew={() => setModal("task")} onOpen={setOpenTask} />}
-      {tab === "bim" && <BuildingBim buildingId={b.id} onUpload={() => setModal("upload")} />}
+      {tab === "bim" && <BuildingBim buildingId={b.id} onUpload={() => setModal("upload")} onPlan={() => setModal("plan")} />}
       {tab === "artifacts" && <BuildingArtifacts building={b} />}
 
       <BuildingFormModal open={modal === "edit"} onClose={() => setModal(null)} building={b} />
       <FloorFormModal open={modal === "floor"} onClose={() => setModal(null)} buildingId={b.id} nextLevel={nextLevel} />
+      <FloorplanModal
+        open={modal === "plan"}
+        onClose={() => setModal(null)}
+        buildingId={b.id}
+        onCreated={(result) => {
+          if (result.modelId) setTab("bim");
+        }}
+      />
       <UploadModal open={modal === "upload"} onClose={() => setModal(null)} defaults={{ property_id: b.property_id, building_id: b.id }} />
       <ComponentFormModal open={modal === "component"} onClose={() => setModal(null)} defaults={{ property_id: b.property_id, building_id: b.id }} />
       <TaskFormModal open={modal === "task" || !!openTask} onClose={() => (setModal(null), setOpenTask(null))} task={openTask ?? undefined} defaults={{ property_id: b.property_id, building_id: b.id }} />
@@ -281,29 +312,42 @@ function SectionHead({ title, action }: { title: string; action?: React.ReactNod
   );
 }
 
-function BuildingDocuments({ buildingId, onUpload }: { buildingId: string; onUpload: () => void }) {
+function BuildingDocuments({ buildingId, propertyId, propertyName, onUpload }: { buildingId: string; propertyId: string; propertyName: string; onUpload: () => void }) {
+  const { orgId, canEdit } = useOrg();
   const docs = useOrgQuery<Document[]>(`/documents?building_id=${buildingId}`, { refetchInterval: (q) => ((q.state.data as Document[] | undefined)?.some((d) => d.status === "processing") ? 3000 : false) });
+  const onProperty = useOrgQuery<Document[]>(`/documents?property_id=${propertyId}`);
   if (docs.isLoading) return <Loading />;
+  const elsewhere = (onProperty.data ?? []).filter((d) => d.building_id !== buildingId).length;
   return (
     <>
-      <SectionHead title="Dokumenter" action={<Button size="sm" icon={<Upload className="size-3.5" />} onClick={onUpload}>Last opp</Button>} />
-      {docs.data?.length ? <DocumentTable documents={docs.data} showLocation={false} /> : <EmptyState title="Ingen dokumenter" description="Last opp FDV-dokumentasjon, produktdatablad, tegninger og rapporter." action={<Button onClick={onUpload}>Last opp</Button>} />}
+      <SectionHead title="Dokumenter" action={canEdit && <Button size="sm" icon={<Upload className="size-3.5" />} onClick={onUpload}>Last opp</Button>} />
+      {elsewhere > 0 && (
+        <p className="mb-3 rounded-xl bg-panel-2 px-4 py-3 text-[13.5px] text-ink-2">
+          {elsewhere === 1 ? "Ett dokument ligger" : `${elsewhere} dokumenter ligger`} på eiendommen {propertyName}, og vises ikke i denne listen.{" "}
+          <Link to={`/o/${orgId}/documents?eiendom=${propertyId}`} className="font-medium text-ink underline">
+            Se eiendommens dokumenter
+          </Link>
+        </p>
+      )}
+      {docs.data?.length ? <DocumentTable documents={docs.data} showLocation={false} /> : <EmptyState title="Ingen dokumenter på bygget" description="Last opp FDV-dokumentasjon, produktdatablad, tegninger og rapporter. Dokumenter som gjelder hele eiendommen, ligger ikke i denne listen." action={canEdit ? <Button onClick={onUpload}>Last opp</Button> : undefined} />}
     </>
   );
 }
 
 function BuildingComponents({ buildingId, onNew }: { buildingId: string; onNew: () => void }) {
+  const { canEdit } = useOrg();
   const comps = useOrgQuery<Component[]>(`/components?building_id=${buildingId}`);
   if (comps.isLoading) return <Loading />;
   return (
     <>
-      <SectionHead title="FDV-register" action={<Button size="sm" icon={<Plus className="size-3.5" />} onClick={onNew}>Ny komponent</Button>} />
-      {comps.data?.length ? <ComponentTable components={comps.data} /> : <EmptyState title="Ingen komponenter" description="Registrer tekniske anlegg og utstyr – eller be Vedlikeholdsplanleggeren hente dem fra dokumentasjonen." action={<Button onClick={onNew}>Ny komponent</Button>} />}
+      <SectionHead title="FDV-register" action={canEdit && <Button size="sm" icon={<Plus className="size-3.5" />} onClick={onNew}>Ny komponent</Button>} />
+      {comps.data?.length ? <ComponentTable components={comps.data} /> : <EmptyState title="Ingen komponenter" description="Registrer tekniske anlegg og utstyr – eller be Vedlikeholdsplanleggeren hente dem fra dokumentasjonen." action={canEdit ? <Button onClick={onNew}>Ny komponent</Button> : undefined} />}
     </>
   );
 }
 
 function BuildingTasks({ buildingId, onNew, onOpen }: { buildingId: string; onNew: () => void; onOpen: (t: Task) => void }) {
+  const { canEdit } = useOrg();
   const [status, setStatus] = useState("open");
   const tasks = useOrgQuery<Task[]>(`/tasks?building_id=${buildingId}&status=${status}`);
   return (
@@ -317,9 +361,11 @@ function BuildingTasks({ buildingId, onNew, onOpen }: { buildingId: string; onNe
               <option value="done">Utførte</option>
               <option value="all">Alle</option>
             </select>
-            <Button size="sm" icon={<Plus className="size-3.5" />} onClick={onNew}>
-              Ny oppgave
-            </Button>
+            {canEdit && (
+              <Button size="sm" icon={<Plus className="size-3.5" />} onClick={onNew}>
+                Ny oppgave
+              </Button>
+            )}
           </div>
         }
       />
@@ -328,13 +374,22 @@ function BuildingTasks({ buildingId, onNew, onOpen }: { buildingId: string; onNe
   );
 }
 
-function BuildingBim({ buildingId, onUpload }: { buildingId: string; onUpload: () => void }) {
-  const { orgId } = useOrg();
+function BuildingBim({ buildingId, onUpload, onPlan }: { buildingId: string; onUpload: () => void; onPlan: () => void }) {
+  const { orgId, canEdit } = useOrg();
+  const call = useOrgApi();
+  const toast = useToast();
+  const { confirm, dialog } = useConfirm();
   const models = useOrgQuery<{ id: string; title: string; filename: string; size: number; created_at: number; schema: string | null; indexed_at: number | null; stats: { by_type: Record<string, number> } | null }[]>(`/ifc/models?building_id=${buildingId}`);
+  const remove = async (model: { id: string; title: string }) => {
+    if (!(await confirm({ title: "Slette BIM-modellen?", message: `«${model.title}» og indeksen slettes. Etasjer og rom i registeret beholdes.`, confirm: "Slett", danger: true }))) return;
+    await call(`/documents/${model.id}`, { method: "DELETE" });
+    toast("BIM-modellen er slettet");
+  };
   if (models.isLoading) return <Loading />;
   return (
     <>
-      <SectionHead title="BIM-modeller (IFC)" action={<Button size="sm" icon={<Upload className="size-3.5" />} onClick={onUpload}>Last opp IFC</Button>} />
+      {dialog}
+      <SectionHead title="BIM-modeller (IFC)" action={canEdit && <Button size="sm" icon={<Upload className="size-3.5" />} onClick={onUpload}>Last opp IFC</Button>} />
       {models.data?.length ? (
         <div className="grid gap-3 @xl:grid-cols-2">
           {models.data.map((m) => {
@@ -351,12 +406,35 @@ function BuildingBim({ buildingId, onUpload }: { buildingId: string; onUpload: (
                   </span>
                   <span className="mt-2 block text-[12.5px] text-ink-2">{m.indexed_at ? `${total} elementer indeksert` : "Ikke indeksert – åpne modellen for å indeksere"}</span>
                 </span>
+                <button
+                  type="button"
+                  aria-label={`Slett ${m.title}`}
+                  title="Slett modell"
+                  className={cn("rounded-md p-1.5 text-muted hover:bg-bad-soft hover:text-bad", !canEdit && "hidden")}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    void remove(m);
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                </button>
               </Link>
             );
           })}
         </div>
       ) : (
-        <EmptyState icon={<Box className="size-5" />} title="Ingen IFC-modeller" description="Last opp en IFC-fil for å se modellen i 3D, importere etasjer og rom og la agentene spørre mot modellen." action={<Button onClick={onUpload}>Last opp IFC</Button>} />
+        <EmptyState
+          icon={<Box className="size-5" />}
+          title="Ingen IFC-modeller"
+          description="Lag en modell fra plantegning, eller last opp en IFC-fil. Rommene i modellen kobles til etasjene i bygget."
+          action={
+            canEdit && <div className="flex flex-wrap justify-center gap-2">
+              <Button variant="primary" onClick={onPlan}>Fra plantegning</Button>
+              <Button onClick={onUpload}>Last opp IFC</Button>
+            </div>
+          }
+        />
       )}
     </>
   );
@@ -399,7 +477,7 @@ function BuildingArtifacts({ building }: { building: BuildingDetail }) {
 
 export function FloorPage() {
   const { id } = useParams();
-  const { orgId } = useOrg();
+  const { orgId, canEdit } = useOrg();
   const q = useOrgQuery<Floor & { building_name: string; property_id: string; property_name: string; rooms: (Room & { component_count: number })[] }>(`/portfolio/floors/${id}`);
   const comps = useOrgQuery<Component[]>(`/components?floor_id=${id}`);
   useSetFocus("floor", id, q.data ? `${q.data.building_name} › ${q.data.name}` : undefined);
@@ -422,28 +500,30 @@ export function FloorPage() {
         title={f.name}
         subtitle={`${f.rooms.length} rom · ${formatArea(totalArea || null)} romareal · nivå ${f.level}`}
         actions={
-          <>
-            <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setModal("room")}>
-              Nytt rom
-            </Button>
-            <Menu trigger={() => <IconButton label="Mer"><Ellipsis className="size-4" /></IconButton>}>
-              {(close) => (
-                <>
-                  <MenuItem icon={<Pencil className="size-4" />} onClick={() => (close(), setModal("edit"))}>
-                    Rediger etasje
-                  </MenuItem>
-                  <MenuItem danger icon={<Trash2 className="size-4" />} onClick={() => (close(), del.run())}>
-                    Slett etasje
-                  </MenuItem>
-                </>
-              )}
-            </Menu>
-          </>
+          canEdit && (
+            <>
+              <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setModal("room")}>
+                Nytt rom
+              </Button>
+              <Menu trigger={() => <IconButton label="Mer"><Ellipsis className="size-4" /></IconButton>}>
+                {(close) => (
+                  <>
+                    <MenuItem icon={<Pencil className="size-4" />} onClick={() => (close(), setModal("edit"))}>
+                      Rediger etasje
+                    </MenuItem>
+                    <MenuItem danger icon={<Trash2 className="size-4" />} onClick={() => (close(), del.run())}>
+                      Slett etasje
+                    </MenuItem>
+                  </>
+                )}
+              </Menu>
+            </>
+          )
         }
       />
       <h2 className="mb-3 text-[15px] font-semibold">Rom</h2>
       {f.rooms.length === 0 ? (
-        <EmptyState icon={<DoorOpen className="size-5" />} title="Ingen rom" action={<Button onClick={() => setModal("room")}>Nytt rom</Button>} />
+        <EmptyState icon={<DoorOpen className="size-5" />} title="Ingen rom" action={canEdit ? <Button onClick={() => setModal("room")}>Nytt rom</Button> : undefined} />
       ) : (
         <TableShell
           head={
@@ -469,9 +549,11 @@ export function FloorPage() {
               <td className="px-3 py-2.5 text-ink-2 tabular-nums">{formatArea(r.area)}</td>
               <td className="px-3 py-2.5 text-ink-2 tabular-nums">{r.component_count}</td>
               <td className="px-2">
-                <IconButton label="Rediger" size="sm" onClick={() => setEditRoom(r)}>
-                  <Pencil className="size-3.5" />
-                </IconButton>
+                {canEdit && (
+                  <IconButton label="Rediger" size="sm" onClick={() => setEditRoom(r)}>
+                    <Pencil className="size-3.5" />
+                  </IconButton>
+                )}
               </td>
             </tr>
           ))}
@@ -479,9 +561,11 @@ export function FloorPage() {
       )}
       <div className="mt-8 mb-3 flex items-center justify-between">
         <h2 className="text-[15px] font-semibold">Komponenter i etasjen</h2>
-        <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setModal("component")}>
-          Ny komponent
-        </Button>
+        {canEdit && (
+          <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setModal("component")}>
+            Ny komponent
+          </Button>
+        )}
       </div>
       {comps.data?.length ? <ComponentTable components={comps.data} /> : <div className="text-[13px] text-muted">Ingen komponenter registrert.</div>}
       <FloorFormModal open={modal === "edit"} onClose={() => setModal(null)} floor={f} />
@@ -496,7 +580,7 @@ export function FloorPage() {
 
 export function RoomPage() {
   const { id } = useParams();
-  const { orgId } = useOrg();
+  const { orgId, canEdit } = useOrg();
   const q = useOrgQuery<Room & { floor_name: string; building_name: string; property_id: string }>(`/portfolio/rooms/${id}`);
   const comps = useOrgQuery<Component[]>(`/components?room_id=${id}`);
   const docs = useOrgQuery<Document[]>(`/documents?room_id=${id}`);
@@ -521,32 +605,38 @@ export function RoomPage() {
         subtitle={[r.usage, formatArea(r.area)].filter((x) => x && x !== "–").join(" · ") || "Rom"}
         actions={
           <>
-            <Button icon={<Plus className="size-4" />} onClick={() => setModal("task")}>
-              Meld avvik
-            </Button>
+            {canEdit && (
+              <Button icon={<Plus className="size-4" />} onClick={() => setModal("task")}>
+                Meld avvik
+              </Button>
+            )}
             <Button variant="primary" icon={<Sparkles className="size-4" />} onClick={() => panel.ask(`Hva finnes av tekniske komponenter, dokumentasjon og åpne oppgaver i rommet ${r.number ?? ""} ${r.name}?`)}>
               Spør om rommet
             </Button>
-            <Menu trigger={() => <IconButton label="Mer"><Ellipsis className="size-4" /></IconButton>}>
-              {(close) => (
-                <>
-                  <MenuItem icon={<Pencil className="size-4" />} onClick={() => (close(), setModal("edit"))}>
-                    Rediger rom
-                  </MenuItem>
-                  <MenuItem danger icon={<Trash2 className="size-4" />} onClick={() => (close(), del.run())}>
-                    Slett rom
-                  </MenuItem>
-                </>
-              )}
-            </Menu>
+            {canEdit && (
+              <Menu trigger={() => <IconButton label="Mer"><Ellipsis className="size-4" /></IconButton>}>
+                {(close) => (
+                  <>
+                    <MenuItem icon={<Pencil className="size-4" />} onClick={() => (close(), setModal("edit"))}>
+                      Rediger rom
+                    </MenuItem>
+                    <MenuItem danger icon={<Trash2 className="size-4" />} onClick={() => (close(), del.run())}>
+                      Slett rom
+                    </MenuItem>
+                  </>
+                )}
+              </Menu>
+            )}
           </>
         }
       />
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-[15px] font-semibold">Komponenter</h2>
-        <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setModal("component")}>
-          Ny komponent
-        </Button>
+        {canEdit && (
+          <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setModal("component")}>
+            Ny komponent
+          </Button>
+        )}
       </div>
       {comps.data?.length ? <ComponentTable components={comps.data} showLocation={false} /> : <div className="text-[13px] text-muted">Ingen komponenter i rommet.</div>}
       {docs.data && docs.data.length > 0 && (

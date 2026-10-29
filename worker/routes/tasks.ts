@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
+import { assertCanEditEntity } from "../lib/access";
 import { logActivity } from "../lib/activity";
 import { body, notFound } from "../lib/http";
 import { createTask, getTask, listTasks, taskPatchSchema, taskSchema, updateTask } from "../services/tasks";
@@ -57,6 +58,7 @@ tasks.patch("/:id", async (c) => {
 });
 
 tasks.delete("/:id", async (c) => {
+  await assertCanEditEntity(c.env, c.get("orgId"), "task", c.req.param("id"), "Oppgaven");
   const res = await c.env.DB.prepare(`DELETE FROM tasks WHERE id = ? AND org_id = ?`).bind(c.req.param("id"), c.get("orgId")).run();
   if (!res.meta.changes) throw notFound("Oppgaven");
   return c.json({ ok: true });

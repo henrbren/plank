@@ -1,9 +1,11 @@
 import type { Context, MiddlewareHandler } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import type { AppEnv, Env, SessionUser } from "../env";
+import { FULL_ACCESS, loadAccess, runWithAccess, type MembershipAccessRow } from "./access";
 import { first } from "./db";
+import { isPlatformAdmin } from "./billing";
 import { ApiError, forbidden } from "./http";
-import { now, randomToken, sha256 } from "./util";
+import { now, osloDateLong, randomToken, sha256 } from "./util";
 
 export const SESSION_COOKIE = "plank_session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -57,20 +59,31 @@ export const requireUser: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
 };
 
-/** Krever medlemskap i organisasjonen i :orgId */
+/** Krever medlemskap i organisasjonen i :orgId, og setter tilgangen for resten av forespørselen */
 export const requireOrg: MiddlewareHandler<AppEnv> = async (c, next) => {
   const orgId = c.req.param("orgId");
   if (!orgId) throw forbidden();
-  const m = await first<{ role: "owner" | "admin" | "member" }>(
-    c.env.DB,
-    `SELECT role FROM memberships WHERE org_id = ? AND user_id = ?`,
-    orgId,
-    c.get("user").id,
-  );
-  if (!m) throw forbidden("Du er ikke medlem av denne organisasjonen");
+  const user = c.get("user");
+  const m = await first<MembershipAccessRow>(c.env.DB, `SELECT role, can_edit, scope, expires_at FROM memberships WHERE org_id = ? AND user_id = ?`, orgId, user.id);
+  if (!m) {
+    if (isPlatformAdmin(c.env, user.email)) {
+      c.set("orgId", orgId);
+      c.set("role", "member");
+      const access = { ...FULL_ACCESS, userId: user.id, admin: false };
+      c.set("access", access);
+      await runWithAccess(access, () => next());
+      return;
+    }
+    throw forbidden("Du er ikke medlem av denne organisasjonen");
+  }
+  if (m.role === "member" && m.expires_at && m.expires_at <= now()) {
+    throw forbidden(`Tilgangen din utløp ${osloDateLong(m.expires_at - 1)}. Be en administrator om å forlenge den.`);
+  }
+  const access = await loadAccess(c.env, orgId, user.id, m);
   c.set("orgId", orgId);
   c.set("role", m.role);
-  await next();
+  c.set("access", access);
+  await runWithAccess(access, () => next());
 };
 
 export function requireAdmin(c: Context<AppEnv>) {

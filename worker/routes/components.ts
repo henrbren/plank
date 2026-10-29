@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
+import { assertCanEditEntity } from "../lib/access";
 import { logActivity } from "../lib/activity";
 import { body, notFound } from "../lib/http";
 import { componentSchema, createComponent, getComponent, listComponents, updateComponent } from "../services/components";
@@ -48,6 +49,7 @@ components.post("/", async (c) => {
 components.patch("/:id", async (c) => c.json(await updateComponent(c.env, c.get("orgId"), c.req.param("id"), await body(c, componentSchema.partial()))));
 
 components.delete("/:id", async (c) => {
+  await assertCanEditEntity(c.env, c.get("orgId"), "component", c.req.param("id"), "Komponenten");
   const res = await c.env.DB.prepare(`DELETE FROM components WHERE id = ? AND org_id = ?`).bind(c.req.param("id"), c.get("orgId")).run();
   if (!res.meta.changes) throw notFound("Komponenten");
   return c.json({ ok: true });

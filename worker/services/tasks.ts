@@ -5,7 +5,8 @@ import { notFound } from "../lib/http";
 import { optDate, optId, optStr, reqStr } from "../lib/schemas";
 import { newId, now } from "../lib/util";
 import type { Task } from "../../shared/types";
-import { resolveLocation } from "./portfolio";
+import { assertCanEdit, scopeSql, sees } from "../lib/access";
+import { resolveWritableLocation } from "./portfolio";
 
 const taskFields = {
   property_id: optId(),
@@ -76,6 +77,8 @@ export async function listTasks(env: Env, orgId: string, f: TaskFilter = {}): Pr
   if (f.component_id) where.push("t.component_id = ?"), params.push(f.component_id);
   if (f.due_before) where.push("t.due_date IS NOT NULL AND t.due_date <= ?"), params.push(f.due_before);
   if (f.q) where.push("(t.title LIKE ? OR t.description LIKE ?)"), params.push(`%${f.q}%`, `%${f.q}%`);
+  const scope = scopeSql({ building: "t.building_id", property: "t.property_id" });
+  where.push(scope.sql), params.push(...scope.params);
   const limit = Math.min(Math.max(f.limit ?? 300, 1), 1000);
   return all<Task>(
     env.DB,
@@ -90,7 +93,7 @@ export async function listTasks(env: Env, orgId: string, f: TaskFilter = {}): Pr
 
 export async function getTask(env: Env, orgId: string, id: string): Promise<Task> {
   const t = await first<Task>(env.DB, `${SELECT} WHERE t.id = ? AND t.org_id = ?`, id, orgId);
-  if (!t) throw notFound("Oppgaven");
+  if (!t || !sees(t)) throw notFound("Oppgaven");
   return t;
 }
 
@@ -104,10 +107,10 @@ async function locationFor(env: Env, orgId: string, input: Partial<z.infer<typeo
       input.component_id,
       orgId,
     );
-    if (!c) throw notFound("Komponenten");
+    if (!c || !sees(c)) throw notFound("Komponenten");
     if (!input.room_id && !input.floor_id && !input.building_id) loc = { ...input, ...c };
   }
-  return resolveLocation(env, orgId, loc);
+  return resolveWritableLocation(env, orgId, loc);
 }
 
 export async function createTask(
@@ -135,6 +138,7 @@ export async function createTask(
 
 export async function updateTask(env: Env, orgId: string, id: string, patch: z.infer<typeof taskPatchSchema>): Promise<Task> {
   const existing = await getTask(env, orgId, id);
+  assertCanEdit(existing);
   const next: Record<string, unknown> = { ...patch, updated_at: now() };
   const locKeys = ["property_id", "building_id", "floor_id", "room_id", "component_id"] as const;
   if (locKeys.some((k) => k in patch)) {

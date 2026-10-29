@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv, Env } from "../env";
+import { assertCanEdit, locate, scopeSql, sees } from "../lib/access";
 import { logActivity } from "../lib/activity";
 import { all, first, insert } from "../lib/db";
-import { badRequest, body } from "../lib/http";
+import { badRequest, body, notFound } from "../lib/http";
 import { newId, now, parseJson } from "../lib/util";
 import type { IfcSummary } from "../../shared/types";
 
@@ -68,13 +69,14 @@ async function bulkInsertElements(env: Env, docId: string, orgId: string, buildi
 ifc.post("/import", async (c) => {
   const orgId = c.get("orgId");
   const input = await body(c, importSchema);
-  const doc = await first<{ id: string; building_id: string | null; title: string }>(
+  const doc = await first<{ id: string; building_id: string | null; property_id: string | null; title: string }>(
     c.env.DB,
-    `SELECT id, building_id, title FROM documents WHERE id = ? AND org_id = ?`,
+    `SELECT id, building_id, property_id, title FROM documents WHERE id = ? AND org_id = ?`,
     input.document_id,
     orgId,
   );
-  if (!doc) throw badRequest("Ukjent dokument");
+  if (!doc || !sees(doc)) throw badRequest("Ukjent dokument");
+  assertCanEdit(doc);
   const t = now();
 
   // Elementindeks
@@ -185,17 +187,21 @@ ifc.post("/import", async (c) => {
 
 ifc.get("/models", async (c) => {
   const buildingId = c.req.query("building_id");
+  const scope = scopeSql({ building: "d.building_id", property: "d.property_id" });
   const rows = await all<{ id: string; title: string; filename: string; size: number; building_id: string | null; created_at: number; schema: string | null; stats: string | null; indexed_at: number | null }>(
     c.env.DB,
     `SELECT d.id, d.title, d.filename, d.size, d.building_id, d.created_at, m.schema, m.stats, m.indexed_at
      FROM documents d LEFT JOIN ifc_models m ON m.document_id = d.id
-     WHERE d.org_id = ? AND d.kind = 'ifc' ${buildingId ? "AND d.building_id = ?" : ""} ORDER BY d.created_at DESC`,
+     WHERE d.org_id = ? AND d.kind = 'ifc' ${buildingId ? "AND d.building_id = ?" : ""} AND ${scope.sql} ORDER BY d.created_at DESC`,
     ...(buildingId ? [c.get("orgId"), buildingId] : [c.get("orgId")]),
+    ...scope.params,
   );
   return c.json(rows.map((r) => ({ ...r, stats: parseJson(r.stats, null) })));
 });
 
 ifc.get("/summary/:documentId", async (c) => {
+  const place = await locate(c.env, c.get("orgId"), "document", c.req.param("documentId"));
+  if (!place || !sees(place)) throw notFound("Dokumentet");
   const row = await first<{ document_id: string; schema: string | null; stats: string | null; indexed_at: number }>(
     c.env.DB,
     `SELECT document_id, schema, stats, indexed_at FROM ifc_models WHERE document_id = ? AND org_id = ?`,
@@ -224,6 +230,8 @@ export async function queryIfcElements(
   if (f.storey) where.push("storey LIKE ?"), params.push(`%${f.storey}%`);
   if (f.guid) where.push("guid = ?"), params.push(f.guid);
   if (f.q) where.push("(name LIKE ? OR props LIKE ?)"), params.push(`%${f.q}%`, `%${f.q}%`);
+  const scope = scopeSql({ building: "building_id" });
+  where.push(scope.sql), params.push(...scope.params);
   const limit = Math.min(Math.max(Number.isFinite(f.limit) ? Number(f.limit) : 200, 1), 1000);
   const rows = await all<{ document_id: string; express_id: number; guid: string | null; ifc_type: string; name: string | null; storey: string | null; props: string | null }>(
     env.DB,

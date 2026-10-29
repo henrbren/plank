@@ -1,3 +1,4 @@
+import type { Access } from "../lib/access";
 import type { FocusContext, ToolGroup } from "../../shared/types";
 
 export const BRIDGE_DOC = `## Sider (artifacts)
@@ -18,6 +19,15 @@ Ressurser:
 - "documents.search" {q, building_id?} → [{document_id, title, kind, snippet, building_name}]
 - "ifc.models" {building_id?} → IFC-modeller med stats.by_type og stats.by_storey
 - "ifc.elements" {building_id?, type?, storey?, q?, limit?} → [{guid, ifc_type, name, storey, props}]
+- "laft.status" {} → tilkobling
+- "laft.buildings" {} → bygg i LAFT (plankBuildingId når hentet inn)
+- "laft.building" {id} → etasjer og rom
+- "laft.dashboard" {} → forfalt, denne uken, uten ansvarlig
+- "laft.work_orders" {status?, building?, past_due?, q?, first?} → arbeidsordrer
+- "laft.documents" {building, parent?} → mapper og filer
+- "laft.search" {q, building?} → dokumenter og annet i LAFT
+- "boligmappa.tree" {} → synket tre fra Boligmappa
+- "boligmappa.documents" {building?} → dokumenter i Boligmappa (importedDocumentId når hentet inn)
 
 \`\`\`js
 await plank.action(name, params)      // endringer – brukeren må bekrefte i en dialog
@@ -33,7 +43,26 @@ Krav til sider:
 - Hent alltid data med plank.query – ikke hardkod data som finnes i Plank. Vis lastetilstand og feilmeldinger.
 - Escape all tekst fra data før den settes inn som HTML.
 - Ikke bruk fetch, localStorage, cookies eller eksterne API-er.
+- Når siden skal brukes ofte: sett i_sidemenyen=true på create_artifact, eller bruk pin_artifact_sidebar. Velg et ikon som passer (dashboard, calendar, flame, wrench, …).
 - Ved endringer: les gjeldende versjon med get_artifact, og lever hele det oppdaterte dokumentet med update_artifact.`;
+
+const LAFT_DOC = `## LAFT
+Organisasjonen kan være koblet til LAFT. Du har samme lesetilgang som den som koblet til.
+- Start med laft_status og laft_buildings. plankBuildingId betyr at bygget allerede er i Plank.
+- Arbeidsordrer: laft_dashboard, laft_work_orders, laft_work_order, laft_calendar.
+- Dokumentarkiv: laft_documents (mapper), laft_search, deretter laft_import_documents.
+- Hent bygg inn med laft_import_buildings. Kall igjen med remaining til listen er tom.
+- Det de faste verktøyene ikke dekker: laft_schema, så laft_query (kun query, aldri mutation).
+- Skriving (hvis du har laft_write): laft_create_work_order, laft_comment_work_order, laft_update_work_order.
+Henvis til Plank-bygg med [navn](plank://building/ID). LAFT-ordrer har url i svaret.`;
+
+const BOLIGMAPPA_DOC = `## Boligmappa
+Organisasjonen kan være koblet til Boligmappa på et organisasjonsnummer. Du leser det samme hierarkiet som brukeren ser, og kan hente det inn i Plank.
+- Start med boligmappa_oversikt. importedBuildingId / importedPropertyId betyr at det allerede er i Plank.
+- Er status ikke ready: boligmappa_synk. Kall igjen til status er ready (restart=true starter på nytt).
+- Dokumentlister: boligmappa_documents (valgfritt building=BMN). importedDocumentId er Plank-dokumentet.
+- Hent bygg og dokumenter med boligmappa_import (bmns). Kall igjen til remainingDocuments er 0.
+Henvis til Plank-bygg med [navn](plank://building/ID). Når brukeren vil ha en fast oversikt, lag en side med boligmappa.tree / boligmappa.documents.`;
 
 export function buildSystemPrompt(opts: {
   agentName: string;
@@ -42,6 +71,7 @@ export function buildSystemPrompt(opts: {
   scopeLabel: string | null;
   tools: ToolGroup[];
   scheduled: boolean;
+  access?: Access;
 }): string {
   // NB: Systemprompten fryses per samtale (se runtime.ts). Dynamisk innhold som dato legges i brukermeldingen.
   const parts = [
@@ -65,7 +95,17 @@ NS 3451 (bygningsdelstabell): 2 Bygning (21 grunn og fundamenter, 22 bæresystem
 Tilstandsgrader (NS 3424): TG0 ingen avvik, TG1 mindre avvik, TG2 vesentlige avvik, TG3 store eller alvorlige avvik, TGIU ikke undersøkt.
 Typiske periodiske kontroller: brannalarmanlegg (årlig, NS 3960), sprinkleranlegg (NS-EN 12845), heis (årlig periodisk kontroll), elektriske anlegg (internkontroll), ventilasjon (filterbytte, rengjøring, innregulering), nødlys og ledesystem, rømningsveier, fyringsanlegg og oljetanker.`,
   ];
+  const access = opts.access;
+  if (access && (!access.canEdit || access.scope)) {
+    const lines = ["## Brukerens tilgang"];
+    if (access.scope) lines.push("Brukeren har bare tilgang til deler av porteføljen. Verktøyene viser bare det brukeren har tilgang til – ikke anta at det finnes mer, og ikke si at noe mangler i organisasjonen.");
+    if (!access.canEdit)
+      lines.push("Brukeren har lesetilgang. Du kan slå opp, forklare og oppsummere, men ikke opprette eller endre noe. Ber brukeren om endringer, si at det krever redigeringstilgang fra en administrator.");
+    parts.push(lines.join("\n"));
+  }
   if (opts.tools.includes("artifacts")) parts.push(BRIDGE_DOC);
+  if (opts.tools.includes("laft") || opts.tools.includes("laft_import") || opts.tools.includes("laft_write")) parts.push(LAFT_DOC);
+  if (opts.tools.includes("boligmappa")) parts.push(BOLIGMAPPA_DOC);
   if (opts.instructions.trim()) parts.push(`## Dine instrukser\n${opts.instructions.trim()}`);
   return parts.join("\n\n");
 }

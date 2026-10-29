@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { Code, Ellipsis, History, LayoutDashboard, Maximize2, Minimize2, Pin, PinOff, Plus, Sparkles, Trash2, TriangleAlert } from "lucide-react";
+import { Code, Ellipsis, History, LayoutDashboard, Maximize2, Minimize2, PanelLeft, PanelLeftClose, Pin, PinOff, Plus, Sparkles, Trash2, TriangleAlert } from "lucide-react";
 import type { Agent, Artifact, ArtifactVersion } from "@shared/types";
 import { useAgentPanel, useOrg, useOrgApi, useOrgQuery, useSetFocus } from "@/lib/app";
 import { formatDateTime, timeAgo } from "@/lib/format";
@@ -229,6 +229,12 @@ export function ArtifactPage() {
               </MenuItem>
               <MenuItem icon={a.pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />} onClick={async () => (close(), await call(`/artifacts/${a.id}`, { method: "PATCH", body: { pinned: !a.pinned } }))}>
                 {a.pinned ? "Løsne fra oversikten" : "Fest på oversikten"}
+              </MenuItem>
+              <MenuItem
+                icon={a.sidebar_order != null ? <PanelLeftClose className="size-4" /> : <PanelLeft className="size-4" />}
+                onClick={async () => (close(), await call(`/artifacts/${a.id}/sidebar`, { body: { show: a.sidebar_order == null } }))}
+              >
+                {a.sidebar_order != null ? "Ta ut av sidemenyen" : "Legg i sidemenyen"}
               </MenuItem>
               <MenuItem danger icon={<Trash2 className="size-4" />} onClick={() => (close(), remove())}>
                 Slett side

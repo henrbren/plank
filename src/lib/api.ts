@@ -17,6 +17,8 @@ interface ApiOptions {
 /** Kaller Plank-API-et. path er relativ til /api. */
 export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Promise<T> {
   const headers: Record<string, string> = { "x-plank": "1" };
+  const brand = document.documentElement.dataset.brand;
+  if (brand) headers["x-plank-brand"] = brand;
   let body: BodyInit | undefined;
   if (opts.form) body = opts.form;
   else if (opts.body !== undefined) {

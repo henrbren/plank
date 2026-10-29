@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { Check, ChevronRight, CircleAlert, Globe, LoaderCircle } from "lucide-react";
 import type { ContentBlock, EntityLink, FocusContext, StoredMessage } from "@shared/types";
 import { cn } from "@/components/ui";
-import { ENTITY_ICONS } from "@/components/domain";
+import { ENTITY_ICONS, agentColor } from "@/components/domain";
 import { entityPath, resolvePlankHref } from "@/lib/format";
 import { renderMarkdown } from "@/lib/markdown";
 
@@ -35,6 +35,27 @@ const TOOL_LABELS: Record<string, (i: any) => string> = {
   update_artifact: () => "Oppdaterer siden",
   get_artifact: () => "Leser siden",
   list_artifacts: () => "Lister sider",
+  pin_artifact_sidebar: (i) => (i.show === false ? "Tar siden ut av sidemenyen" : "Legger siden i sidemenyen"),
+  laft_status: () => "Sjekker LAFT",
+  laft_buildings: () => "Henter bygg fra LAFT",
+  laft_building: () => "Henter etasjer fra LAFT",
+  laft_work_orders: () => "Henter arbeidsordrer fra LAFT",
+  laft_work_order: () => "Leser arbeidsordre i LAFT",
+  laft_dashboard: () => "Henter LAFT-dashbord",
+  laft_calendar: () => "Henter LAFT-kalender",
+  laft_documents: () => "Leser dokumentarkivet i LAFT",
+  laft_search: (i) => `Søker i LAFT etter «${i.query ?? ""}»`,
+  laft_schema: () => "Slår opp i LAFT-skjemaet",
+  laft_query: () => "Spør LAFT",
+  laft_import_buildings: () => "Henter bygg fra LAFT",
+  laft_import_documents: () => "Henter dokumenter fra LAFT",
+  laft_create_work_order: () => "Oppretter arbeidsordre i LAFT",
+  laft_comment_work_order: () => "Kommenterer i LAFT",
+  laft_update_work_order: () => "Oppdaterer arbeidsordre i LAFT",
+  boligmappa_oversikt: () => "Henter Boligmappa",
+  boligmappa_synk: () => "Synker Boligmappa",
+  boligmappa_import: () => "Henter fra Boligmappa",
+  boligmappa_documents: () => "Leser dokumenter i Boligmappa",
   ifc_overview: () => "Henter BIM-modeller",
   query_ifc_elements: (i) => `Spør BIM-modellen${i.ifc_type ? ` (${i.ifc_type})` : ""}`,
   send_email: (i) => `Sender e-post «${i.subject ?? ""}»`,
@@ -54,6 +75,7 @@ const LINK_TOOLS: Record<string, EntityLink["type"]> = {
   update_task: "task",
   create_artifact: "artifact",
   update_artifact: "artifact",
+  pin_artifact_sidebar: "artifact",
   save_component: "component",
   read_document: "document",
   update_document: "document",
@@ -250,11 +272,17 @@ export function AssistantTurn({ item, orgId, live }: { item: Item & { kind: "ass
   );
 }
 
-export function UserBubble({ item }: { item: Item & { kind: "user" } }) {
+export function UserBubble({ item, color }: { item: Item & { kind: "user" }; color?: string | null }) {
+  const tone = color ? agentColor(color) : null;
   return (
     <div className="flex flex-col items-end">
       {item.context && item.context.type !== "org" && item.context.label && <div className="mb-1 text-[11.5px] text-muted">{item.context.label}</div>}
-      <div className="max-w-[88%] rounded-2xl rounded-br-md bg-panel-3 px-3.5 py-2 text-[14px] whitespace-pre-wrap">{item.text}</div>
+      <div
+        className={cn("max-w-[88%] rounded-2xl rounded-br-md px-3.5 py-2 text-[14px] whitespace-pre-wrap", !tone && "bg-panel-3")}
+        style={tone ? { background: tone.bg, color: tone.fg } : undefined}
+      >
+        {item.text}
+      </div>
     </div>
   );
 }

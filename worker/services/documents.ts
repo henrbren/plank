@@ -6,7 +6,8 @@ import { ftsQuery, reindexTitle } from "../lib/documents";
 import { optId, optStr } from "../lib/schemas";
 import { now } from "../lib/util";
 import { DOCUMENT_KINDS, type Document, type SearchHit } from "../../shared/types";
-import { resolveLocation } from "./portfolio";
+import { assertCanEdit, scopeSql, sees } from "../lib/access";
+import { resolveWritableLocation } from "./portfolio";
 
 export const documentPatchSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
@@ -46,22 +47,25 @@ export async function listDocuments(env: Env, orgId: string, f: DocumentFilter =
   if (f.component_id) where.push("d.component_id = ?"), params.push(f.component_id);
   if (f.kind) where.push("d.kind = ?"), params.push(f.kind);
   if (f.q) where.push("(d.title LIKE ? OR d.filename LIKE ?)"), params.push(`%${f.q}%`, `%${f.q}%`);
+  const scope = scopeSql({ building: "d.building_id", property: "d.property_id" });
+  where.push(scope.sql), params.push(...scope.params);
   const limit = Math.min(Math.max(f.limit ?? 500, 1), 1000);
   return all<Document>(env.DB, `${SELECT} WHERE ${where.join(" AND ")} ORDER BY d.created_at DESC LIMIT ${limit}`, ...params);
 }
 
 export async function getDocument(env: Env, orgId: string, id: string): Promise<Document & { r2_key: string }> {
   const d = await first<Document & { r2_key: string }>(env.DB, `${SELECT} WHERE d.id = ? AND d.org_id = ?`, id, orgId);
-  if (!d) throw notFound("Dokumentet");
+  if (!d || !sees(d)) throw notFound("Dokumentet");
   return d;
 }
 
 export async function updateDocument(env: Env, orgId: string, id: string, patch: z.infer<typeof documentPatchSchema>): Promise<Document> {
   const existing = await getDocument(env, orgId, id);
+  assertCanEdit(existing);
   const next: Record<string, unknown> = { ...patch, updated_at: now() };
   const locKeys = ["property_id", "building_id", "floor_id", "room_id"] as const;
   if (locKeys.some((k) => k in patch)) {
-    const loc = await resolveLocation(env, orgId, {
+    const loc = await resolveWritableLocation(env, orgId, {
       property_id: patch.property_id !== undefined ? patch.property_id : existing.property_id,
       building_id: patch.building_id !== undefined ? patch.building_id : patch.property_id !== undefined ? null : existing.building_id,
       floor_id: patch.floor_id !== undefined ? patch.floor_id : patch.building_id !== undefined || patch.property_id !== undefined ? null : existing.floor_id,
@@ -70,8 +74,8 @@ export async function updateDocument(env: Env, orgId: string, id: string, patch:
     Object.assign(next, loc);
   }
   if (patch.component_id) {
-    const c = await first(env.DB, `SELECT id FROM components WHERE id = ? AND org_id = ?`, patch.component_id, orgId);
-    if (!c) throw notFound("Komponenten");
+    const c = await first<{ building_id: string | null }>(env.DB, `SELECT building_id FROM components WHERE id = ? AND org_id = ?`, patch.component_id, orgId);
+    if (!c || !sees(c)) throw notFound("Komponenten");
   }
   const stmt = update(
     env.DB,
@@ -87,11 +91,16 @@ export async function updateDocument(env: Env, orgId: string, id: string, patch:
 
 export async function deleteDocument(env: Env, orgId: string, id: string) {
   const d = await getDocument(env, orgId, id);
+  assertCanEdit(d);
   await env.DB.batch([
     env.DB.prepare(`DELETE FROM document_chunks_fts WHERE document_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM document_text WHERE document_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM ifc_elements WHERE document_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM ifc_models WHERE document_id = ?`).bind(id),
     env.DB.prepare(`DELETE FROM documents WHERE id = ? AND org_id = ?`).bind(id, orgId),
   ]);
   await env.FILES.delete(d.r2_key);
+  return d;
 }
 
 /** Fulltekstsøk i dokumenter. Prøver AND først, deretter OR. */
@@ -110,6 +119,8 @@ export async function searchDocuments(
     if (f.building_id) where.push("d.building_id = ?"), params.push(f.building_id);
     if (f.property_id) where.push("d.property_id = ?"), params.push(f.property_id);
     if (f.kind) where.push("d.kind = ?"), params.push(f.kind);
+    const scope = scopeSql({ building: "d.building_id", property: "d.property_id" });
+    where.push(scope.sql), params.push(...scope.params);
     // Hent flere treff enn grensen og slå sammen per dokument
     const rows = await all<SearchHit & { rank: number }>(
       env.DB,

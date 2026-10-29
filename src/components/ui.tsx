@@ -7,6 +7,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ButtonHTMLAttributes,
@@ -143,7 +144,7 @@ export function Checkbox({ checked, onChange, label, description, disabled }: { 
 
 // ─── Visning ─────────────────────────────────────────────────────────────────
 
-type Tone = "neutral" | "accent" | "ok" | "warn" | "bad" | "info";
+export type Tone = "neutral" | "accent" | "ok" | "warn" | "bad" | "info";
 const tones: Record<Tone, string> = {
   neutral: "bg-panel-2 text-ink-2 border-line",
   accent: "bg-accent-soft text-accent border-transparent",
@@ -162,8 +163,12 @@ export function Badge({ tone = "neutral", children, className, dot }: { tone?: T
   );
 }
 
-export function Card({ children, className, padded = true }: { children: ReactNode; className?: string; padded?: boolean }) {
-  return <div className={cn("rounded-xl border border-line bg-panel", padded && "p-4", className)}>{children}</div>;
+export function Card({ children, className, padded = true, id }: { children: ReactNode; className?: string; padded?: boolean; id?: string }) {
+  return (
+    <div id={id} className={cn("rounded-xl border border-line bg-panel", padded && "p-4", className)}>
+      {children}
+    </div>
+  );
 }
 
 export function CardHeader({ title, action, icon }: { title: ReactNode; action?: ReactNode; icon?: ReactNode }) {
@@ -355,9 +360,24 @@ export function Modal({
 
 // ─── Meny ────────────────────────────────────────────────────────────────────
 
-export function Menu({ trigger, children, align = "end", className }: { trigger: (open: boolean) => ReactNode; children: (close: () => void) => ReactNode; align?: "start" | "end"; className?: string }) {
+export function Menu({
+  trigger,
+  children,
+  align = "end",
+  side = "auto",
+  className,
+}: {
+  trigger: (open: boolean) => ReactNode;
+  children: (close: () => void) => ReactNode;
+  align?: "start" | "end";
+  side?: "auto" | "top" | "bottom";
+  className?: string;
+}) {
   const [open, setOpen] = useState(false);
+  const [dropUp, setDropUp] = useState(side === "top");
+  const [maxHeight, setMaxHeight] = useState<number>();
   const ref = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
     const fn = (e: MouseEvent) => {
@@ -371,11 +391,30 @@ export function Menu({ trigger, children, align = "end", className }: { trigger:
       document.removeEventListener("keydown", key);
     };
   }, [open]);
+  useLayoutEffect(() => {
+    if (!open || !ref.current || !panelRef.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const height = panelRef.current.scrollHeight;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const up = side === "top" || (side === "auto" && spaceBelow < height + 8 && spaceAbove > spaceBelow);
+    const available = Math.max(120, (up ? spaceAbove : spaceBelow) - 8);
+    setDropUp(up);
+    setMaxHeight(available);
+  }, [open, side]);
   return (
     <div ref={ref} className={cn("relative", className)}>
       <div onClick={() => setOpen((o) => !o)}>{trigger(open)}</div>
       {open && (
-        <div className={cn("absolute z-40 mt-1 min-w-52 rounded-xl border border-line bg-panel p-1 shadow-pop", align === "end" ? "right-0" : "left-0")}>
+        <div
+          ref={panelRef}
+          style={maxHeight ? { maxHeight } : undefined}
+          className={cn(
+            "absolute z-40 min-w-52 overflow-y-auto rounded-xl border border-line bg-panel p-1 shadow-pop",
+            dropUp ? "bottom-full mb-1" : "top-full mt-1",
+            align === "end" ? "right-0" : "left-0",
+          )}
+        >
           {children(() => setOpen(false))}
         </div>
       )}

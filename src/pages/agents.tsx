@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
-import { Bot, CalendarClock, MessageSquare, Play, Plus, Trash2 } from "lucide-react";
+import { CalendarClock, MessageSquare, Play, Plus, Trash2 } from "lucide-react";
 import { MODELS, TOOL_GROUPS, type Agent, type AgentRun, type AgentTemplate, type Effort, type ToolGroup, type TreeProperty } from "@shared/types";
 import { useAgentPanel, useOrg, useOrgApi, useOrgQuery, useSetFocus } from "@/lib/app";
 import { formatDateTime, timeAgo } from "@/lib/format";
-import { AGENT_COLORS, AGENT_ICONS, AgentAvatar } from "@/components/domain";
+import { AGENT_COLORS, AGENT_SHAPES, AgentAvatar, agentShape } from "@/components/domain";
 import { Badge, Button, Card, Checkbox, ErrorState, Field, Input, Loading, Modal, PageHeader, Select, Textarea, cn, useConfirm, useToast } from "@/components/ui";
 
 type AgentWithLabel = Agent & { schedule_label: string };
 
 export function AgentsPage() {
-  const { orgId } = useOrg();
+  const { orgId, canEdit, limited } = useOrg();
+  const manage = canEdit && !limited;
   useSetFocus("org");
   const agents = useOrgQuery<AgentWithLabel[]>("/agents");
   const panel = useAgentPanel();
@@ -19,13 +20,15 @@ export function AgentsPage() {
   return (
     <div className="mx-auto max-w-6xl px-5 py-7 sm:px-8">
       <PageHeader
-        icon={<Bot className="size-5" />}
+        icon={<AgentAvatar icon="dot" color="wood" />}
         title="Agenter"
-        subtitle="Sett opp agenter med egne instrukser, verktøy og tidsplaner. De jobber med dokumentene, registrene og BIM-modellene dine."
+        subtitle="Hver agent har sin egen form og farge. De jobber med dokumentene, registrene og BIM-modellene dine."
         actions={
-          <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setPicker(true)}>
-            Ny agent
-          </Button>
+          manage && (
+            <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setPicker(true)}>
+              Ny agent
+            </Button>
+          )
         }
       />
       {agents.isLoading ? (
@@ -64,10 +67,12 @@ export function AgentsPage() {
               </div>
             </Card>
           ))}
-          <button onClick={() => setPicker(true)} className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-line-strong text-muted transition-colors hover:border-accent hover:text-accent">
-            <Plus className="mb-2 size-5" />
-            <span className="text-[13.5px] font-medium">Ny agent</span>
-          </button>
+          {manage && (
+            <button onClick={() => setPicker(true)} className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-line-strong text-muted transition-colors hover:border-accent hover:text-accent">
+              <Plus className="mb-2 size-5" />
+              <span className="text-[13.5px] font-medium">Ny agent</span>
+            </button>
+          )}
         </div>
       )}
       <TemplatePicker open={picker} onClose={() => setPicker(false)} />
@@ -291,7 +296,7 @@ export function AgentEditPage() {
       <div className="flex flex-col gap-5">
         <section className={section}>
           <h2 className={h}>Identitet</h2>
-          <p className={sub}>Navn og utseende som vises i chatten.</p>
+          <p className={sub}>Navn, form og farge. Figuren følger agenten i listen, og meldingene dine i samtalen får samme farge.</p>
           <div className="flex flex-col gap-4">
             <Field label="Navn">
               <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="F.eks. Energirådgiver" />
@@ -299,26 +304,22 @@ export function AgentEditPage() {
             <Field label="Beskrivelse">
               <Input value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Én setning om hva agenten gjør" />
             </Field>
-            <div className="flex flex-wrap gap-6">
-              <div>
-                <div className="mb-1.5 text-[13px] font-medium text-ink-2">Ikon</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(AGENT_ICONS).map(([key, Icon]) => (
-                    <button key={key} onClick={() => set("icon", key)} className={cn("flex size-8 items-center justify-center rounded-lg border", form.icon === key ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}>
-                      <Icon className="size-4" />
-                    </button>
-                  ))}
-                </div>
+            <div>
+              <div className="mb-1.5 text-[13px] font-medium text-ink-2">Form</div>
+              <div className="flex flex-wrap gap-1.5">
+                {AGENT_SHAPES.map((s) => (
+                  <button key={s.id} title={s.label} onClick={() => set("icon", s.id)} className={cn("rounded-xl border-2 p-0.5", agentShape(form.icon) === s.id ? "border-ink" : "border-transparent hover:border-line")}>
+                    <AgentAvatar icon={s.id} color={form.color} />
+                  </button>
+                ))}
               </div>
-              <div>
-                <div className="mb-1.5 text-[13px] font-medium text-ink-2">Farge</div>
-                <div className="flex gap-1.5">
-                  {Object.entries(AGENT_COLORS).map(([key, c]) => (
-                    <button key={key} title={c.label} onClick={() => set("color", key)} className={cn("size-8 rounded-lg border-2", form.color === key ? "border-ink" : "border-transparent")} style={{ background: c.bg }}>
-                      <span className="mx-auto block size-3 rounded-full" style={{ background: c.fg }} />
-                    </button>
-                  ))}
-                </div>
+            </div>
+            <div>
+              <div className="mb-1.5 text-[13px] font-medium text-ink-2">Farge</div>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(AGENT_COLORS).map(([key, c]) => (
+                  <button key={key} title={c.label} onClick={() => set("color", key)} className={cn("size-8 rounded-full border-2", form.color === key ? "border-ink" : "border-transparent")} style={{ background: c.bg }} />
+                ))}
               </div>
             </div>
           </div>

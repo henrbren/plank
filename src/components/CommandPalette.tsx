@@ -96,6 +96,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         { key: "nav-docs", icon: <FileText className="size-4" />, label: "Dokumenter", run: go(`/o/${orgId}/documents`) },
         { key: "nav-agents", icon: <Bot className="size-4" />, label: "Agenter", run: go(`/o/${orgId}/agents`) },
         { key: "nav-artifacts", icon: <ENTITY_ICONS.artifact className="size-4" />, label: "Sider", run: go(`/o/${orgId}/artifacts`) },
+        { key: "nav-laft", icon: <ENTITY_ICONS.building className="size-4" />, label: "LAFT", sub: "Datakilde", run: go(`/o/${orgId}/laft`) },
+        { key: "nav-boligmappa", icon: <FileText className="size-4" />, label: "Boligmappa", sub: "Datakilde", run: go(`/o/${orgId}/boligmappa`) },
       );
     }
     return out;

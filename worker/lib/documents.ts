@@ -1,6 +1,7 @@
 import type { Env } from "../env";
 import { DOCUMENT_KINDS, type DocumentKind } from "../../shared/types";
 import { callClaude, claudeConfigured, textOf } from "./anthropic";
+import { aiPause, recordUsage } from "./usage";
 import { first } from "./db";
 import { now } from "./util";
 
@@ -141,8 +142,8 @@ function toBase64(bytes: ArrayBuffer): string {
 }
 
 /** Reserveløsning: la Claude transkribere PDF/bilde til markdown */
-async function extractWithClaude(env: Env, mime: string, bytes: ArrayBuffer): Promise<string | null> {
-  if (!claudeConfigured(env)) return null;
+async function extractWithClaude(env: Env, orgId: string, mime: string, bytes: ArrayBuffer): Promise<string | null> {
+  if (!claudeConfigured(env) || (await aiPause(env, orgId))) return null;
   const isPdf = mime === "application/pdf";
   const isImage = /^image\/(png|jpeg|gif|webp)$/.test(mime);
   if (!isPdf && !isImage) return null;
@@ -164,11 +165,12 @@ async function extractWithClaude(env: Env, mime: string, bytes: ArrayBuffer): Pr
       },
     ],
   });
+  await recordUsage(env, { orgId, model: "claude-haiku-5-5", usage: res.usage, source: "document" });
   return textOf(res.content) || null;
 }
 
 /** Henter ut tekst fra en fil. Returnerer null hvis formatet ikke kan tekstbehandles. */
-export async function extractText(env: Env, filename: string, mime: string, bytes: ArrayBuffer): Promise<string | null> {
+export async function extractText(env: Env, orgId: string, filename: string, mime: string, bytes: ArrayBuffer): Promise<string | null> {
   const ext = extOf(filename);
   if (TEXT_EXT.includes(ext) || mime.startsWith("text/plain") || mime === "text/markdown") {
     return new TextDecoder().decode(bytes);
@@ -176,7 +178,7 @@ export async function extractText(env: Env, filename: string, mime: string, byte
   if (TOMARKDOWN_EXT.includes(ext)) {
     const md = await extractWithAi(env, filename, mime, bytes);
     if (md && md.trim().length > 20) return md;
-    const viaClaude = await extractWithClaude(env, mime, bytes);
+    const viaClaude = await extractWithClaude(env, orgId, mime, bytes);
     if (viaClaude) return viaClaude;
     if (ext === "html" || ext === "htm" || ext === "xml") {
       return new TextDecoder()
@@ -197,8 +199,8 @@ interface Classification {
 }
 
 /** Klassifiserer dokumentet med Claude (Haiku): tittel, type, NS 3451 og sammendrag */
-export async function classifyDocument(env: Env, filename: string, text: string): Promise<Classification | null> {
-  if (!claudeConfigured(env) || text.trim().length < 40) return null;
+export async function classifyDocument(env: Env, orgId: string, filename: string, text: string): Promise<Classification | null> {
+  if (!claudeConfigured(env) || text.trim().length < 40 || (await aiPause(env, orgId))) return null;
   const kinds = Object.entries(DOCUMENT_KINDS)
     .map(([k, v]) => `${k} (${v})`)
     .join(", ");
@@ -226,6 +228,7 @@ Returner JSON med feltene:
       },
     ],
   });
+  await recordUsage(env, { orgId, model: "claude-haiku-5-5", usage: res.usage, source: "document" });
   const raw = textOf(res.content);
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) return null;
@@ -258,7 +261,7 @@ export async function processDocument(env: Env, docId: string): Promise<void> {
     const obj = await env.FILES.get(doc.r2_key);
     if (!obj) throw new Error("Filen finnes ikke i lagringen");
     const bytes = await obj.arrayBuffer();
-    const text = await extractText(env, doc.filename, doc.mime, bytes);
+    const text = await extractText(env, doc.org_id, doc.filename, doc.mime, bytes);
     if (!text || text.trim().length === 0) {
       await env.DB.prepare(`UPDATE documents SET status = 'stored', error = NULL, updated_at = ? WHERE id = ?`).bind(now(), docId).run();
       return;
@@ -267,7 +270,7 @@ export async function processDocument(env: Env, docId: string): Promise<void> {
 
     let cls: Classification | null = null;
     try {
-      cls = await classifyDocument(env, doc.filename, text);
+      cls = await classifyDocument(env, doc.org_id, doc.filename, text);
     } catch (err) {
       console.warn("Klassifisering feilet", err);
     }

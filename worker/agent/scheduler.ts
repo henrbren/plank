@@ -3,6 +3,7 @@ import { activityStatement } from "../lib/activity";
 import { addUsage } from "../lib/anthropic";
 import { all, first } from "../lib/db";
 import { emailConfigured, emailLayout, sendEmail } from "../lib/email";
+import { aiPause } from "../lib/usage";
 import { escapeHtml, newId, now, parseJson, truncate } from "../lib/util";
 import { runTurn } from "./runtime";
 import { nextRunAt } from "./schedule";
@@ -23,6 +24,7 @@ export async function runDueAgents(env: Env): Promise<void> {
       .bind(nextRunAt(agent.schedule, t), t, agent.id, agent.next_run_at)
       .run();
     if (!claim.meta.changes) continue;
+    if (await aiPause(env, agent.org_id)) continue;
     await runScheduledAgent(env, agent, "schedule");
   }
 }

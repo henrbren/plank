@@ -1,10 +1,12 @@
 import type { Env, SessionUser } from "../env";
 import { addUsage, streamClaude, textOf, type Block, type ClaudeMessage, type ClaudeResponse, type ClaudeUsage } from "../lib/anthropic";
+import { recordUsage } from "../lib/usage";
 import { all, first } from "../lib/db";
 import { newId, now, parseJson, truncate } from "../lib/util";
 import type { ChatEvent, FocusContext, ToolGroup } from "../../shared/types";
 import { buildSystemPrompt, contextBlock } from "./prompts";
-import { executeTool, resolveScope, toolLabel, toolsFor, type AgentRow, type ToolContext } from "./tools";
+import { allowedGroups, executeTool, resolveScope, toolLabel, toolsFor, type AgentRow, type ToolContext } from "./tools";
+import { currentAccess, sees } from "../lib/access";
 
 const MAX_STEPS = 24;
 const MAX_TOKENS = 32000;
@@ -108,7 +110,7 @@ async function focusDetail(env: Env, orgId: string, ctx: FocusContext | null | u
   try {
     if (ctx.type === "floor") {
       const f = await first<{ building_id: string; building: string }>(env.DB, `SELECT f.building_id, b.name AS building FROM floors f JOIN buildings b ON b.id = f.building_id WHERE f.id = ? AND f.org_id = ?`, ctx.id, orgId);
-      if (f) return `Etasjen ligger i bygget «${f.building}» (plank://building/${f.building_id}).`;
+      if (f && sees({ building_id: f.building_id })) return `Etasjen ligger i bygget «${f.building}» (plank://building/${f.building_id}).`;
     }
     if (ctx.type === "room") {
       const r = await first<{ floor_id: string; floor: string; building_id: string; building: string }>(
@@ -117,15 +119,20 @@ async function focusDetail(env: Env, orgId: string, ctx: FocusContext | null | u
         ctx.id,
         orgId,
       );
-      if (r) return `Rommet ligger i «${r.floor}» (plank://floor/${r.floor_id}) i bygget «${r.building}» (plank://building/${r.building_id}).`;
+      if (r && sees({ building_id: r.building_id })) return `Rommet ligger i «${r.floor}» (plank://floor/${r.floor_id}) i bygget «${r.building}» (plank://building/${r.building_id}).`;
     }
     if (ctx.type === "component") {
       const c = await first<{ building_id: string | null; room_id: string | null }>(env.DB, `SELECT building_id, room_id FROM components WHERE id = ? AND org_id = ?`, ctx.id, orgId);
-      if (c?.building_id) return `Komponenten står i plank://building/${c.building_id}${c.room_id ? `, rom plank://room/${c.room_id}` : ""}.`;
+      if (c?.building_id && sees(c)) return `Komponenten står i plank://building/${c.building_id}${c.room_id ? `, rom plank://room/${c.room_id}` : ""}.`;
     }
     if (ctx.type === "document") {
-      const d = await first<{ building_id: string | null; component_id: string | null; status: string }>(env.DB, `SELECT building_id, component_id, status FROM documents WHERE id = ? AND org_id = ?`, ctx.id, orgId);
-      if (d) return `Dokumentet${d.building_id ? ` hører til plank://building/${d.building_id}` : ""}${d.component_id ? ` og komponent plank://component/${d.component_id}` : ""}. Les det med read_document hvis spørsmålet gjelder innholdet.`;
+      const d = await first<{ building_id: string | null; property_id: string | null; component_id: string | null; status: string }>(
+        env.DB,
+        `SELECT building_id, property_id, component_id, status FROM documents WHERE id = ? AND org_id = ?`,
+        ctx.id,
+        orgId,
+      );
+      if (d && sees(d)) return `Dokumentet${d.building_id ? ` hører til plank://building/${d.building_id}` : ""}${d.component_id ? ` og komponent plank://component/${d.component_id}` : ""}. Les det med read_document hvis spørsmålet gjelder innholdet.`;
     }
     if (ctx.type === "artifact") {
       return `Hvis brukeren ber om endringer, gjelder det trolig denne siden: les den med get_artifact og lagre ny versjon med update_artifact.`;
@@ -154,7 +161,7 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
     system = conv.system_prompt;
     groups = parseJson<ToolGroup[]>(conv.tool_groups, []);
   } else {
-    groups = parseJson<ToolGroup[]>(agent.tools, []);
+    groups = allowedGroups(parseJson<ToolGroup[]>(agent.tools, []));
     const org = await first<{ name: string }>(env.DB, `SELECT name FROM orgs WHERE id = ?`, orgId);
     system = buildSystemPrompt({
       agentName: agent.name,
@@ -163,6 +170,7 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
       scopeLabel: scope.label,
       tools: groups,
       scheduled: Boolean(opts.scheduled),
+      access: currentAccess(),
     });
     await env.DB.prepare(`UPDATE conversations SET system_prompt = ?, tool_groups = ? WHERE id = ?`).bind(system, JSON.stringify(groups), conversationId).run();
   }
@@ -189,6 +197,7 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
 
   if (tools.length > 0) (tools[tools.length - 1] as { cache_control?: unknown }).cache_control = { type: "ephemeral" };
 
+  try {
   for (let step = 0; step < MAX_STEPS; step++) {
     if (opts.signal?.aborted) break;
     await heartbeat();
@@ -272,6 +281,9 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
   }
 
   await env.DB.prepare(`UPDATE conversations SET updated_at = ? WHERE id = ?`).bind(now(), conversationId).run();
+  } finally {
+    await recordUsage(env, { orgId, model: conv?.model ?? agent.model, usage, source: opts.scheduled ? "schedule" : "chat" });
+  }
   return { finalText, usage, toolCalls };
 }
 

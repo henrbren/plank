@@ -1,27 +1,24 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CircleCheck, CircleAlert, Settings, Trash2, UserPlus } from "lucide-react";
-import type { Member, Role } from "@shared/types";
+import { ArrowRight, CircleCheck, CircleAlert, CreditCard, FolderTree, KeyRound, Settings, UserPlus, Users } from "lucide-react";
+import { PLANS, type BillingInfo, type Member } from "@shared/types";
 import { api } from "@/lib/api";
 import { useOrg, useOrgApi, useOrgQuery, useSetFocus } from "@/lib/app";
-import { formatDate } from "@/lib/format";
-import { Badge, Button, Card, CardHeader, Field, IconButton, Input, PageHeader, Select, useConfirm, useToast } from "@/components/ui";
-
-const ROLES: Record<Role, string> = { owner: "Eier", admin: "Administrator", member: "Medlem" };
+import { formatDate, formatOre } from "@/lib/format";
+import { Badge, Button, ButtonLink, Card, CardHeader, Field, Input, PageHeader, useToast } from "@/components/ui";
 
 export function SettingsPage() {
-  const { org, me, isAdmin } = useOrg();
+  const { org, orgId, me, isAdmin, canEdit, limited } = useOrg();
   useSetFocus("org");
   const qc = useQueryClient();
   const call = useOrgApi();
   const toast = useToast();
-  const { confirm, dialog } = useConfirm();
   const members = useOrgQuery<Member[]>("/members");
-  const health = useQuery({ queryKey: ["health"], queryFn: () => api<{ claude: boolean; email: boolean; ai: boolean; dev: boolean }>("/health") });
+  const health = useQuery({ queryKey: ["health"], queryFn: () => api<{ claude: boolean; email: boolean; ai: boolean; billing: boolean; dev: boolean }>("/health") });
+  const billing = useOrgQuery<BillingInfo>("/billing");
   const [orgName, setOrgName] = useState(org.name);
   const [name, setName] = useState(me.user.name ?? "");
-  const [invite, setInvite] = useState("");
-  const [inviteRole, setInviteRole] = useState<"member" | "admin">("member");
   const [busy, setBusy] = useState<string | null>(null);
   useEffect(() => setOrgName(org.name), [org.name]);
 
@@ -45,20 +42,6 @@ export function SettingsPage() {
       setBusy(null);
     }
   };
-  const sendInvite = async () => {
-    setBusy("invite");
-    try {
-      const res = await call<{ devLink?: string }>("/members", { body: { email: invite, role: inviteRole } });
-      setInvite("");
-      toast(res.devLink ? "Invitert (utviklingsmodus – lenken ble logget)" : "Invitasjon sendt", "ok");
-      if (res.devLink) console.info("Invitasjonslenke:", res.devLink);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Feil", "bad");
-    } finally {
-      setBusy(null);
-    }
-  };
-
   const Status = ({ ok, label, hint }: { ok?: boolean; label: string; hint: string }) => (
     <div className="flex items-start gap-2.5 py-1.5">
       {ok ? <CircleCheck className="mt-0.5 size-4 text-ok" /> : <CircleAlert className="mt-0.5 size-4 text-warn" />}
@@ -102,55 +85,115 @@ export function SettingsPage() {
           </div>
         </Card>
 
-        <Card className="p-5">
-          <CardHeader title="Medlemmer" />
-          {isAdmin && (
-            <div className="mb-4 flex flex-col gap-2 @xl:flex-row">
-              <Input type="email" placeholder="kollega@firma.no" value={invite} onChange={(e) => setInvite(e.target.value)} className="flex-1" />
-              <Select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as "member" | "admin")} className="@xl:w-40">
-                <option value="member">Medlem</option>
-                <option value="admin">Administrator</option>
-              </Select>
-              <Button variant="primary" icon={<UserPlus className="size-4" />} disabled={!invite.includes("@")} loading={busy === "invite"} onClick={sendInvite}>
-                Inviter
-              </Button>
+        {billing.data && (
+          <Card className="p-5">
+            <CardHeader
+              title="Abonnement"
+              icon={<CreditCard className="size-4" />}
+              action={
+                <ButtonLink to={`/o/${orgId}/abonnement`} size="sm" icon={<ArrowRight className="size-3.5" />}>
+                  Abonnement og bruk
+                </ButtonLink>
+              }
+            />
+            <p className="text-[13.5px] text-ink-2">
+              {billing.data.managed ? (
+                <>
+                  Abonnementet er inkludert, med kvote på <b>{billing.data.building_limit} bygg</b>. {billing.data.building_count} er i bruk. AI-bruk på denne kontoen faktureres ikke.
+                </>
+              ) : billing.data.status === "active" || billing.data.status === "past_due" ? (
+                <>
+                  <b>{PLANS[billing.data.plan].name}</b>, {PLANS[billing.data.plan].priceNok.toLocaleString("nb-NO")} kr/mnd inkl. mva. {billing.data.building_count} av {billing.data.building_limit} bygg er i bruk, og{" "}
+                  {formatOre(billing.data.usage.billedOre)} av {formatOre(billing.data.usage.includedOre)} inkludert AI-bruk er brukt denne måneden.
+                </>
+              ) : (
+                <>
+                  Standard koster {PLANS.standard.priceNok.toLocaleString("nb-NO")} kr/mnd og Pro {PLANS.pro.priceNok.toLocaleString("nb-NO")} kr/mnd, inkl. mva. Begge har AI-bruk inkludert hver måned.
+                </>
+              )}
+            </p>
+            <div className="mt-3">
+              <Status
+                ok={billing.data.status === "active"}
+                label={
+                  billing.data.status === "active"
+                    ? "Abonnementet er aktivt"
+                    : billing.data.status === "past_due"
+                      ? "Betalingen er forfalt"
+                      : billing.data.status === "demo"
+                        ? "Demoportefølje"
+                        : billing.data.status === "canceled"
+                          ? "Abonnementet er avsluttet"
+                          : "Abonnementet er ikke startet"
+                }
+                hint={
+                  billing.data.usage.paused
+                    ? "Grensen for ekstra AI-bruk er nådd, og agentene er satt på pause."
+                    : billing.data.note || (billing.data.stripe_ready ? "Betaling skjer via Stripe." : "Stripe er ikke koblet til ennå.")
+                }
+              />
             </div>
-          )}
-          <ul className="divide-y divide-line">
-            {members.data?.map((m) => (
-              <li key={m.user_id} className="flex items-center gap-3 py-2.5">
-                <span className="flex size-8 items-center justify-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent uppercase">{(m.name ?? m.email).slice(0, 1)}</span>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13.5px] font-medium">{m.name ?? m.email}</div>
-                  <div className="truncate text-[12px] text-muted">
-                    {m.email} · medlem siden {formatDate(m.created_at)}
-                  </div>
-                </div>
-                {isAdmin && m.user_id !== me.user.id ? (
-                  <>
-                    <Select className="h-8 w-36" value={m.role} onChange={(e) => call(`/members/${m.user_id}`, { method: "PATCH", body: { role: e.target.value } }).catch((err) => toast(err.message, "bad"))}>
-                      {Object.entries(ROLES).map(([k, v]) => (
-                        <option key={k} value={k}>
-                          {v}
-                        </option>
-                      ))}
-                    </Select>
-                    <IconButton
-                      label="Fjern"
-                      onClick={async () => {
-                        if (await confirm({ title: "Fjerne medlem?", message: `${m.email} mister tilgangen til organisasjonen.`, confirm: "Fjern", danger: true }))
-                          await call(`/members/${m.user_id}`, { method: "DELETE" }).catch((err) => toast(err.message, "bad"));
-                      }}
-                    >
-                      <Trash2 className="size-4" />
-                    </IconButton>
-                  </>
-                ) : (
-                  <Badge>{ROLES[m.role]}</Badge>
-                )}
-              </li>
-            ))}
-          </ul>
+          </Card>
+        )}
+
+        {!limited && (
+        <Card className="p-5">
+          <CardHeader title="Datakilder" />
+          <p className="mb-3 text-[13.5px] text-ink-2">Her henter du bygg og dokumenter inn i Plank. Agentene bruker det samme.</p>
+          <div className="divide-y divide-line rounded-xl border border-line">
+            <Link to={`/o/${orgId}/laft`} className="flex items-center gap-3 px-3 py-3 hover:bg-panel-2">
+              <KeyRound className="size-4 text-muted" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13.5px] font-medium">LAFT</span>
+                <span className="block text-[12.5px] text-muted">Bygg, arbeidsordrer og dokumentarkiv</span>
+              </span>
+            </Link>
+            <Link to={`/o/${orgId}/boligmappa`} className="flex items-center gap-3 px-3 py-3 hover:bg-panel-2">
+              <FolderTree className="size-4 text-muted" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13.5px] font-medium">Boligmappa</span>
+                <span className="block text-[12.5px] text-muted">Bygg og dokumenter på organisasjonsnummer</span>
+              </span>
+            </Link>
+          </div>
+        </Card>
+        )}
+
+        <Card className="p-5">
+          <CardHeader
+            title="Brukere og tilganger"
+            icon={<Users className="size-4" />}
+            action={
+              <ButtonLink to={`/o/${orgId}/tilganger`} size="sm" variant={isAdmin ? "primary" : "secondary"} icon={isAdmin ? <UserPlus className="size-3.5" /> : <ArrowRight className="size-3.5" />}>
+                {isAdmin ? "Inviter og styr tilganger" : "Se brukerne"}
+              </ButtonLink>
+            }
+          />
+          <div className="flex items-center gap-3">
+            <div className="flex -space-x-2">
+              {members.data?.slice(0, 6).map((m) => (
+                <span
+                  key={m.user_id}
+                  title={m.name ?? m.email}
+                  className="flex size-8 items-center justify-center rounded-full border-2 border-panel bg-accent-soft text-[12px] font-semibold text-accent uppercase"
+                >
+                  {(m.name ?? m.email).slice(0, 1)}
+                </span>
+              ))}
+            </div>
+            <p className="text-[13.5px] text-ink-2">
+              {members.data ? `${members.data.length} ${members.data.length === 1 ? "bruker" : "brukere"}. ` : ""}
+              Gi tilgang til hele porteføljen eller bare til utvalgte eiendommer og bygg, med lese- eller redigeringstilgang og sluttdato.
+            </p>
+          </div>
+          {!canEdit || limited ? (
+            <div className="mt-3">
+              <Badge tone="info">
+                {!canEdit ? "Du har lesetilgang" : "Du har tilgang til utvalgte eiendommer og bygg"}
+                {org.expires_on ? ` til og med ${formatDate(org.expires_on)}` : ""}
+              </Badge>
+            </div>
+          ) : null}
         </Card>
 
         <Card className="p-5">
@@ -160,7 +203,6 @@ export function SettingsPage() {
           <Status ok={health.data?.ai} label="Workers AI" hint="Brukes til å hente ut tekst fra PDF, Office-filer og bilder." />
         </Card>
       </div>
-      {dialog}
     </div>
   );
 }

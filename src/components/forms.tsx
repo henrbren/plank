@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { Upload, X } from "lucide-react";
+import { FolderTree, KeyRound, Upload, X } from "lucide-react";
 import {
   DOCUMENT_KINDS,
   TASK_PRIORITIES,
@@ -99,6 +99,48 @@ function FormModal({
 
 const grid2 = "grid grid-cols-1 gap-4 sm:grid-cols-2";
 
+function ImportSources({ onLeave }: { onLeave: () => void }) {
+  const { orgId } = useOrg();
+  const navigate = useNavigate();
+  const go = (path: "boligmappa" | "laft") => {
+    onLeave();
+    navigate(`/o/${orgId}/${path}`);
+  };
+  return (
+    <div>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => go("boligmappa")}
+          className="flex flex-col items-start gap-0.5 rounded-xl border border-line px-3 py-2.5 text-left hover:border-line-strong hover:bg-panel-2"
+        >
+          <span className="flex items-center gap-1.5 text-[13px] font-medium">
+            <FolderTree className="size-3.5 text-muted" />
+            Boligmappa
+          </span>
+          <span className="text-[12px] text-muted">Bygg og dokumenter</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => go("laft")}
+          className="flex flex-col items-start gap-0.5 rounded-xl border border-line px-3 py-2.5 text-left hover:border-line-strong hover:bg-panel-2"
+        >
+          <span className="flex items-center gap-1.5 text-[13px] font-medium">
+            <KeyRound className="size-3.5 text-muted" />
+            LAFT
+          </span>
+          <span className="text-[12px] text-muted">Bygg og arbeidsordrer</span>
+        </button>
+      </div>
+      <div className="mt-4 mb-1 flex items-center gap-3 text-[11.5px] font-semibold tracking-wide text-muted uppercase">
+        <span className="h-px flex-1 bg-line" />
+        eller fyll inn selv
+        <span className="h-px flex-1 bg-line" />
+      </div>
+    </div>
+  );
+}
+
 // ─── Eiendom ─────────────────────────────────────────────────────────────────
 
 export function PropertyFormModal({ open, onClose, property }: { open: boolean; onClose: () => void; property?: Property }) {
@@ -131,6 +173,7 @@ export function PropertyFormModal({ open, onClose, property }: { open: boolean; 
         }
       }}
     >
+      {!property && <ImportSources onLeave={onClose} />}
       <Field label="Navn">
         <Input required autoFocus placeholder="F.eks. Sagbruket kontorpark" {...bind("name")} />
       </Field>
@@ -193,6 +236,7 @@ export function BuildingFormModal({ open, onClose, propertyId, building }: { ope
         }
       }}
     >
+      {!building && <ImportSources onLeave={onClose} />}
       <Field label="Navn">
         <Input required autoFocus placeholder="F.eks. Hovedbygg" {...bind("name")} />
       </Field>

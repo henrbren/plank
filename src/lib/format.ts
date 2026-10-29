@@ -2,6 +2,12 @@ const dateFmt = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "short
 const dateTimeFmt = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const rtf = new Intl.RelativeTimeFormat("nb-NO", { numeric: "auto" });
 
+export function formatOre(ore: number): string {
+  const kr = ore / 100;
+  const digits = Math.abs(kr) > 0 && Math.abs(kr) < 100 ? 2 : 0;
+  return new Intl.NumberFormat("nb-NO", { style: "currency", currency: "NOK", minimumFractionDigits: digits, maximumFractionDigits: digits }).format(kr);
+}
+
 export function formatDate(v: string | number | null | undefined): string {
   if (v == null || v === "") return "–";
   const d = typeof v === "number" ? new Date(v) : new Date(v.length === 10 ? v + "T00:00:00" : v);
@@ -63,6 +69,10 @@ export const ENTITY_PATHS: Record<string, string> = {
 
 export function entityPath(orgId: string, type: string, id: string): string {
   return `/o/${orgId}/${ENTITY_PATHS[type] ?? type}/${id}`;
+}
+
+export function formatOrgNr(nr: string) {
+  return nr.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
 }
 
 /** Gjør plank://type/id om til interne stier */

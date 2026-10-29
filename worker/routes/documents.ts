@@ -7,7 +7,8 @@ import { ApiError, badRequest, body } from "../lib/http";
 import { newId, now } from "../lib/util";
 import { DOCUMENT_KINDS } from "../../shared/types";
 import { deleteDocument, documentPatchSchema, getDocument, listDocuments, readDocumentText, searchDocuments, updateDocument } from "../services/documents";
-import { resolveLocation } from "../services/portfolio";
+import { resolveWritableLocation } from "../services/portfolio";
+import { assertCanEdit, scopeSql, sees } from "../lib/access";
 
 const MAX_UPLOAD = 95 * 1024 * 1024;
 
@@ -30,7 +31,7 @@ documents.get("/", async (c) => {
 
 documents.get("/search", async (c) => {
   const q = c.req.query("q") ?? "";
-  return c.json(await searchDocuments(c.env, c.get("orgId"), q, { building_id: c.req.query("building_id"), limit: 20 }));
+  return c.json(await searchDocuments(c.env, c.get("orgId"), q, { building_id: c.req.query("building_id"), property_id: c.req.query("property_id"), limit: 20 }));
 });
 
 documents.post("/", async (c) => {
@@ -47,7 +48,7 @@ documents.post("/", async (c) => {
     const v = form.get(k);
     return typeof v === "string" && v.trim() ? v.trim() : null;
   };
-  const loc = await resolveLocation(c.env, orgId, {
+  const loc = await resolveWritableLocation(c.env, orgId, {
     property_id: str("property_id"),
     building_id: str("building_id"),
     floor_id: str("floor_id"),
@@ -55,8 +56,8 @@ documents.post("/", async (c) => {
   });
   const componentId = str("component_id");
   if (componentId) {
-    const comp = await first(c.env.DB, `SELECT id FROM components WHERE id = ? AND org_id = ?`, componentId, orgId);
-    if (!comp) throw badRequest("Ukjent komponent");
+    const comp = await first<{ building_id: string | null }>(c.env.DB, `SELECT building_id FROM components WHERE id = ? AND org_id = ?`, componentId, orgId);
+    if (!comp || !sees(comp)) throw badRequest("Ukjent komponent");
   }
   const kindInput = str("kind");
   const filename = file.name.replace(/[\\/\u0000-\u001f]/g, "_").slice(0, 180) || "fil";
@@ -135,13 +136,23 @@ documents.patch("/:id", async (c) => c.json(await updateDocument(c.env, c.get("o
 
 documents.post("/:id/reprocess", async (c) => {
   const d = await getDocument(c.env, c.get("orgId"), c.req.param("id"));
+  assertCanEdit(d);
   await c.env.DB.prepare(`UPDATE documents SET status = 'processing', error = NULL, updated_at = ? WHERE id = ?`).bind(now(), d.id).run();
   c.executionCtx.waitUntil(processDocument(c.env, d.id));
   return c.json({ ok: true });
 });
 
 documents.delete("/:id", async (c) => {
-  await deleteDocument(c.env, c.get("orgId"), c.req.param("id"));
+  const user = c.get("user");
+  const d = await deleteDocument(c.env, c.get("orgId"), c.req.param("id"));
+  await logActivity(c.env, {
+    orgId: c.get("orgId"),
+    actor: { type: "user", id: user.id, name: user.name ?? user.email },
+    action: "document.deleted",
+    entityType: "document",
+    entityId: d.id,
+    summary: d.kind === "ifc" ? `Slettet BIM-modellen ${d.title}` : `Slettet dokumentet ${d.title}`,
+  });
   return c.json({ ok: true });
 });
 
@@ -155,17 +166,33 @@ search.get("/", async (c) => {
   if (q.length < 2) return c.json({ documents: [], entities: [] });
   const like = `%${q}%`;
   const db = c.env.DB;
+  // ?1 er org, ?2 søkeordet, tilgangsfilteret får ?3 og oppover
+  const query = (sql: string, cols: { building?: string; property?: string }) => {
+    const scope = scopeSql(cols);
+    let i = 3;
+    return db.prepare(sql.replace("{scope}", scope.sql.replace(/\?/g, () => `?${i++}`))).bind(orgId, like, ...scope.params);
+  };
   // D1 begrenser antall ledd i UNION – kjør hver type som egen spørring i én batch
   const queries = [
-    db.prepare(`SELECT 'property' AS type, id, name AS label, city AS sub FROM properties WHERE org_id = ?1 AND (name LIKE ?2 OR address LIKE ?2) LIMIT 5`),
-    db.prepare(`SELECT 'building' AS type, b.id, b.name AS label, p.name AS sub FROM buildings b JOIN properties p ON p.id = b.property_id WHERE b.org_id = ?1 AND b.name LIKE ?2 LIMIT 5`),
-    db.prepare(
-      `SELECT 'room' AS type, r.id, COALESCE(r.number || ' ', '') || r.name AS label, b.name AS sub FROM rooms r JOIN buildings b ON b.id = r.building_id WHERE r.org_id = ?1 AND (r.name LIKE ?2 OR r.number LIKE ?2) LIMIT 5`,
+    query(`SELECT 'property' AS type, id, name AS label, city AS sub FROM properties WHERE org_id = ?1 AND (name LIKE ?2 OR address LIKE ?2) AND {scope} LIMIT 5`, { property: "id" }),
+    query(
+      `SELECT 'building' AS type, b.id, b.name AS label, p.name AS sub FROM buildings b JOIN properties p ON p.id = b.property_id WHERE b.org_id = ?1 AND b.name LIKE ?2 AND {scope} LIMIT 5`,
+      { building: "b.id" },
     ),
-    db.prepare(`SELECT 'component' AS type, id, name AS label, tfm AS sub FROM components WHERE org_id = ?1 AND (name LIKE ?2 OR tfm LIKE ?2 OR manufacturer LIKE ?2) LIMIT 5`),
-    db.prepare(`SELECT 'task' AS type, id, title AS label, status AS sub FROM tasks WHERE org_id = ?1 AND title LIKE ?2 LIMIT 5`),
-    db.prepare(`SELECT 'artifact' AS type, id, title AS label, description AS sub FROM artifacts WHERE org_id = ?1 AND title LIKE ?2 LIMIT 5`),
-  ].map((st) => st.bind(orgId, like));
+    query(
+      `SELECT 'room' AS type, r.id, COALESCE(r.number || ' ', '') || r.name AS label, b.name AS sub FROM rooms r JOIN buildings b ON b.id = r.building_id WHERE r.org_id = ?1 AND (r.name LIKE ?2 OR r.number LIKE ?2) AND {scope} LIMIT 5`,
+      { building: "r.building_id" },
+    ),
+    query(
+      `SELECT 'component' AS type, id, name AS label, tfm AS sub FROM components WHERE org_id = ?1 AND (name LIKE ?2 OR tfm LIKE ?2 OR manufacturer LIKE ?2) AND {scope} LIMIT 5`,
+      { building: "building_id" },
+    ),
+    query(`SELECT 'task' AS type, id, title AS label, status AS sub FROM tasks WHERE org_id = ?1 AND title LIKE ?2 AND {scope} LIMIT 5`, { building: "building_id", property: "property_id" }),
+    query(`SELECT 'artifact' AS type, id, title AS label, description AS sub FROM artifacts WHERE org_id = ?1 AND title LIKE ?2 AND {scope} LIMIT 5`, {
+      building: "building_id",
+      property: "property_id",
+    }),
+  ];
   const [docs, results] = await Promise.all([searchDocuments(c.env, orgId, q, { limit: 8 }), db.batch<{ type: string; id: string; label: string; sub: string | null }>(queries)]);
   const entities = results.flatMap((r) => r.results ?? []);
   return c.json({ documents: docs, entities });

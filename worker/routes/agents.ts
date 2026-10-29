@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { AppEnv } from "../env";
 import { AGENT_TEMPLATES } from "../agent/templates";
 import { describeSchedule, nextRunAt, parseSchedule } from "../agent/schedule";
+import { assertFullScope, isLimited } from "../lib/access";
 import { logActivity } from "../lib/activity";
 import { all, first, insert, update } from "../lib/db";
 import { badRequest, body, notFound } from "../lib/http";
@@ -79,7 +80,8 @@ agents.get("/templates", (c) => c.json(AGENT_TEMPLATES));
 agents.get("/:id", async (c) => {
   const row = await first<AgentDbRow>(c.env.DB, `SELECT * FROM agents WHERE id = ? AND org_id = ? AND archived = 0`, c.req.param("id"), c.get("orgId"));
   if (!row) throw notFound("Agenten");
-  const runs = await all<AgentRun>(
+  // Kjøringene kan handle om hele porteføljen
+  const runs = isLimited() ? [] : await all<AgentRun>(
     c.env.DB,
     `SELECT id, agent_id, conversation_id, trigger, status, summary, error, started_at, finished_at FROM agent_runs WHERE agent_id = ? ORDER BY started_at DESC LIMIT 20`,
     row.id,
@@ -88,6 +90,7 @@ agents.get("/:id", async (c) => {
 });
 
 agents.post("/", async (c) => {
+  assertFullScope("Å lage agenter");
   const input = await body(c, agentSchema);
   const orgId = c.get("orgId");
   const scopeId = await validateScope({ env: c.env, orgId }, input.scope_type, input.scope_id);
@@ -110,6 +113,7 @@ agents.post("/", async (c) => {
 });
 
 agents.patch("/:id", async (c) => {
+  assertFullScope("Å endre agenter");
   const orgId = c.get("orgId");
   const existing = await first<AgentDbRow>(c.env.DB, `SELECT * FROM agents WHERE id = ? AND org_id = ? AND archived = 0`, c.req.param("id"), orgId);
   if (!existing) throw notFound("Agenten");
@@ -127,6 +131,7 @@ agents.patch("/:id", async (c) => {
 });
 
 agents.delete("/:id", async (c) => {
+  assertFullScope("Å slette agenter");
   const res = await c.env.DB.prepare(`UPDATE agents SET archived = 1, schedule = NULL, next_run_at = NULL, updated_at = ? WHERE id = ? AND org_id = ?`)
     .bind(now(), c.req.param("id"), c.get("orgId"))
     .run();

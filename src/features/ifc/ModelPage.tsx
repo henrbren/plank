@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router";
-import { Box, ChevronRight, Eye, EyeOff, Layers, Maximize, Plus, Sparkles, X } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router";
+import { Box, ChevronRight, Eye, EyeOff, Layers, Maximize, Plus, Sparkles, Trash2, X } from "lucide-react";
 import type { Document, Floor, IfcSummary } from "@shared/types";
 import { useAgentPanel, useOrg, useOrgApi, useOrgQuery, useSetFocus } from "@/lib/app";
 import { formatBytes, formatDateTime } from "@/lib/format";
-import { Badge, Button, Checkbox, ErrorState, IconButton, Loading, useToast } from "@/components/ui";
+import { Badge, Button, Checkbox, ErrorState, IconButton, Loading, useConfirm, useToast } from "@/components/ui";
 import { ComponentFormModal } from "@/components/forms";
 import { IfcViewer, type SelectedElement } from "./viewer";
 
 export default function ModelPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { orgId } = useOrg();
   const call = useOrgApi();
   const toast = useToast();
+  const { confirm, dialog } = useConfirm();
   const panel = useAgentPanel();
   const doc = useOrgQuery<Document>(`/documents/${id}`);
   const summary = useOrgQuery<IfcSummary | null>(`/ifc/summary/${id}`);
@@ -118,12 +120,19 @@ export default function ModelPage() {
   if (doc.isLoading) return <Loading />;
   if (doc.error) return <ErrorState error={doc.error} />;
   const d = doc.data!;
+  const remove = async () => {
+    if (!(await confirm({ title: "Slette BIM-modellen?", message: `«${d.title}» og indeksen slettes. Etasjer og rom i registeret beholdes.`, confirm: "Slett", danger: true }))) return;
+    await call(`/documents/${d.id}`, { method: "DELETE" });
+    toast("BIM-modellen er slettet");
+    navigate(d.building_id ? `/o/${orgId}/buildings/${d.building_id}?tab=bim` : `/o/${orgId}/documents`);
+  };
   const topTypes = Object.entries(typeCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
 
   return (
     <div className="flex h-full flex-col">
+      {dialog}
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-panel px-4 py-2.5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 text-[12px] text-muted">
@@ -156,6 +165,9 @@ export default function ModelPage() {
         </IconButton>
         <IconButton label="Vis/skjul panel" active={showPanel} onClick={() => setShowPanel((s) => !s)}>
           <Layers className="size-4" />
+        </IconButton>
+        <IconButton label="Slett modell" onClick={() => void remove()}>
+          <Trash2 className="size-4" />
         </IconButton>
       </div>
 

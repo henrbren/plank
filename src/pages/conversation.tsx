@@ -52,7 +52,7 @@ export function ConversationPage() {
         }
       />
       <div className="flex flex-col gap-6 rounded-xl border border-line bg-panel p-5">
-        {items.map((it) => (it.kind === "user" ? <UserBubble key={it.id} item={it} /> : <AssistantTurn key={it.id} item={it} orgId={orgId} />))}
+        {items.map((it) => (it.kind === "user" ? <UserBubble key={it.id} item={it} color={c.agent_color} /> : <AssistantTurn key={it.id} item={it} orgId={orgId} />))}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { marked } from "marked";
 import type { Env, SessionUser } from "../env";
 import type { ClaudeTool, ServerTool } from "../lib/anthropic";
+import { currentAccess, scopeSql, type Access } from "../lib/access";
 import { activityStatement } from "../lib/activity";
 import { all, first } from "../lib/db";
 import { emailConfigured, emailLayout, sendEmail } from "../lib/email";
@@ -28,8 +29,29 @@ import {
   updateRoom,
 } from "../services/portfolio";
 import { createTask, listTasks, taskPatchSchema, taskSchema, updateTask } from "../services/tasks";
-import { createArtifact, getArtifactHtml, listArtifacts, saveArtifactVersion } from "../services/artifacts";
+import { createArtifact, getArtifactHtml, listArtifacts, saveArtifactVersion, setSidebar } from "../services/artifacts";
 import { queryIfcElements } from "../routes/ifc";
+import { boligmappaTree, importSelection, listBmDocuments, syncChunk } from "../lib/boligmappa";
+import {
+  commentWorkOrder,
+  createWorkOrder,
+  describeSchema,
+  getBuildingStructure,
+  getWorkOrder,
+  importBuildings,
+  importDocuments,
+  laftStatus,
+  listBuildings,
+  listDocuments as listLaftDocuments,
+  listWorkOrders,
+  rawQuery,
+  resolveLaftBuildingId,
+  searchLaft,
+  updateWorkOrder,
+  workOrderCalendar,
+  workOrderDashboard,
+} from "../services/laft";
+import { SIDEBAR_ICONS } from "../../shared/types";
 
 export interface AgentRow {
   id: string;
@@ -592,6 +614,8 @@ const TOOLS: ToolDef[] = [
           html: { type: "string", description: "Komplett HTML-dokument" },
           building_id: idProp("bygget siden hører til (valgfritt)"),
           property_id: idProp("eiendommen siden hører til (valgfritt)"),
+          i_sidemenyen: { type: "boolean", description: "true hvis siden skal ligge i sidemenyen til venstre" },
+          sidemeny_ikon: { type: "string", enum: [...SIDEBAR_ICONS], description: "Ikon i sidemenyen" },
         },
         required: ["title", "html"],
       },
@@ -610,8 +634,9 @@ const TOOLS: ToolDef[] = [
         },
         { agentId: ctx.agent.id },
       );
+      if (i.i_sidemenyen) await setSidebar(ctx.env, ctx.orgId, a.id, { show: true, icon: i.sidemeny_ikon ?? null });
       await logAgent(ctx, "artifact.created", "artifact", a.id, a.title);
-      return { content: json({ ok: true, artifact_id: a.id, version: 1 }), summary: a.title, link: { type: "artifact", id: a.id, label: a.title } };
+      return { content: json({ ok: true, artifact_id: a.id, version: 1, i_sidemenyen: Boolean(i.i_sidemenyen) }), summary: a.title, link: { type: "artifact", id: a.id, label: a.title } };
     },
   },
   {
@@ -659,9 +684,31 @@ const TOOLS: ToolDef[] = [
     run: async (ctx, i) => {
       const list = await listArtifacts(ctx.env, ctx.orgId, { building_id: i.building_id });
       return {
-        content: json(list.map((a) => ({ id: a.id, title: a.title, description: a.description, building: a.building_name, version: a.current_version }))),
+        content: json(list.map((a) => ({ id: a.id, title: a.title, description: a.description, building: a.building_name, version: a.current_version, pinned: Boolean(a.pinned), i_sidemenyen: a.sidebar_order != null, ikon: a.sidebar_icon }))),
         summary: `${list.length} sider`,
       };
+    },
+  },
+  {
+    group: "artifacts",
+    label: (i) => (i.show === false ? "Tar siden ut av sidemenyen" : "Legger siden i sidemenyen"),
+    tool: {
+      name: "pin_artifact_sidebar",
+      description: `Legger en side i sidemenyen til venstre, eller tar den ut. Maks 12 sider. Ikoner: ${SIDEBAR_ICONS.join(", ")}.`,
+      input_schema: {
+        type: "object",
+        properties: {
+          artifact_id: str,
+          show: { type: "boolean", description: "true = vis i sidemenyen, false = ta ut" },
+          icon: { type: "string", enum: [...SIDEBAR_ICONS] },
+        },
+        required: ["artifact_id", "show"],
+      },
+    },
+    run: async (ctx, i) => {
+      const a = await setSidebar(ctx.env, ctx.orgId, String(i.artifact_id), { show: i.show !== false, icon: i.icon ?? null });
+      await logAgent(ctx, a.sidebar_order != null ? "artifact.sidebar" : "artifact.sidebar_removed", "artifact", a.id, a.title);
+      return { content: json({ ok: true, artifact_id: a.id, i_sidemenyen: a.sidebar_order != null, ikon: a.sidebar_icon }), summary: a.title, link: { type: "artifact", id: a.id, label: a.title } };
     },
   },
 
@@ -676,12 +723,14 @@ const TOOLS: ToolDef[] = [
     },
     run: async (ctx, i) => {
       const buildingId = i.building_id ?? ctx.scope.building_id;
+      const scope = scopeSql({ building: "d.building_id", property: "d.property_id" });
       const rows = await all<{ id: string; title: string; building_id: string | null; building_name: string | null; schema: string | null; stats: string | null; indexed_at: number | null }>(
         ctx.env.DB,
         `SELECT d.id, d.title, d.building_id, b.name AS building_name, m.schema, m.stats, m.indexed_at
          FROM documents d LEFT JOIN ifc_models m ON m.document_id = d.id LEFT JOIN buildings b ON b.id = d.building_id
-         WHERE d.org_id = ? AND d.kind = 'ifc' ${buildingId ? "AND d.building_id = ?" : ""}`,
+         WHERE d.org_id = ? AND d.kind = 'ifc' ${buildingId ? "AND d.building_id = ?" : ""} AND ${scope.sql}`,
         ...(buildingId ? [ctx.orgId, buildingId] : [ctx.orgId]),
+        ...scope.params,
       );
       const out = rows.map((r) => ({ ...r, stats: parseJson(r.stats, null), indexed: Boolean(r.indexed_at) }));
       return {
@@ -714,6 +763,334 @@ const TOOLS: ToolDef[] = [
         limit: Math.min(Number(i.limit ?? 100), 500),
       });
       return { content: json(rows), summary: `${rows.length} elementer` };
+    },
+  },
+
+  // ── LAFT ──
+  {
+    group: "laft",
+    label: () => "Sjekker LAFT-tilkoblingen",
+    tool: {
+      name: "laft_status",
+      description: "Status for LAFT-tilkoblingen: hvem som er innlogget, hvor mange bygg og dokumenter som er hentet inn, og hvilke agenter som har tilgang.",
+      input_schema: { type: "object", properties: {} },
+    },
+    run: async (ctx) => {
+      const s = await laftStatus(ctx.env, ctx.orgId, ctx.user?.id ?? ctx.agent.id);
+      return { content: json(s), summary: s.account ? s.account.areaName ?? s.account.serverName : "Ikke koblet til" };
+    },
+  },
+  {
+    group: "laft",
+    label: () => "Henter bygg fra LAFT",
+    tool: {
+      name: "laft_buildings",
+      description: "Lister alle bygg brukeren har tilgang til i LAFT, med adresse, etasjer, rom og om bygget allerede er hentet inn i Plank (plankBuildingId).",
+      input_schema: { type: "object", properties: {} },
+    },
+    run: async (ctx) => {
+      const rows = await listBuildings(ctx.env, ctx.orgId);
+      return { content: json(rows), summary: `${rows.length} bygg i LAFT` };
+    },
+  },
+  {
+    group: "laft",
+    label: () => "Henter etasjer og rom fra LAFT",
+    tool: {
+      name: "laft_building",
+      description: "Etasjer og rom i ett LAFT-bygg. building_id kan være LAFT-ID eller Plank-bygg-ID.",
+      input_schema: { type: "object", properties: { building_id: str }, required: ["building_id"] },
+    },
+    run: async (ctx, i) => {
+      const id = await resolveLaftBuildingId(ctx.env, ctx.orgId, String(i.building_id));
+      if (!id) return { content: "Bygget er ikke koblet til LAFT.", summary: "Ikke i LAFT", isError: true };
+      const b = await getBuildingStructure(ctx.env, ctx.orgId, id);
+      return { content: json(b), summary: b.name };
+    },
+  },
+  {
+    group: "laft",
+    label: () => "Henter arbeidsordrer fra LAFT",
+    tool: {
+      name: "laft_work_orders",
+      description: "Lister arbeidsordrer og rutiner i LAFT. Filtrer på bygg, status (open/closed/all), type (work_orders/routines/fire_safety_routines), past_due, deviations og fritekst.",
+      input_schema: {
+        type: "object",
+        properties: {
+          building_id: str,
+          status: { type: "string", enum: ["open", "closed", "all"] },
+          type: { type: "string", enum: ["work_orders", "routines", "fire_safety_routines"] },
+          past_due: { type: "boolean" },
+          deviations: { type: "boolean" },
+          query: str,
+          first: { ...int, description: "Maks 200, standard 40" },
+        },
+      },
+    },
+    run: async (ctx, i) => {
+      const buildingId = i.building_id ? await resolveLaftBuildingId(ctx.env, ctx.orgId, String(i.building_id)) : null;
+      const list = await listWorkOrders(ctx.env, ctx.orgId, {
+        buildingId,
+        status: i.status,
+        type: i.type ?? null,
+        pastDue: Boolean(i.past_due),
+        deviationsOnly: Boolean(i.deviations),
+        query: i.query ?? null,
+        first: i.first,
+      });
+      return { content: json(list), summary: `${list.total} arbeidsordrer` };
+    },
+  },
+  {
+    group: "laft",
+    label: () => "Leser arbeidsordre i LAFT",
+    tool: {
+      name: "laft_work_order",
+      description: "Én arbeidsordre i LAFT med kommentarer og detaljer.",
+      input_schema: { type: "object", properties: { work_order_id: int }, required: ["work_order_id"] },
+    },
+    run: async (ctx, i) => {
+      const wo = await getWorkOrder(ctx.env, ctx.orgId, Number(i.work_order_id));
+      return { content: json(wo), summary: String((wo as { title?: string }).title ?? i.work_order_id) };
+    },
+  },
+  {
+    group: "laft",
+    label: () => "Henter LAFT-dashbord",
+    tool: {
+      name: "laft_dashboard",
+      description: "Tall fra LAFT: forfalt, rutiner på overtid, forfall denne uken, utført denne uken, uten ansvarlig.",
+      input_schema: { type: "object", properties: {} },
+    },
+    run: async (ctx) => {
+      const d = await workOrderDashboard(ctx.env, ctx.orgId);
+      return { content: json(d), summary: `${d.pastDue} forfalt` };
+    },
+  },
+  {
+    group: "laft",
+    label: () => "Henter LAFT-kalender",
+    tool: {
+      name: "laft_calendar",
+      description: "Arbeidsordrer i et datointervall (ÅÅÅÅ-MM-DD). scope: ALL, ASSIGNED_TO_ME, MY_TEAMS, OTHER_TEAMS.",
+      input_schema: {
+        type: "object",
+        properties: { from: str, to: str, building_id: str, scope: { type: "string", enum: ["ALL", "ASSIGNED_TO_ME", "MY_TEAMS", "OTHER_TEAMS"] } },
+        required: ["from", "to"],
+      },
+    },
+    run: async (ctx, i) => {
+      const buildingId = i.building_id ? await resolveLaftBuildingId(ctx.env, ctx.orgId, String(i.building_id)) : null;
+      const rows = await workOrderCalendar(ctx.env, ctx.orgId, { from: String(i.from), to: String(i.to), scope: i.scope, buildingId });
+      return { content: json(rows), summary: `${rows.length} treff` };
+    },
+  },
+  {
+    group: "laft",
+    label: () => "Leser dokumentarkivet i LAFT",
+    tool: {
+      name: "laft_documents",
+      description: "Mapper og filer i LAFT-dokumentarkivet for et bygg. parent_id er mappen (null = rot). building_id kan være LAFT-ID eller Plank-bygg-ID.",
+      input_schema: { type: "object", properties: { building_id: str, parent_id: int }, required: ["building_id"] },
+    },
+    run: async (ctx, i) => {
+      const id = await resolveLaftBuildingId(ctx.env, ctx.orgId, String(i.building_id));
+      if (!id) return { content: "Bygget er ikke koblet til LAFT.", summary: "Ikke i LAFT", isError: true };
+      const nodes = await listLaftDocuments(ctx.env, ctx.orgId, id, i.parent_id != null ? Number(i.parent_id) : null);
+      return { content: json(nodes), summary: `${nodes.length} i mappen` };
+    },
+  },
+  {
+    group: "laft",
+    label: (i) => `Søker i LAFT etter «${truncate(String(i.query ?? ""), 50)}»`,
+    tool: {
+      name: "laft_search",
+      description: "Søk i dokumenter og annet innhold i LAFT. Minst to tegn. Kan avgrenses til bygg.",
+      input_schema: { type: "object", properties: { query: str, building_id: str }, required: ["query"] },
+    },
+    run: async (ctx, i) => {
+      const buildingId = i.building_id ? await resolveLaftBuildingId(ctx.env, ctx.orgId, String(i.building_id)) : null;
+      const r = await searchLaft(ctx.env, ctx.orgId, String(i.query).slice(0, 200), { buildingId });
+      return { content: json(r), summary: `${(r.documents?.length ?? 0) + (r.other?.length ?? 0)} treff` };
+    },
+  },
+  {
+    group: "laft",
+    label: () => "Slår opp i LAFT-skjemaet",
+    tool: {
+      name: "laft_schema",
+      description: "Introspeksjon av LAFT GraphQL. type er typenavn (standard Query). search filtrerer felt. Bruk dette før laft_query når du trenger noe de faste verktøyene ikke dekker.",
+      input_schema: { type: "object", properties: { type: str, search: str } },
+    },
+    run: async (ctx, i) => {
+      const text = await describeSchema(ctx.env, ctx.orgId, { type: i.type ?? null, search: i.search ?? null });
+      return { content: text, summary: i.type ? String(i.type) : "Query" };
+    },
+  },
+  {
+    group: "laft",
+    label: () => "Spør LAFT med GraphQL",
+    tool: {
+      name: "laft_query",
+      description: "Kjører en skrivebeskyttet GraphQL-query mot LAFT. Bare query, ikke mutation. Bruk laft_schema først. Returnerer data og eventuelle delvise feil.",
+      input_schema: { type: "object", properties: { query: str, variables: { type: "object" } }, required: ["query"] },
+    },
+    run: async (ctx, i) => {
+      const r = await rawQuery(ctx.env, ctx.orgId, String(i.query), i.variables && typeof i.variables === "object" ? (i.variables as Record<string, unknown>) : undefined);
+      return { content: json(r), summary: r.errors?.length ? "Delvis svar" : "LAFT-svar" };
+    },
+  },
+  {
+    group: "laft_import",
+    label: (i) => `Henter ${Array.isArray(i.ids) ? i.ids.length : 0} bygg fra LAFT`,
+    tool: {
+      name: "laft_import_buildings",
+      description: "Tar bygg, etasjer og rom fra LAFT inn i Plank. ids er LAFT-bygg-ID-er. Kall igjen med remaining til listen er tom.",
+      input_schema: { type: "object", properties: { ids: { type: "array", items: { type: "string" } } }, required: ["ids"] },
+    },
+    run: async (ctx, i) => {
+      const ids = (Array.isArray(i.ids) ? i.ids : []).map(String);
+      const step = await importBuildings(ctx.env, ctx.orgId, { type: "agent", id: ctx.agent.id, name: ctx.agent.name }, ids);
+      return { content: json(step), summary: step.message ?? `${step.createdBuildings} bygg hentet` };
+    },
+  },
+  {
+    group: "laft_import",
+    label: (i) => `Henter ${Array.isArray(i.ids) ? i.ids.length : 0} dokumenter fra LAFT`,
+    tool: {
+      name: "laft_import_documents",
+      description: "Laster ned filer fra LAFT-dokumentarkivet inn i Plank. ids er dokumentnode-ID-er (ikke mapper). building_id er Plank-bygg hvis det finnes.",
+      input_schema: { type: "object", properties: { ids: { type: "array", items: int }, building_id: str }, required: ["ids"] },
+    },
+    run: async (ctx, i) => {
+      const res = await importDocuments(ctx.env, ctx.orgId, { type: "agent", id: ctx.agent.id, name: ctx.agent.name }, (Array.isArray(i.ids) ? i.ids : []).map(Number), {
+        buildingId: i.building_id ?? null,
+      });
+      return { content: json(res), summary: `${res.imported.length} dokumenter` };
+    },
+  },
+  {
+    group: "laft_write",
+    label: () => "Oppretter arbeidsordre i LAFT",
+    tool: {
+      name: "laft_create_work_order",
+      description: "Oppretter en arbeidsordre i LAFT. building_id er LAFT-ID eller Plank-bygg. deadline er ÅÅÅÅ-MM-DD. priority: high, medium, low.",
+      input_schema: {
+        type: "object",
+        properties: { building_id: str, floor_id: str, room_id: str, description: str, deadline: str, priority: { type: "string", enum: ["high", "medium", "low"] } },
+        required: ["building_id", "description"],
+      },
+    },
+    run: async (ctx, i) => {
+      const buildingId = await resolveLaftBuildingId(ctx.env, ctx.orgId, String(i.building_id));
+      if (!buildingId) return { content: "Bygget er ikke koblet til LAFT.", summary: "Ikke i LAFT", isError: true };
+      const wo = await createWorkOrder(ctx.env, ctx.orgId, { type: "agent", id: ctx.agent.id, name: ctx.agent.name }, {
+        buildingId,
+        floorId: i.floor_id ?? null,
+        roomId: i.room_id ?? null,
+        description: String(i.description),
+        deadline: i.deadline ?? null,
+        priority: i.priority ?? null,
+      });
+      return { content: json(wo), summary: `Arbeidsordre ${wo.id}` };
+    },
+  },
+  {
+    group: "laft_write",
+    label: () => "Kommenterer i LAFT",
+    tool: {
+      name: "laft_comment_work_order",
+      description: "Legger en kommentar på en arbeidsordre i LAFT.",
+      input_schema: { type: "object", properties: { work_order_id: int, comment: str }, required: ["work_order_id", "comment"] },
+    },
+    run: async (ctx, i) => {
+      const r = await commentWorkOrder(ctx.env, ctx.orgId, { type: "agent", id: ctx.agent.id, name: ctx.agent.name }, Number(i.work_order_id), String(i.comment));
+      return { content: json(r), summary: `Kommentar på ${i.work_order_id}` };
+    },
+  },
+  {
+    group: "laft_write",
+    label: () => "Oppdaterer arbeidsordre i LAFT",
+    tool: {
+      name: "laft_update_work_order",
+      description: "Endrer status, frist eller prioritet på en arbeidsordre i LAFT. state_id kommer fra laft_work_orders.states.",
+      input_schema: {
+        type: "object",
+        properties: { work_order_id: int, state_id: int, deadline: str, priority: { type: "string", enum: ["high", "medium", "low"] } },
+        required: ["work_order_id"],
+      },
+    },
+    run: async (ctx, i) => {
+      const r = await updateWorkOrder(ctx.env, ctx.orgId, { type: "agent", id: ctx.agent.id, name: ctx.agent.name }, Number(i.work_order_id), {
+        stateId: i.state_id,
+        deadline: i.deadline ?? null,
+        priority: i.priority ?? null,
+      });
+      return { content: json(r), summary: `Oppdatert ${i.work_order_id}` };
+    },
+  },
+
+  // ── Boligmappa ──
+  {
+    group: "boligmappa",
+    label: () => "Henter Boligmappa",
+    tool: {
+      name: "boligmappa_oversikt",
+      description: "Viser synket tre fra Boligmappa: eiendommer, bygg, boenheter, dokumenttellinger og hva som allerede er hentet inn i Plank.",
+      input_schema: { type: "object", properties: {} },
+    },
+    run: async (ctx) => {
+      const tree = await boligmappaTree(ctx.env, ctx.orgId);
+      return { content: json(tree), summary: tree.orgNr ? `${tree.buildingCount} bygg` : "Ikke koblet" };
+    },
+  },
+  {
+    group: "boligmappa",
+    label: () => "Synker Boligmappa",
+    tool: {
+      name: "boligmappa_synk",
+      description:
+        "Kjører ett synk-steg mot Boligmappa (bygg, enheter eller dokumentlister). Kall igjen til status er ready. restart=true starter på nytt. Boligmappa timer ofte ut: er waited=true, prøver synken igjen av seg selv etter retryInMs, og du trenger ikke å kalle mange ganger på rad.",
+      input_schema: { type: "object", properties: { restart: { type: "boolean" } } },
+    },
+    run: async (ctx, i) => {
+      const step = await syncChunk(ctx.env, ctx.orgId, Boolean(i.restart));
+      return {
+        content: json({ status: step.status, phase: step.phase, page: step.page, error: step.error, waited: step.waited, retryInMs: step.retryInMs }),
+        summary: step.status === "ready" ? "Klar" : step.waited ? "Boligmappa svarer tregt" : `Synker (${step.phase})`,
+      };
+    },
+  },
+  {
+    group: "boligmappa",
+    label: (i) => `Henter ${Array.isArray(i.bmns) ? i.bmns.length : 0} bygg fra Boligmappa`,
+    tool: {
+      name: "boligmappa_import",
+      description: "Tar valgte bygg (BMN) og dokumentene deres inn i Plank. Kall igjen til remainingDocuments er 0.",
+      input_schema: { type: "object", properties: { bmns: { type: "array", items: { type: "string" } } }, required: ["bmns"] },
+    },
+    run: async (ctx, i) => {
+      const jobs: Promise<unknown>[] = [];
+      const res = await importSelection(ctx.env, ctx.orgId, { type: "agent", id: ctx.agent.id, name: ctx.agent.name }, (Array.isArray(i.bmns) ? i.bmns : []).map(String), {
+        waitUntil: (p) => {
+          jobs.push(p);
+        },
+      });
+      if (jobs.length) await Promise.all(jobs);
+      return { content: json(res), summary: res.done ? "Ferdig" : `${res.importedDocuments} dokumenter` };
+    },
+  },
+  {
+    group: "boligmappa",
+    label: () => "Leser Boligmappa-dokumenter",
+    tool: {
+      name: "boligmappa_documents",
+      description: "Lister dokumenter i Boligmappa-cachen. building er BMN for ett bygg (inkluderer boenheter). importedDocumentId er satt når filen allerede er i Plank.",
+      input_schema: { type: "object", properties: { building: str } },
+    },
+    run: async (ctx, i) => {
+      const items = await listBmDocuments(ctx.env, ctx.orgId, i.building ? String(i.building) : undefined);
+      return { content: json({ count: items.length, items }), summary: `${items.length} dokumenter` };
     },
   },
 
@@ -776,10 +1153,46 @@ export async function renderEmailMarkdown(env: Env, orgId: string, md: string): 
 
 // ─── Oppslag ─────────────────────────────────────────────────────────────────
 
+/** Verktøy som endrer data – brukere med lesetilgang får dem ikke */
+const WRITE_TOOLS = new Set([
+  "update_document",
+  "create_location",
+  "update_location",
+  "save_component",
+  "create_task",
+  "update_task",
+  "create_artifact",
+  "update_artifact",
+  "pin_artifact_sidebar",
+  "laft_import_buildings",
+  "laft_import_documents",
+  "laft_create_work_order",
+  "laft_comment_work_order",
+  "laft_update_work_order",
+  "boligmappa_synk",
+  "boligmappa_import",
+]);
+/** Integrasjoner og sidemenyen gjelder hele porteføljen */
+const FULL_SCOPE_GROUPS = new Set<ToolGroup>(["laft", "laft_write", "laft_import", "boligmappa"]);
+const FULL_SCOPE_TOOLS = new Set(["pin_artifact_sidebar"]);
+const WRITE_GROUPS = new Set<ToolGroup>(["documents_write", "portfolio_write", "components_write", "laft_write", "laft_import"]);
+
+/** Verktøygruppene brukeren kan få, gitt tilgangen sin */
+export function allowedGroups(groups: ToolGroup[], access: Access = currentAccess()): ToolGroup[] {
+  return groups.filter((g) => !(access.scope && FULL_SCOPE_GROUPS.has(g)) && !(!access.canEdit && WRITE_GROUPS.has(g)));
+}
+
+function toolAllowed(name: string, access: Access): boolean {
+  if (!access.canEdit && WRITE_TOOLS.has(name)) return false;
+  if (access.scope && FULL_SCOPE_TOOLS.has(name)) return false;
+  return true;
+}
+
 export function toolsFor(groups: ToolGroup[]): { tools: (ClaudeTool | ServerTool)[]; defs: Map<string, ToolDef> } {
-  const set = new Set(groups);
+  const access = currentAccess();
+  const set = new Set(allowedGroups(groups, access));
   const defs = new Map<string, ToolDef>();
-  for (const t of TOOLS) if (set.has(t.group)) defs.set(t.tool.name, t);
+  for (const t of TOOLS) if (set.has(t.group) && toolAllowed(t.tool.name, access)) defs.set(t.tool.name, t);
   // Servertverktøy først, slik at cache-breakpointet kan ligge på siste klientverktøy
   const tools: (ClaudeTool | ServerTool)[] = [];
   if (set.has("web")) tools.push({ type: "web_search_20260209", name: "web_search", max_uses: 5 });

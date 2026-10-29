@@ -2,34 +2,63 @@ import { useEffect, useMemo, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  BarChart3,
+  Bell,
   Bot,
   Building2,
+  Calendar,
   ChevronRight,
   ChevronsUpDown,
+  ClipboardList,
+  CreditCard,
   DoorOpen,
+  Droplets,
+  Eye,
   FileText,
+  Flame,
+  FolderTree,
+  Gauge,
+  CircleHelp,
   House,
+  KeyRound,
   Layers,
   LayoutDashboard,
+  Leaf,
+  ListChecks,
   LogOut,
+  Map,
   MapPin,
   Menu as MenuIcon,
   Monitor,
   Moon,
   PanelRightOpen,
+  Shield,
   Plus,
   Search,
   Settings,
   SquareCheck,
+  Star,
   Sun,
+  Table,
+  Thermometer,
+  Users,
   Wrench,
+  Zap,
 } from "lucide-react";
-import type { TreeProperty } from "@shared/types";
+import type { LucideIcon } from "lucide-react";
+import type { SidebarPage, TreeProperty } from "@shared/types";
+import { placeImageUrl } from "@/features/places/PlacePhoto";
+import { UsageMeter } from "@/features/billing/UsageMeter";
+import { BackgroundImport } from "@/features/onboarding/Funnel";
+import { useBrand } from "@/lib/brand";
 import { AgentPanelProvider, FocusProvider, OrgProvider, useAgentPanel, useMe, useOrg, useOrgQuery, useTheme } from "@/lib/app";
 import { api } from "@/lib/api";
+import { formatDate } from "@/lib/format";
 import { Logo } from "./domain";
 import { cn, IconButton, Loading, Menu, MenuItem } from "./ui";
 import { AgentPanel } from "@/features/chat/AgentPanel";
+import { NextStepBar } from "@/features/onboarding/NextStep";
+import { StartGuideProvider, useOpenGuide } from "@/features/onboarding/StartGuide";
 import { CommandPalette } from "./CommandPalette";
 import { PropertyFormModal } from "./forms";
 
@@ -46,7 +75,7 @@ export function OrgLayout() {
     /* ignorer */
   }
   return (
-    <OrgProvider value={{ orgId: org.id, org, me: me.data, isAdmin: org.role !== "member" }}>
+    <OrgProvider value={{ orgId: org.id, org, me: me.data, isAdmin: org.role !== "member", canEdit: org.can_edit !== false, limited: Boolean(org.limited) }}>
       <FocusProvider>
         <AgentPanelProvider orgId={org.id}>
           <Shell />
@@ -81,6 +110,7 @@ function Shell() {
   }, [panel]);
 
   return (
+    <StartGuideProvider>
     <div className="flex h-full overflow-hidden">
       {/* Sidepanel */}
       <aside
@@ -109,6 +139,7 @@ function Shell() {
           </IconButton>
         </div>
         <div className="@container min-h-0 flex-1 overflow-y-auto">
+          <NextStepBar />
           <Outlet />
         </div>
       </main>
@@ -127,6 +158,7 @@ function Shell() {
       )}
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
+    </StartGuideProvider>
   );
 }
 
@@ -149,12 +181,14 @@ function NavItem({ to, icon, label, end }: { to: string; icon: React.ReactNode; 
 }
 
 function Sidebar({ onSearch }: { onSearch: () => void }) {
-  const { orgId, org, me } = useOrg();
+  const { orgId, org, me, isAdmin, canEdit, limited } = useOrg();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [theme, setTheme] = useTheme();
   const panel = useAgentPanel();
+  const openGuide = useOpenGuide();
   const tree = useOrgQuery<TreeProperty[]>("/portfolio/tree");
+  const brand = useBrand();
   const [newProperty, setNewProperty] = useState(false);
   const base = `/o/${orgId}`;
 
@@ -176,7 +210,7 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
               <Logo withText={false} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13.5px] font-semibold">{org.name}</span>
-                <span className="block text-[11.5px] text-muted">Plank</span>
+                <span className="block text-[11.5px] text-muted">{brand.name}</span>
               </span>
               <ChevronsUpDown className="size-4 text-muted" />
             </button>
@@ -219,29 +253,87 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
           <kbd className="rounded border border-line px-1 text-[10.5px]">⌘K</kbd>
         </button>
       </div>
+      {(!canEdit || limited || org.expires_on) && (
+        <div className="mx-2.5 mt-2 flex items-start gap-2 rounded-lg bg-info-soft px-2.5 py-2 text-[12px] leading-snug text-info">
+          {canEdit ? <Building2 className="mt-px size-3.5 shrink-0" /> : <Eye className="mt-px size-3.5 shrink-0" />}
+          <span>
+            {!canEdit ? "Du har lesetilgang" : limited ? "Du ser utvalgte eiendommer og bygg" : "Du har tilgang"}
+            {!canEdit && limited ? " til utvalgte eiendommer og bygg" : ""}
+            {org.expires_on ? ` til og med ${formatDate(org.expires_on)}` : ""}.
+          </span>
+        </div>
+      )}
 
       <nav className="mt-3 flex flex-col gap-0.5 px-2.5">
         <NavItem to={base} end icon={<House />} label="Oversikt" />
         <NavItem to={`${base}/tasks`} icon={<SquareCheck />} label="Oppgaver" />
         <NavItem to={`${base}/documents`} icon={<FileText />} label="Dokumenter" />
         <NavItem to={`${base}/components`} icon={<Wrench />} label="FDV-register" />
-        <NavItem to={`${base}/artifacts`} icon={<LayoutDashboard />} label="Sider" />
         <NavItem to={`${base}/agents`} icon={<Bot />} label="Agenter" />
+        <NavItem to={`${base}/artifacts`} icon={<LayoutDashboard />} label="Sider" />
+        <SidebarPages />
       </nav>
 
       <div className="mt-5 flex items-center justify-between px-5 pb-1">
         <span className="text-[11.5px] font-semibold tracking-wide text-muted uppercase">Portefølje</span>
-        <IconButton label="Ny eiendom" size="sm" onClick={() => setNewProperty(true)}>
-          <Plus className="size-3.5" />
-        </IconButton>
+        {canEdit && !limited && (
+        <Menu
+          align="end"
+          trigger={() => (
+            <IconButton label="Legg til">
+              <Plus className="size-3.5" />
+            </IconButton>
+          )}
+        >
+          {(close) => (
+            <>
+              <MenuItem
+                icon={<MapPin className="size-4" />}
+                onClick={() => {
+                  close();
+                  setNewProperty(true);
+                }}
+              >
+                Ny eiendom
+              </MenuItem>
+              <MenuItem
+                icon={<FolderTree className="size-4" />}
+                onClick={() => {
+                  close();
+                  navigate(`${base}/boligmappa`);
+                }}
+              >
+                Hent fra Boligmappa
+              </MenuItem>
+              <MenuItem
+                icon={<KeyRound className="size-4" />}
+                onClick={() => {
+                  close();
+                  navigate(`${base}/laft`);
+                }}
+              >
+                Hent fra LAFT
+              </MenuItem>
+            </>
+          )}
+        </Menu>
+        )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-3">
-        {tree.data && tree.data.length === 0 && <div className="px-2.5 py-2 text-[12.5px] text-muted">Ingen eiendommer ennå.</div>}
+        {tree.data && tree.data.length === 0 && (
+          <div className="px-2.5 py-2 text-[12.5px] text-muted">
+            {limited ? "Du har ikke fått tilgang til noen eiendommer ennå." : "Ingen eiendommer ennå. Hent fra Boligmappa eller LAFT, eller opprett selv."}
+          </div>
+        )}
         {tree.data?.map((p) => <PropertyNode key={p.id} property={p} />)}
       </div>
 
+      <div className="border-t border-line px-2.5 pt-1.5">
+        <BackgroundImport orgId={orgId} />
+        <UsageMeter />
+      </div>
       {/* Bruker */}
-      <div className="border-t border-line p-2.5">
+      <div className="p-2.5">
         <Menu
           align="start"
           className="w-full"
@@ -256,6 +348,26 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
         >
           {(close) => (
             <>
+              {me.platformAdmin && (
+                <MenuItem
+                  icon={<Shield className="size-4" />}
+                  onClick={() => {
+                    close();
+                    navigate("/admin");
+                  }}
+                >
+                  Kunder
+                </MenuItem>
+              )}
+              <MenuItem
+                icon={<CircleHelp className="size-4" />}
+                onClick={() => {
+                  close();
+                  openGuide();
+                }}
+              >
+                Kom i gang
+              </MenuItem>
               <MenuItem
                 icon={<Settings className="size-4" />}
                 onClick={() => {
@@ -265,6 +377,48 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
               >
                 Innstillinger
               </MenuItem>
+              <MenuItem
+                icon={<Users className="size-4" />}
+                onClick={() => {
+                  close();
+                  navigate(`${base}/tilganger`);
+                }}
+              >
+                Brukere og tilganger
+              </MenuItem>
+              {isAdmin && (
+                <MenuItem
+                  icon={<CreditCard className="size-4" />}
+                  onClick={() => {
+                    close();
+                    navigate(`${base}/abonnement`);
+                  }}
+                >
+                  Abonnement og bruk
+                </MenuItem>
+              )}
+              {!limited && (
+                <>
+                  <MenuItem
+                    icon={<KeyRound className="size-4" />}
+                    onClick={() => {
+                      close();
+                      navigate(`${base}/laft`);
+                    }}
+                  >
+                    LAFT
+                  </MenuItem>
+                  <MenuItem
+                    icon={<FolderTree className="size-4" />}
+                    onClick={() => {
+                      close();
+                      navigate(`${base}/boligmappa`);
+                    }}
+                  >
+                    Boligmappa
+                  </MenuItem>
+                </>
+              )}
               <MenuItem
                 icon={<PanelRightOpen className="size-4" />}
                 onClick={() => {
@@ -303,6 +457,43 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
       </div>
       <PropertyFormModal open={newProperty} onClose={() => setNewProperty(false)} />
     </div>
+  );
+}
+
+const PAGE_ICONS: Record<string, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  chart: BarChart3,
+  calendar: Calendar,
+  checklist: ListChecks,
+  wrench: Wrench,
+  flame: Flame,
+  shield: Shield,
+  building: Building2,
+  map: Map,
+  file: FileText,
+  gauge: Gauge,
+  bell: Bell,
+  zap: Zap,
+  droplet: Droplets,
+  thermometer: Thermometer,
+  leaf: Leaf,
+  users: Users,
+  table: Table,
+  star: Star,
+  clipboard: ClipboardList,
+};
+
+function SidebarPages() {
+  const { orgId } = useOrg();
+  const pages = useOrgQuery<SidebarPage[]>("/artifacts/sidebar");
+  if (!pages.data?.length) return null;
+  return (
+    <>
+      {pages.data.map((p) => {
+        const Icon = (p.sidebar_icon && PAGE_ICONS[p.sidebar_icon]) || LayoutDashboard;
+        return <NavItem key={p.id} to={`/o/${orgId}/artifacts/${p.id}`} icon={<Icon />} label={p.title} />;
+      })}
+    </>
   );
 }
 
@@ -374,7 +565,7 @@ function PropertyNode({ property }: { property: TreeProperty }) {
   const [open, toggle] = useExpanded(property.id, true);
   return (
     <div>
-      <TreeRow to={`/o/${orgId}/properties/${property.id}`} icon={<MapPin />} label={property.name} depth={0} expandable={property.buildings.length > 0} open={open} onToggle={toggle} />
+      <TreeRow to={`/o/${orgId}/properties/${property.id}`} icon={property.has_image ? <img src={placeImageUrl(orgId, "properties", property.id, property.updated_at)} alt="" className="size-4 rounded-[4px] object-cover" /> : <MapPin />} label={property.name} depth={0} expandable={property.buildings.length > 0} open={open} onToggle={toggle} />
       {open &&
         property.buildings.map((b) => <BuildingNode key={b.id} building={b} />)}
     </div>
@@ -387,7 +578,7 @@ function BuildingNode({ building }: { building: TreeProperty["buildings"][number
   const floors = useMemo(() => [...building.floors].sort((a, b) => b.level - a.level), [building.floors]);
   return (
     <div>
-      <TreeRow to={`/o/${orgId}/buildings/${building.id}`} icon={<Building2 />} label={building.name} depth={1} expandable={floors.length > 0} open={open} onToggle={toggle} />
+      <TreeRow to={`/o/${orgId}/buildings/${building.id}`} icon={building.has_image ? <img src={placeImageUrl(orgId, "buildings", building.id, building.updated_at)} alt="" className="size-4 rounded-[4px] object-cover" /> : <Building2 />} label={building.name} depth={1} expandable={floors.length > 0} open={open} onToggle={toggle} />
       {open && floors.map((f) => <FloorNode key={f.id} floor={f} />)}
     </div>
   );

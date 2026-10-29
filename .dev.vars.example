@@ -3,5 +3,20 @@ APP_URL=http://localhost:5173
 DEV_MODE=true
 ANTHROPIC_API_KEY=sk-ant-...
 RESEND_API_KEY=
+ADMIN_EMAILS=henrik@vixon.no
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_ID=
+STRIPE_PRICE_ID_PRO=
+BOLIGMAPPA_CLIENT_ID=
+BOLIGMAPPA_CLIENT_SECRET=
+BOLIGMAPPA_TOKEN_HOST=
+BOLIGMAPPA_API_BASE_URL=
+# LAFT: i DEV_MODE=true brukes en lokal nøkkel. I prod: 32 byte base64 (openssl rand -base64 32)
+LAFT_TOKEN_KEY=
+# LAFT_ID_URL=https://id.laft.io
+# Kommune-kø hos boligmappa-ms (valgfritt – uten nøkkel ligger køen bare i Plank)
+# BOLIGMAPPA_MS_URL=https://boligmappa-ms.laft.io
+# BOLIGMAPPA_MS_KEY=
 # Sett til http://localhost:8788 for å teste mot mock-Claude (npm run mock:claude)
 # ANTHROPIC_BASE_URL=http://localhost:8788

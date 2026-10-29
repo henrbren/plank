@@ -4,7 +4,7 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
-  "observability": { "enabled": true },
+  "observability": { "enabled": true, "traces": { "enabled": true } },
 
   // React-appen (bygget av Vite) serveres som statiske filer. Alt under /api og /files går til Workeren.
   "assets": {
@@ -18,8 +18,7 @@
     {
       "binding": "DB",
       "database_name": "plank",
-      // Bytt ut med ID fra `wrangler d1 create plank`
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "3f7f4d1d-cc80-4359-a041-896ac4f5700f",
       "migrations_dir": "migrations"
     }
   ],
@@ -34,12 +33,27 @@
   // Planlagte agenter sjekkes hvert 15. minutt.
   "triggers": { "crons": ["*/15 * * * *"] },
 
+  "workers_dev": true,
+  // mappa.vixon.no er testdomene for Næringsmappa-merket. Vipps virker bare på *.laft.io (id.laft.io-allowlist).
+  // LAFT-domener (mappa2.laft.io) er Cloudflare for SaaS-hostnavn på vixon.no med plank.vixon.no som fallback origin.
+  // Hvert hostnavn trenger egen rute, og ruten kan først lages når hostnavnet er aktivt (ellers feiler deploy med 10022).
+  // Ikke legg til */*-rute: da tar Plank over alle andre sider på vixon.no.
+  "routes": [
+    { "pattern": "plank.vixon.no", "custom_domain": true },
+    { "pattern": "mappa.vixon.no", "custom_domain": true },
+    { "pattern": "mappa2.laft.io/*", "zone_id": "79a35a13de00b15385084ac17463a31c" },
+    { "pattern": "sameie.laft.io/*", "zone_id": "79a35a13de00b15385084ac17463a31c" }
+  ],
+
   "vars": {
-    "APP_URL": "https://plank.example.no",
-    "EMAIL_FROM": "Plank <noreply@example.no>",
+    "APP_URL": "https://plank.vixon.no",
+    "EMAIL_FROM": "Plank <hei@plank.vixon.no>",
     "DEFAULT_MODEL": "claude-sonnet-5-5",
     "ALLOWED_EMAIL_DOMAINS": "",
-    "DEV_MODE": "false"
+    "ADMIN_EMAILS": "henrik@vixon.no",
+    "DEV_MODE": "false",
+    "STRIPE_PRICE_ID": "price_1UOdezInpBZEU4w8iIQ0xlnC",
+    "STRIPE_PRICE_ID_PRO": "price_1UTjzVInpBZEU4w8tTdPT0mT"
   }
   // Hemmeligheter settes med `wrangler secret put`:
   //   ANTHROPIC_API_KEY, RESEND_API_KEY

@@ -5,7 +5,8 @@ import { notFound } from "../lib/http";
 import { optDate, optId, optInt, optStr, reqStr } from "../lib/schemas";
 import { addMonths, newId, now } from "../lib/util";
 import type { Component } from "../../shared/types";
-import { resolveLocation } from "./portfolio";
+import { assertCanEdit, scopeSql, sees } from "../lib/access";
+import { resolveWritableLocation } from "./portfolio";
 
 export const componentSchema = z.object({
   building_id: optId(),
@@ -84,13 +85,15 @@ export async function listComponents(env: Env, orgId: string, f: ComponentFilter
     const like = `%${f.q}%`;
     params.push(like, like, like, like, like);
   }
+  const scope = scopeSql({ building: "c.building_id" });
+  where.push(scope.sql), params.push(...scope.params);
   const limit = Math.min(Math.max(f.limit ?? 500, 1), 1000);
   return all<Component>(env.DB, `${SELECT} WHERE ${where.join(" AND ")} ORDER BY c.ns3451, c.name LIMIT ${limit}`, ...params);
 }
 
 export async function getComponent(env: Env, orgId: string, id: string): Promise<Component> {
   const c = await first<Component>(env.DB, `${SELECT} WHERE c.id = ? AND c.org_id = ?`, id, orgId);
-  if (!c) throw notFound("Komponenten");
+  if (!c || !sees(c)) throw notFound("Komponenten");
   return c;
 }
 
@@ -100,7 +103,7 @@ function computeNext(last: string | null | undefined, interval: number | null | 
 }
 
 export async function createComponent(env: Env, orgId: string, input: z.infer<typeof componentSchema>): Promise<Component> {
-  const loc = await resolveLocation(env, orgId, input);
+  const loc = await resolveWritableLocation(env, orgId, input);
   const id = newId("cmp");
   const t = now();
   await insert(env.DB, "components", {
@@ -119,9 +122,10 @@ export async function createComponent(env: Env, orgId: string, input: z.infer<ty
 
 export async function updateComponent(env: Env, orgId: string, id: string, patch: Partial<z.infer<typeof componentSchema>>): Promise<Component> {
   const existing = await getComponent(env, orgId, id);
+  assertCanEdit(existing);
   const next: Record<string, unknown> = { ...patch, updated_at: now() };
   if ("room_id" in patch || "floor_id" in patch || "building_id" in patch) {
-    const loc = await resolveLocation(env, orgId, {
+    const loc = await resolveWritableLocation(env, orgId, {
       building_id: "building_id" in patch ? patch.building_id : existing.building_id,
       floor_id: "floor_id" in patch ? patch.floor_id : "building_id" in patch ? null : existing.floor_id,
       room_id: "room_id" in patch ? patch.room_id : "floor_id" in patch || "building_id" in patch ? null : existing.room_id,

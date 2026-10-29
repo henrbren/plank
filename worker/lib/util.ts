@@ -55,6 +55,51 @@ export function addMonths(iso: string, months: number): string | null {
   return d.toISOString().slice(0, 10);
 }
 
+/** Starten av måneden i Europe/Oslo, som epoch-ms */
+export function osloMonthStart(at = Date.now()): number {
+  const ym = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Oslo", year: "numeric", month: "2-digit" }).format(new Date(at));
+  const guess = Date.parse(`${ym}-01T00:00:00Z`);
+  for (let t = guess - 14 * 3_600_000; t < guess + 14 * 3_600_000; t += 60_000) {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Oslo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(new Date(t));
+    const get = (type: string) => parts.find((p) => p.type === type)?.value;
+    if (get("day") === "01" && get("hour") === "00" && get("minute") === "00" && `${get("year")}-${get("month")}` === ym) return t;
+  }
+  return guess;
+}
+
+export function osloNextMonthStart(at = Date.now()): number {
+  return osloMonthStart(osloMonthStart(at) + 32 * 86_400_000);
+}
+
+/** Datoen (YYYY-MM-DD) i Europe/Oslo */
+export function osloDay(at: number): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Oslo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(at));
+}
+
+/** «31. desember 2026» i Europe/Oslo */
+export function osloDateLong(at: number): string {
+  return new Date(at).toLocaleDateString("nb-NO", { timeZone: "Europe/Oslo", day: "numeric", month: "long", year: "numeric" });
+}
+
+/** Slutten av datoen (YYYY-MM-DD) i Europe/Oslo, som epoch-ms (midnatt mot neste dag) */
+export function osloDayEnd(iso: string): number {
+  const next = new Date(Date.parse(`${iso}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+  const midnight = Date.parse(`${next}T00:00:00Z`);
+  for (const hours of [1, 2]) {
+    const t = midnight - hours * 3_600_000;
+    if (osloDay(t) === next && osloDay(t - 1) === iso) return t;
+  }
+  return midnight - 3_600_000;
+}
+
 export function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }

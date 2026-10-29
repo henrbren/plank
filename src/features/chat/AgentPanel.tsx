@@ -6,7 +6,7 @@ import type { Agent, ChatEvent, Conversation, FocusContext, StoredMessage } from
 import { api, ApiError, streamPost } from "@/lib/api";
 import { useAgentPanel, useFocus, useOrg, useOrgQuery } from "@/lib/app";
 import { timeAgo } from "@/lib/format";
-import { AgentAvatar, ENTITY_ICONS } from "@/components/domain";
+import { AgentAvatar, ENTITY_ICONS, agentColor } from "@/components/domain";
 import { cn, IconButton, Menu, MenuItem, Spinner } from "@/components/ui";
 import { AssistantTurn, toItems, toolLabel, UserBubble, type Item, type Part } from "./transcript";
 
@@ -239,6 +239,7 @@ export function AgentPanel() {
           /* behold live-visning */
         }
         void qc.invalidateQueries({ queryKey: ["org", orgId, "/conversations"] });
+        void qc.invalidateQueries({ queryKey: ["org", orgId, "/activation"] });
         if (wrote) void qc.invalidateQueries({ queryKey: ["org", orgId] });
       }
     },
@@ -274,7 +275,10 @@ export function AgentPanel() {
   const readOnly = convData?.source === "schedule";
 
   return (
-    <aside className="fixed inset-0 z-40 flex flex-col border-l border-line bg-panel lg:static lg:z-auto lg:w-[420px] lg:shrink-0 xl:w-[440px]">
+    <aside
+      className="fixed inset-0 z-40 flex flex-col border-l border-line bg-panel lg:static lg:z-auto lg:w-[420px] lg:shrink-0 xl:w-[440px]"
+      style={agent ? { boxShadow: `inset 3px 0 0 ${agentColor(agent.color).bg}` } : undefined}
+    >
       {/* Topp */}
       <div className="flex h-12 shrink-0 items-center gap-1 border-b border-line px-2">
         <Menu
@@ -400,7 +404,7 @@ export function AgentPanel() {
           )}
           <div className="flex flex-col gap-5">
             {items.map((it) =>
-              it.kind === "user" ? <UserBubble key={it.id} item={it} /> : <AssistantTurn key={it.id} item={it} orgId={orgId} live={it.id === "live" && streaming} />,
+              it.kind === "user" ? <UserBubble key={it.id} item={it} color={agent?.color} /> : <AssistantTurn key={it.id} item={it} orgId={orgId} live={it.id === "live" && streaming} />,
             )}
           </div>
           {error && <div className="mt-3 rounded-lg bg-bad-soft px-3 py-2 text-[13px] text-bad">{error}</div>}

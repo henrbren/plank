@@ -9,7 +9,7 @@ import { TaskFormModal } from "@/components/forms";
 
 export function TasksPage() {
   const { id } = useParams();
-  const { orgId } = useOrg();
+  const { orgId, canEdit } = useOrg();
   const navigate = useNavigate();
   const [status, setStatus] = useState("open");
   const [type, setType] = useState("");
@@ -34,9 +34,11 @@ export function TasksPage() {
         title="Oppgaver"
         subtitle="Vedlikehold, avvik, kontroller og dokumentasjonsmangler – fra brukere og agenter."
         actions={
-          <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setCreate(true)}>
-            Ny oppgave
-          </Button>
+          canEdit && (
+            <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setCreate(true)}>
+              Ny oppgave
+            </Button>
+          )
         }
       />
       <div className="mb-4 flex flex-wrap gap-2">

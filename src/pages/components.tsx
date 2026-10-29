@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { CalendarCheck, Ellipsis, Pencil, Plus, Search, Sparkles, Trash2, Upload, Wrench } from "lucide-react";
 import type { Component, Document, Task, TreeProperty } from "@shared/types";
 import { useAgentPanel, useOrg, useOrgApi, useOrgQuery, useSetFocus } from "@/lib/app";
@@ -11,9 +11,11 @@ import { ComponentFormModal, TaskFormModal, UploadModal } from "@/components/for
 
 export function ComponentsPage() {
   useSetFocus("org");
+  const { canEdit } = useOrg();
+  const [searchParams] = useSearchParams();
   const [q, setQ] = useState("");
   const [building, setBuilding] = useState("");
-  const [due, setDue] = useState("");
+  const [due, setDue] = useState(() => (searchParams.get("forfalt") === "1" ? "0" : ""));
   const [create, setCreate] = useState(false);
   const tree = useOrgQuery<TreeProperty[]>("/portfolio/tree");
   const params = new URLSearchParams();
@@ -29,9 +31,11 @@ export function ComponentsPage() {
         title="FDV-register"
         subtitle="Tekniske anlegg og utstyr med NS 3451, TFM, serviceintervaller og tilstand."
         actions={
-          <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setCreate(true)}>
-            Ny komponent
-          </Button>
+          canEdit && (
+            <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setCreate(true)}>
+              Ny komponent
+            </Button>
+          )
         }
       />
       <div className="mb-4 flex flex-wrap gap-2">
@@ -60,6 +64,8 @@ export function ComponentsPage() {
       </div>
       {comps.isLoading ? (
         <Loading />
+      ) : comps.isError ? (
+        <ErrorState error={comps.error} />
       ) : comps.data?.length ? (
         <ComponentTable components={comps.data} />
       ) : (
@@ -72,7 +78,7 @@ export function ComponentsPage() {
 
 export function ComponentPage() {
   const { id } = useParams();
-  const { orgId } = useOrg();
+  const { orgId, canEdit } = useOrg();
   const navigate = useNavigate();
   const call = useOrgApi();
   const toast = useToast();
@@ -108,7 +114,7 @@ export function ComponentPage() {
         subtitle={[c.manufacturer, c.model, c.tfm].filter(Boolean).join(" · ") || c.category || "Komponent"}
         actions={
           <>
-            {c.service_interval_months && (
+            {canEdit && c.service_interval_months && (
               <Button icon={<CalendarCheck className="size-4" />} onClick={registerService}>
                 Registrer service i dag
               </Button>
@@ -116,21 +122,23 @@ export function ComponentPage() {
             <Button variant="primary" icon={<Sparkles className="size-4" />} onClick={() => panel.ask(`Når er neste service for «${c.name}», og hva skal gjøres? Bruk dokumentasjonen.`)}>
               Hva skal gjøres?
             </Button>
-            <Menu trigger={() => <IconButton label="Mer"><Ellipsis className="size-4" /></IconButton>}>
-              {(close) => (
-                <>
-                  <MenuItem icon={<Pencil className="size-4" />} onClick={() => (close(), setModal("edit"))}>
-                    Rediger
-                  </MenuItem>
-                  <MenuItem icon={<Upload className="size-4" />} onClick={() => (close(), setModal("upload"))}>
-                    Last opp dokumentasjon
-                  </MenuItem>
-                  <MenuItem danger icon={<Trash2 className="size-4" />} onClick={() => (close(), remove())}>
-                    Slett
-                  </MenuItem>
-                </>
-              )}
-            </Menu>
+            {canEdit && (
+              <Menu trigger={() => <IconButton label="Mer"><Ellipsis className="size-4" /></IconButton>}>
+                {(close) => (
+                  <>
+                    <MenuItem icon={<Pencil className="size-4" />} onClick={() => (close(), setModal("edit"))}>
+                      Rediger
+                    </MenuItem>
+                    <MenuItem icon={<Upload className="size-4" />} onClick={() => (close(), setModal("upload"))}>
+                      Last opp dokumentasjon
+                    </MenuItem>
+                    <MenuItem danger icon={<Trash2 className="size-4" />} onClick={() => (close(), remove())}>
+                      Slett
+                    </MenuItem>
+                  </>
+                )}
+              </Menu>
+            )}
           </>
         }
       />
@@ -139,18 +147,22 @@ export function ComponentPage() {
           <div>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-[15px] font-semibold">Oppgaver</h2>
-              <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setModal("task")}>
-                Ny oppgave
-              </Button>
+              {canEdit && (
+                <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setModal("task")}>
+                  Ny oppgave
+                </Button>
+              )}
             </div>
             {c.tasks.length ? <TaskTable tasks={c.tasks} onOpen={setOpenTask} showBuilding={false} /> : <div className="text-[13px] text-muted">Ingen oppgaver for komponenten.</div>}
           </div>
           <div>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-[15px] font-semibold">Dokumentasjon</h2>
-              <Button size="sm" icon={<Upload className="size-3.5" />} onClick={() => setModal("upload")}>
-                Last opp
-              </Button>
+              {canEdit && (
+                <Button size="sm" icon={<Upload className="size-3.5" />} onClick={() => setModal("upload")}>
+                  Last opp
+                </Button>
+              )}
             </div>
             {c.documents.length ? (
               <DocumentTable documents={c.documents} showLocation={false} />

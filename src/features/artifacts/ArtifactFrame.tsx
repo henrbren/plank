@@ -149,6 +149,24 @@ export function ArtifactFrame({
           return api(`${base}/ifc/models?${pick(p, ["building_id"])}`);
         case "ifc.elements":
           return api(`${base}/ifc/elements?${pick(p, ["building_id", "document_id", "type", "storey", "q", "limit"])}`);
+        case "laft.status":
+          return api(`${base}/laft`);
+        case "laft.buildings":
+          return api(`${base}/laft/buildings`);
+        case "laft.building":
+          return api(`${base}/laft/buildings/${encodeURIComponent(String(p.id ?? ""))}`);
+        case "laft.dashboard":
+          return api(`${base}/laft/dashboard`);
+        case "laft.work_orders":
+          return api(`${base}/laft/work-orders?${pick(p, ["status", "building", "type", "past_due", "deviations", "q", "first"])}`);
+        case "laft.documents":
+          return api(`${base}/laft/documents?${pick(p, ["building", "parent"])}`);
+        case "laft.search":
+          return api(`${base}/laft/search?${pick(p, ["q", "building"])}`);
+        case "boligmappa.tree":
+          return api(`${base}/boligmappa`);
+        case "boligmappa.documents":
+          return api(`${base}/boligmappa/documents?${pick(p, ["building"])}`);
         default:
           throw new Error(`Ukjent ressurs: ${name}`);
       }

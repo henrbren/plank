@@ -16,6 +16,10 @@ interface OrgCtx {
   org: OrgSummary;
   me: Me;
   isAdmin: boolean;
+  /** false = lesetilgang */
+  canEdit: boolean;
+  /** Bare utvalgte eiendommer/bygg */
+  limited: boolean;
 }
 const OrgContext = createContext<OrgCtx | null>(null);
 

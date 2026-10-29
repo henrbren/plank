@@ -3,9 +3,11 @@ import { z } from "zod";
 import type { AppEnv } from "../env";
 import { runTurn, titleFrom } from "../agent/runtime";
 import type { AgentRow } from "../agent/tools";
+import { isLimited } from "../lib/access";
 import { claudeConfigured } from "../lib/anthropic";
 import { all, first } from "../lib/db";
 import { ApiError, body, notFound } from "../lib/http";
+import { assertAiAvailable } from "../lib/usage";
 import { newId, now, parseJson } from "../lib/util";
 import type { ChatEvent, Conversation, FocusContext, StoredMessage } from "../../shared/types";
 
@@ -19,11 +21,14 @@ const focusSchema = z
   })
   .nullish();
 
+/** Egne samtaler, og planlagte kjøringer for dem som ser hele porteføljen */
+const visibleSql = () => (isLimited() ? "cv.user_id = ?" : "(cv.user_id = ? OR cv.source = 'schedule')");
+
 async function loadConversation(c: { env: AppEnv["Bindings"] }, orgId: string, userId: string, id: string) {
   const conv = await first<Conversation & { user_id: string | null }>(
     c.env.DB,
     `SELECT cv.*, a.name AS agent_name, a.icon AS agent_icon, a.color AS agent_color FROM conversations cv JOIN agents a ON a.id = cv.agent_id
-     WHERE cv.id = ? AND cv.org_id = ? AND (cv.user_id = ? OR cv.source = 'schedule')`,
+     WHERE cv.id = ? AND cv.org_id = ? AND ${visibleSql()}`,
     id,
     orgId,
     userId,
@@ -38,7 +43,7 @@ conversations.get("/", async (c) => {
     c.env.DB,
     `SELECT cv.id, cv.agent_id, cv.title, cv.model, cv.source, cv.created_at, cv.updated_at, a.name AS agent_name, a.icon AS agent_icon, a.color AS agent_color
      FROM conversations cv JOIN agents a ON a.id = cv.agent_id
-     WHERE cv.org_id = ? AND (cv.user_id = ? OR cv.source = 'schedule') ${agentId ? "AND cv.agent_id = ?" : ""}
+     WHERE cv.org_id = ? AND ${visibleSql()} ${agentId ? "AND cv.agent_id = ?" : ""}
      ORDER BY cv.updated_at DESC LIMIT 60`,
     ...(agentId ? [c.get("orgId"), c.get("user").id, agentId] : [c.get("orgId"), c.get("user").id]),
   );
@@ -98,6 +103,7 @@ conversations.post("/:id/messages", async (c) => {
   if (conv.source === "schedule") throw new ApiError(400, "Planlagte kjøringer kan ikke fortsettes – start en ny samtale");
   const agent = await first<AgentRow>(c.env.DB, `SELECT * FROM agents WHERE id = ? AND org_id = ?`, conv.agent_id, orgId);
   if (!agent) throw notFound("Agenten");
+  await assertAiAvailable(c.env, orgId);
 
   // Lås samtalen mens agenten svarer (utløper etter 3 min i tilfelle krasj)
   const lock = await c.env.DB.prepare(`UPDATE conversations SET running_since = ? WHERE id = ? AND (running_since IS NULL OR running_since < ?)`)

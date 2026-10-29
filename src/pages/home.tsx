@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Activity, Bot, Building2, FileText, LayoutDashboard, MapPin, Plus, Sparkles, SquareCheck, Upload, Wrench } from "lucide-react";
+import { Activity, Bot, Building2, FileText, LayoutDashboard, Plus, Sparkles, SquareCheck, Upload, Wrench } from "lucide-react";
 import type { Agent, Artifact, OrgOverview } from "@shared/types";
 import { useAgentPanel, useOrg, useOrgApi, useOrgQuery, useSetFocus } from "@/lib/app";
 import { timeAgo } from "@/lib/format";
 import { AgentAvatar, DueDate, ServiceBadge, TaskTypeBadge } from "@/components/domain";
 import { Button, Card, CardHeader, ErrorState, Loading, PageHeader, Stat, useToast } from "@/components/ui";
-import { PropertyFormModal, UploadModal } from "@/components/forms";
+import { UploadModal } from "@/components/forms";
+import { Journey } from "@/features/onboarding/NextStep";
 
 export function HomePage() {
-  const { orgId, org, me, isAdmin } = useOrg();
+  const { orgId, org, me, isAdmin, canEdit, limited } = useOrg();
   useSetFocus("org", undefined, org.name);
   const overview = useOrgQuery<OrgOverview & { today: string }>("/overview");
   const agents = useOrgQuery<Agent[]>("/agents");
@@ -19,7 +20,6 @@ export function HomePage() {
   const toast = useToast();
   const navigate = useNavigate();
   const [seeding, setSeeding] = useState(false);
-  const [newProperty, setNewProperty] = useState(false);
   const [upload, setUpload] = useState(false);
 
   if (overview.isLoading) return <Loading />;
@@ -56,9 +56,11 @@ export function HomePage() {
         actions={
           !empty && (
             <>
-              <Button icon={<Upload className="size-4" />} onClick={() => setUpload(true)}>
-                Last opp
-              </Button>
+              {canEdit && (
+                <Button icon={<Upload className="size-4" />} onClick={() => setUpload(true)}>
+                  Last opp
+                </Button>
+              )}
               <Button variant="primary" icon={<Sparkles className="size-4" />} onClick={() => panel.ask("Hva bør jeg prioritere denne uken? Se på oppgaver, service som forfaller og avvik.")}>
                 Hva bør jeg prioritere?
               </Button>
@@ -67,35 +69,9 @@ export function HomePage() {
         }
       />
 
-      {empty ? (
-        <Card className="mb-6 p-6">
-          <div className="max-w-2xl">
-            <div className="text-[17px] font-semibold">Kom i gang med Plank</div>
-            <p className="mt-1 text-[14px] text-ink-2">
-              Bygg opp porteføljen med eiendommer, bygg og etasjer, last opp FDV-dokumentasjon og IFC-modeller – så kan agentene begynne å jobbe. Vil du se hvordan det fungerer, kan du laste inn demodata.
-            </p>
-          </div>
-          <div className="mt-5 grid gap-3 @xl:grid-cols-3">
-            <button onClick={() => setNewProperty(true)} className="rounded-xl border border-line p-4 text-left transition-colors hover:border-line-strong hover:bg-panel-2">
-              <MapPin className="mb-2 size-5 text-accent" />
-              <div className="font-medium">Opprett eiendom</div>
-              <div className="text-[12.5px] text-muted">Start med adresse og gnr./bnr.</div>
-            </button>
-            <button onClick={() => setUpload(true)} className="rounded-xl border border-line p-4 text-left transition-colors hover:border-line-strong hover:bg-panel-2">
-              <Upload className="mb-2 size-5 text-accent" />
-              <div className="font-medium">Last opp dokumenter</div>
-              <div className="text-[12.5px] text-muted">PDF, Office, bilder og IFC</div>
-            </button>
-            {isAdmin && (
-              <button onClick={seed} disabled={seeding} className="rounded-xl border border-dashed border-accent/50 bg-accent-soft/40 p-4 text-left transition-colors hover:bg-accent-soft">
-                <Sparkles className="mb-2 size-5 text-accent" />
-                <div className="font-medium">{seeding ? "Laster inn …" : "Last inn demodata"}</div>
-                <div className="text-[12.5px] text-muted">To eiendommer med dokumenter og oppgaver</div>
-              </button>
-            )}
-          </div>
-        </Card>
-      ) : (
+      <Journey onDemo={isAdmin ? seed : undefined} seeding={seeding} />
+
+      {empty ? null : (
         <div className="mb-6 grid grid-cols-2 gap-3 @2xl:grid-cols-4">
           <Stat label="Bygg" value={o.counts.buildings} hint={`${o.counts.properties} eiendommer`} />
           <Stat label="Åpne oppgaver" value={o.counts.open_tasks} to={`${base}/tasks`} />
@@ -104,7 +80,7 @@ export function HomePage() {
         </div>
       )}
 
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 @4xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      {!empty && <div className="grid grid-cols-[minmax(0,1fr)] gap-5 @4xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="flex flex-col gap-5">
           <Card>
             <CardHeader
@@ -219,9 +195,11 @@ export function HomePage() {
                 </button>
               ))}
             </div>
-            <Button size="sm" variant="ghost" className="mt-2 -ml-1" icon={<Plus className="size-3.5" />} onClick={() => navigate(`${base}/agents/new`)}>
-              Ny agent
-            </Button>
+            {canEdit && !limited && (
+              <Button size="sm" variant="ghost" className="mt-2 -ml-1" icon={<Plus className="size-3.5" />} onClick={() => navigate(`${base}/agents/new`)}>
+                Ny agent
+              </Button>
+            )}
           </Card>
 
           {pinned.length > 0 && (
@@ -264,8 +242,7 @@ export function HomePage() {
             )}
           </Card>
         </div>
-      </div>
-      <PropertyFormModal open={newProperty} onClose={() => setNewProperty(false)} />
+      </div>}
       <UploadModal open={upload} onClose={() => setUpload(false)} />
     </div>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { Download, Ellipsis, FileText, Pencil, RefreshCw, Search, Sparkles, Trash2, Upload } from "lucide-react";
 import { DOCUMENT_KINDS, type Component, type Document, type SearchHit, type TreeProperty } from "@shared/types";
 import { useAgentPanel, useOrg, useOrgApi, useOrgQuery, useSetFocus } from "@/lib/app";
@@ -11,8 +11,10 @@ import { LocationPicker, UploadModal, type LocationValue } from "@/components/fo
 import { Markdown } from "@/features/chat/transcript";
 
 export function DocumentsPage() {
-  const { orgId } = useOrg();
+  const { orgId, canEdit } = useOrg();
   useSetFocus("org");
+  const [params, setParams] = useSearchParams();
+  const propertyId = params.get("eiendom") ?? "";
   const [kind, setKind] = useState("");
   const [building, setBuilding] = useState("");
   const [q, setQ] = useState("");
@@ -22,13 +24,14 @@ export function DocumentsPage() {
     const t = setTimeout(() => setDebounced(q.trim()), 250);
     return () => clearTimeout(t);
   }, [q]);
-  const params = new URLSearchParams();
-  if (kind) params.set("kind", kind);
-  if (building) params.set("building_id", building);
-  const docs = useOrgQuery<Document[]>(`/documents?${params}`, {
-    refetchInterval: (query) => ((query.state.data as Document[] | undefined)?.some((d) => d.status === "processing") ? 3000 : false),
+  const query = new URLSearchParams();
+  if (kind) query.set("kind", kind);
+  if (building) query.set("building_id", building);
+  if (propertyId) query.set("property_id", propertyId);
+  const docs = useOrgQuery<Document[]>(`/documents?${query}`, {
+    refetchInterval: (state) => ((state.state.data as Document[] | undefined)?.some((d) => d.status === "processing") ? 3000 : false),
   });
-  const hits = useOrgQuery<SearchHit[]>(debounced.length >= 2 ? `/documents/search?q=${encodeURIComponent(debounced)}${building ? `&building_id=${building}` : ""}` : null);
+  const hits = useOrgQuery<SearchHit[]>(debounced.length >= 2 ? `/documents/search?q=${encodeURIComponent(debounced)}${building ? `&building_id=${building}` : ""}${propertyId ? `&property_id=${propertyId}` : ""}` : null);
   const tree = useOrgQuery<TreeProperty[]>("/portfolio/tree");
 
   return (
@@ -38,9 +41,11 @@ export function DocumentsPage() {
         title="Dokumenter"
         subtitle="FDV-dokumentasjon, produktdatablad, tegninger, rapporter og IFC-modeller. Tekst hentes ut og indekseres automatisk."
         actions={
-          <Button variant="primary" icon={<Upload className="size-4" />} onClick={() => setUpload(true)}>
-            Last opp
-          </Button>
+          canEdit && (
+            <Button variant="primary" icon={<Upload className="size-4" />} onClick={() => setUpload(true)}>
+              Last opp
+            </Button>
+          )
         }
       />
       <div className="mb-4 flex flex-wrap gap-2">
@@ -69,6 +74,14 @@ export function DocumentsPage() {
           ))}
         </Select>
       </div>
+      {propertyId && (
+        <p className="mb-4 rounded-xl bg-panel-2 px-4 py-3 text-[13.5px] text-ink-2">
+          Viser dokumenter på eiendommen {tree.data?.find((p) => p.id === propertyId)?.name ?? ""}.{" "}
+          <button type="button" className="font-medium text-ink underline" onClick={() => setParams({}, { replace: true })}>
+            Vis alle
+          </button>
+        </p>
+      )}
 
       {debounced.length >= 2 ? (
         hits.isLoading ? (
@@ -105,7 +118,7 @@ export function DocumentsPage() {
       ) : docs.data?.length ? (
         <DocumentTable documents={docs.data} />
       ) : (
-        <EmptyState icon={<FileText className="size-5" />} title="Ingen dokumenter" description="Last opp dokumentasjon for byggene dine." action={<Button onClick={() => setUpload(true)}>Last opp</Button>} />
+        <EmptyState icon={<FileText className="size-5" />} title="Ingen dokumenter" description="Last opp dokumentasjon for byggene dine." action={canEdit ? <Button onClick={() => setUpload(true)}>Last opp</Button> : undefined} />
       )}
       <UploadModal open={upload} onClose={() => setUpload(false)} defaults={building ? { building_id: building } : undefined} />
     </div>

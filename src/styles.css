@@ -57,6 +57,19 @@
     --shadow-lg: 0 8px 40px rgb(0 0 0 / 0.5);
   }
 }
+:root[data-brand="naeringsmappa"] {
+  --accent: #2f4a9f;
+  --accent-hover: #243a80;
+  --accent-ink: #ffffff;
+  --accent-soft: #e4e8f5;
+}
+:root[data-brand="sameie"] {
+  --accent: #1d4ed8;
+  --accent-hover: #1a43b8;
+  --accent-ink: #ffffff;
+  --accent-soft: #e0e7ff;
+}
+
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #141311;
@@ -82,6 +95,33 @@
   --info-soft: #1b2b38;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
   --shadow-lg: 0 8px 40px rgb(0 0 0 / 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-brand="naeringsmappa"] {
+    --accent: #7b93e0;
+    --accent-hover: #93a6e8;
+    --accent-ink: #0f1320;
+    --accent-soft: #1c2438;
+  }
+  :root:not([data-theme="light"])[data-brand="sameie"] {
+    --accent: #60a5fa;
+    --accent-hover: #7bb6fb;
+    --accent-ink: #0b1226;
+    --accent-soft: #172554;
+  }
+}
+:root[data-theme="dark"][data-brand="naeringsmappa"] {
+  --accent: #7b93e0;
+  --accent-hover: #93a6e8;
+  --accent-ink: #0f1320;
+  --accent-soft: #1c2438;
+}
+:root[data-theme="dark"][data-brand="sameie"] {
+  --accent: #60a5fa;
+  --accent-hover: #7bb6fb;
+  --accent-ink: #0b1226;
+  --accent-soft: #172554;
 }
 
 @theme inline {

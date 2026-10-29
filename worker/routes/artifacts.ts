@@ -1,12 +1,14 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "../env";
+import { assertCanEdit, assertCanEditEntity } from "../lib/access";
 import { logActivity } from "../lib/activity";
 import { first } from "../lib/db";
 import { body, notFound } from "../lib/http";
 import { optId, optStr } from "../lib/schemas";
 import { now } from "../lib/util";
-import { createArtifact, getArtifact, getArtifactHtml, listArtifacts, listVersions, saveArtifactVersion } from "../services/artifacts";
+import { createArtifact, getArtifact, getArtifactHtml, listArtifacts, listVersions, moveSidebar, saveArtifactVersion, setSidebar, sidebarPages } from "../services/artifacts";
+import { SIDEBAR_ICONS } from "../../shared/types";
 
 export const artifacts = new Hono<AppEnv>();
 
@@ -34,6 +36,28 @@ artifacts.post("/", async (c) => {
   const a = await createArtifact(c.env, c.get("orgId"), { ...input, html: input.html || STARTER }, { userId: u.id });
   await logActivity(c.env, { orgId: c.get("orgId"), actor: { type: "user", id: u.id, name: u.name ?? u.email }, action: "artifact.created", entityType: "artifact", entityId: a.id, summary: a.title });
   return c.json(a, 201);
+});
+
+artifacts.get("/sidebar", async (c) => c.json(await sidebarPages(c.env, c.get("orgId"))));
+
+artifacts.post("/:id/sidebar", async (c) => {
+  const input = await body(c, z.object({ show: z.boolean().optional(), icon: z.enum(SIDEBAR_ICONS).optional(), move: z.union([z.literal(-1), z.literal(1)]).optional() }));
+  const orgId = c.get("orgId");
+  const id = c.req.param("id");
+  if (input.move) await moveSidebar(c.env, orgId, id, input.move);
+  else {
+    const a = await setSidebar(c.env, orgId, id, { show: input.show ?? true, icon: input.icon });
+    const u = c.get("user");
+    await logActivity(c.env, {
+      orgId,
+      actor: { type: "user", id: u.id, name: u.name ?? u.email },
+      action: a.sidebar_order == null ? "artifact.sidebar_removed" : "artifact.sidebar_added",
+      entityType: "artifact",
+      entityId: a.id,
+      summary: a.title,
+    });
+  }
+  return c.json(await sidebarPages(c.env, orgId));
 });
 
 artifacts.get("/:id", async (c) => {
@@ -65,9 +89,13 @@ artifacts.patch("/:id", async (c) => {
   );
   const orgId = c.get("orgId");
   const a = await getArtifact(c.env, orgId, c.req.param("id"));
+  assertCanEdit(a);
   if (input.building_id) {
     const b = await first(c.env.DB, `SELECT id FROM buildings WHERE id = ? AND org_id = ?`, input.building_id, orgId);
     if (!b) throw notFound("Bygget");
+    assertCanEdit({ building_id: input.building_id });
+  } else if (input.building_id === null) {
+    assertCanEdit({ property_id: a.property_id });
   }
   await c.env.DB.prepare(
     `UPDATE artifacts SET title = ?, description = ?, pinned = ?, building_id = ?, property_id = COALESCE((SELECT property_id FROM buildings WHERE id = ? AND org_id = ?), property_id), updated_at = ? WHERE id = ?`,
@@ -87,6 +115,7 @@ artifacts.patch("/:id", async (c) => {
 });
 
 artifacts.delete("/:id", async (c) => {
+  await assertCanEditEntity(c.env, c.get("orgId"), "artifact", c.req.param("id"), "Siden");
   const res = await c.env.DB.prepare(`DELETE FROM artifacts WHERE id = ? AND org_id = ?`).bind(c.req.param("id"), c.get("orgId")).run();
   if (!res.meta.changes) throw notFound("Siden");
   return c.json({ ok: true });

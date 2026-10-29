@@ -8,10 +8,20 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Plank</title>
     <script>
-      // Sett tema før første maling for å unngå blink
+      // Sett tema og merkevare før første maling for å unngå blink
       try {
         var t = localStorage.getItem("plank-theme");
         if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+        var h = location.hostname.toLowerCase().split(":")[0];
+        var b = null;
+        if (h === "sameie.laft.io" || h.indexOf("sameie.") === 0) b = "sameie";
+        else if (h === "mappa.laft.io" || h === "mappa2.laft.io" || h.indexOf("mappa.") === 0) b = "naeringsmappa";
+        if (b) {
+          var c = localStorage.getItem("plank-brand");
+          if (c === "sameie" || c === "naeringsmappa") b = c;
+          document.documentElement.dataset.brand = b;
+          document.title = b === "sameie" ? "LAFT Sameie" : "Næringsmappa";
+        }
       } catch (e) {}
     </script>
   </head>
