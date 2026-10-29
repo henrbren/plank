@@ -273,6 +273,7 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
         <NavItem to={`${base}/components`} icon={<Wrench />} label="FDV-register" />
         <NavItem to={`${base}/agents`} icon={<Bot />} label="Agenter" />
         <NavItem to={`${base}/artifacts`} icon={<LayoutDashboard />} label="Sider" />
+        <NavItem to={`${base}/hjelp`} icon={<CircleHelp />} label="Hjelp" />
         <SidebarPages />
       </nav>
 

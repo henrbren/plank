@@ -19,6 +19,7 @@ import { BoligmappaPage } from "./pages/boligmappa";
 import { LaftPage } from "./pages/laft";
 import { AdminHome, AdminLayout, AdminOrg } from "./pages/admin";
 import { ConversationPage } from "./pages/conversation";
+import { HelpArticlePage, HelpPage } from "./pages/help";
 import { NotFound } from "./pages/notfound";
 
 // IFC-vieweren (three.js + web-ifc) lastes først når den trengs
@@ -71,6 +72,8 @@ export const router = createBrowserRouter([
       { path: "pris", element: <Navigate to="../abonnement" replace /> },
       { path: "settings", element: <SettingsPage /> },
       { path: "tilganger", element: <AccessPage /> },
+      { path: "hjelp", element: <HelpPage /> },
+      { path: "hjelp/:slug", element: <HelpArticlePage /> },
       { path: "*", element: <NotFound /> },
     ],
   },

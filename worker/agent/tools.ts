@@ -31,7 +31,7 @@ import {
 import { createTask, listTasks, taskPatchSchema, taskSchema, updateTask } from "../services/tasks";
 import { createArtifact, getArtifactHtml, listArtifacts, saveArtifactVersion, setSidebar } from "../services/artifacts";
 import { queryIfcElements } from "../routes/ifc";
-import { boligmappaTree, importSelection, listBmDocuments, syncChunk } from "../lib/boligmappa";
+import { boligmappaTree, continueBoligmappaImport, continueBoligmappaSync, importSelection, listBmDocuments, syncChunk } from "../lib/boligmappa";
 import {
   commentWorkOrder,
   createWorkOrder,
@@ -52,6 +52,7 @@ import {
   workOrderDashboard,
 } from "../services/laft";
 import { SIDEBAR_ICONS } from "../../shared/types";
+import { captureForAgent, listHelpForAgent, readHelpForAgent, saveHelpArticle } from "../services/help";
 
 export interface AgentRow {
   id: string;
@@ -1050,14 +1051,25 @@ const TOOLS: ToolDef[] = [
     tool: {
       name: "boligmappa_synk",
       description:
-        "Kjører ett synk-steg mot Boligmappa (bygg, enheter eller dokumentlister). Kall igjen til status er ready. restart=true starter på nytt. Boligmappa timer ofte ut: er waited=true, prøver synken igjen av seg selv etter retryInMs, og du trenger ikke å kalle mange ganger på rad.",
+        "Kjører ett synk-steg mot Boligmappa (bygg, enheter eller dokumentlister). Er status ikke ready, fortsetter resten i bakgrunnen. Kall bare én gang. restart=true starter på nytt.",
       input_schema: { type: "object", properties: { restart: { type: "boolean" } } },
     },
     run: async (ctx, i) => {
       const step = await syncChunk(ctx.env, ctx.orgId, Boolean(i.restart));
+      const actor = { type: "agent" as const, id: ctx.agent.id, name: ctx.agent.name };
+      const background = step.status !== "ready" ? await continueBoligmappaSync(ctx.env, ctx.orgId, actor, step.retryInMs) : false;
       return {
-        content: json({ status: step.status, phase: step.phase, page: step.page, error: step.error, waited: step.waited, retryInMs: step.retryInMs }),
-        summary: step.status === "ready" ? "Klar" : step.waited ? "Boligmappa svarer tregt" : `Synker (${step.phase})`,
+        content: json({
+          status: step.status,
+          phase: step.phase,
+          page: step.page,
+          error: step.error,
+          waited: step.waited,
+          retryInMs: step.retryInMs,
+          background,
+          note: background ? "Resten av listene hentes i bakgrunnen. Ikke kall boligmappa_synk igjen." : null,
+        }),
+        summary: step.status === "ready" ? "Klar" : background ? "Fortsetter i bakgrunnen" : `Synker (${step.phase})`,
       };
     },
   },
@@ -1066,18 +1078,27 @@ const TOOLS: ToolDef[] = [
     label: (i) => `Henter ${Array.isArray(i.bmns) ? i.bmns.length : 0} bygg fra Boligmappa`,
     tool: {
       name: "boligmappa_import",
-      description: "Tar valgte bygg (BMN) og dokumentene deres inn i Plank. Kall igjen til remainingDocuments er 0.",
+      description:
+        "Tar valgte bygg (BMN) og et lite knippe dokumenter inn i Plank. Er det flere igjen, hentes resten i bakgrunnen. Kall bare én gang, ikke i en løkke.",
       input_schema: { type: "object", properties: { bmns: { type: "array", items: { type: "string" } } }, required: ["bmns"] },
     },
     run: async (ctx, i) => {
-      const jobs: Promise<unknown>[] = [];
-      const res = await importSelection(ctx.env, ctx.orgId, { type: "agent", id: ctx.agent.id, name: ctx.agent.name }, (Array.isArray(i.bmns) ? i.bmns : []).map(String), {
-        waitUntil: (p) => {
-          jobs.push(p);
-        },
-      });
-      if (jobs.length) await Promise.all(jobs);
-      return { content: json(res), summary: res.done ? "Ferdig" : `${res.importedDocuments} dokumenter` };
+      const actor = { type: "agent" as const, id: ctx.agent.id, name: ctx.agent.name };
+      const bmns = (Array.isArray(i.bmns) ? i.bmns : []).map(String);
+      const res = await importSelection(ctx.env, ctx.orgId, actor, bmns, { waitUntil() {}, deferProcessing: true });
+      const background = await continueBoligmappaImport(ctx.env, ctx.orgId, actor, bmns, res);
+      return {
+        content: json({
+          ...res,
+          background,
+          note: !background
+            ? null
+            : res.remainingDocuments > 0
+              ? "Resten hentes i bakgrunnen og dukker opp i Plank av seg selv. Ikke kall boligmappa_import igjen."
+              : "Dokumentlistene sjekkes på nytt i bakgrunnen. Ikke kall boligmappa_import igjen.",
+        }),
+        summary: !background ? (res.done ? "Ferdig" : `${res.importedDocuments} dokumenter`) : res.remainingDocuments > 0 ? `${res.importedDocuments} inne, resten kommer` : "Sjekker om flere dokumenter finnes",
+      };
     },
   },
   {
@@ -1091,6 +1112,85 @@ const TOOLS: ToolDef[] = [
     run: async (ctx, i) => {
       const items = await listBmDocuments(ctx.env, ctx.orgId, i.building ? String(i.building) : undefined);
       return { content: json({ count: items.length, items }), summary: `${items.length} dokumenter` };
+    },
+  },
+
+  // ── Hjelp ──
+  {
+    group: "help",
+    label: () => "Leser hjelpesenteret",
+    tool: {
+      name: "list_help",
+      description: "Lister hjelpeartiklene. needs_rewrite=1 betyr at teksten skal sjekkes mot siden. route er stien capture_screen kan åpne.",
+      input_schema: { type: "object", properties: { needs_rewrite: { type: "boolean", description: "Bare artikler som skal skrives om" } } },
+    },
+    run: async (ctx, i) => {
+      const content = await listHelpForAgent(ctx.env, ctx.orgId, i.needs_rewrite === true);
+      const count = (JSON.parse(content) as { count: number }).count;
+      return { content, summary: `${count} artikler` };
+    },
+  },
+  {
+    group: "help",
+    label: (i) => `Leser hjelpeartikkelen «${truncate(String(i.slug ?? ""), 40)}»`,
+    tool: {
+      name: "get_help",
+      description: "Henter én hjelpeartikkel, inkludert seen_text fra siste skjermbilde når brukeren ser hele porteføljen.",
+      input_schema: { type: "object", properties: { slug: str }, required: ["slug"] },
+    },
+    run: async (ctx, i) => {
+      const content = await readHelpForAgent(ctx.env, ctx.orgId, String(i.slug ?? ""));
+      if (!content) return { content: "Artikkelen finnes ikke. list_help viser de som finnes.", summary: "Fant ikke artikkelen", isError: true };
+      return { content, summary: String(i.slug) };
+    },
+  },
+  {
+    group: "help",
+    label: (i) => `Oppdaterer hjelpen «${truncate(String(i.title ?? i.slug ?? ""), 50)}»`,
+    tool: {
+      name: "save_help",
+      description:
+        "Lagrer en hjelpeartikkel og merker den som gjennomgått. Bruk eksisterende slug for å oppdatere. Ny slug (små bokstaver, tall, bindestrek) oppretter en artikkel. route er valgfri sti, for eksempel /tasks.",
+      input_schema: {
+        type: "object",
+        properties: { slug: str, title: str, summary: str, body: { type: "string", description: "Markdown" }, category: str, route: str },
+        required: ["slug", "title", "summary", "body"],
+      },
+    },
+    run: async (ctx, i) => {
+      const saved = await saveHelpArticle(
+        ctx.env,
+        ctx.orgId,
+        {
+          slug: String(i.slug ?? ""),
+          title: String(i.title ?? ""),
+          summary: String(i.summary ?? ""),
+          body: String(i.body ?? ""),
+          category: i.category ? String(i.category) : undefined,
+          route: i.route ? String(i.route) : undefined,
+        },
+        { type: "agent", id: ctx.agent.id, name: ctx.agent.name },
+      );
+      if (!saved.ok) return { content: saved.message, summary: "Kunne ikke lagre", isError: true };
+      return { content: json({ ok: true, slug: String(i.slug), created: saved.created }), summary: saved.created ? "Ny artikkel" : "Oppdatert" };
+    },
+  },
+  {
+    group: "help",
+    label: (i) => `Tar skjermbilde av ${truncate(String(i.path ?? "siden"), 60)}`,
+    tool: {
+      name: "capture_screen",
+      description:
+        "Åpner en side i denne organisasjonen, tar skjermbilde og leser overskrifter, knapper og synlig tekst. path er route fra artikkelen, for eksempel /tasks eller /properties/id. slug knytter bildet til artikkelen. Maks fire kall per kjøring.",
+      input_schema: { type: "object", properties: { path: str, slug: str }, required: ["path"] },
+    },
+    run: async (ctx, i) => {
+      const shot = await captureForAgent(ctx.env, ctx.orgId, String(i.path ?? ""), i.slug ? String(i.slug) : undefined, ctx.user?.id ?? null);
+      if (!shot.ok) return { content: shot.message, summary: shot.message, isError: true };
+      return {
+        content: json({ path: shot.path, title: shot.title, headings: shot.headings, controls: shot.controls, text: shot.text, stored: shot.stored }),
+        summary: shot.stored ? "Skjermbilde lagret" : "Leste siden",
+      };
     },
   },
 
@@ -1171,6 +1271,8 @@ const WRITE_TOOLS = new Set([
   "laft_update_work_order",
   "boligmappa_synk",
   "boligmappa_import",
+  "save_help",
+  "capture_screen",
 ]);
 /** Integrasjoner og sidemenyen gjelder hele porteføljen */
 const FULL_SCOPE_GROUPS = new Set<ToolGroup>(["laft", "laft_write", "laft_import", "boligmappa"]);

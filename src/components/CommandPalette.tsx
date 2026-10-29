@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
-import { Bot, FileText, House, Search, Sparkles, Wrench } from "lucide-react";
+import { Bot, CircleHelp, FileText, House, Search, Sparkles, Wrench } from "lucide-react";
 import type { SearchHit } from "@shared/types";
 import { api } from "@/lib/api";
 import { useAgentPanel, useOrg } from "@/lib/app";
@@ -98,6 +98,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         { key: "nav-components", icon: <Wrench className="size-4" />, label: "FDV-register", run: go(`/o/${orgId}/components`) },
         { key: "nav-agents", icon: <Bot className="size-4" />, label: "Agenter", run: go(`/o/${orgId}/agents`) },
         { key: "nav-artifacts", icon: <ENTITY_ICONS.artifact className="size-4" />, label: "Sider", run: go(`/o/${orgId}/artifacts`) },
+        { key: "nav-help", icon: <CircleHelp className="size-4" />, label: "Hjelp", run: go(`/o/${orgId}/hjelp`) },
         { key: "nav-laft", icon: <ENTITY_ICONS.building className="size-4" />, label: "LAFT", sub: "Datakilde", run: go(`/o/${orgId}/laft`) },
         { key: "nav-boligmappa", icon: <FileText className="size-4" />, label: "Boligmappa", sub: "Datakilde", run: go(`/o/${orgId}/boligmappa`) },
       );

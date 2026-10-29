@@ -73,10 +73,20 @@ Henvis til Plank-bygg med [navn](plank://building/ID). LAFT-ordrer har url i sva
 const BOLIGMAPPA_DOC = `## Boligmappa
 Organisasjonen kan være koblet til Boligmappa på et organisasjonsnummer. Du leser det samme hierarkiet som brukeren ser, og kan hente det inn i Plank.
 - Start med boligmappa_oversikt. importedBuildingId / importedPropertyId betyr at det allerede er i Plank.
-- Er status ikke ready: boligmappa_synk. Kall igjen til status er ready (restart=true starter på nytt).
+- Er status ikke ready: boligmappa_synk én gang (restart=true starter på nytt). Resten av listene hentes i bakgrunnen.
 - Dokumentlister: boligmappa_documents (valgfritt building=BMN). importedDocumentId er Plank-dokumentet.
-- Hent bygg og dokumenter med boligmappa_import (bmns). Kall igjen til remainingDocuments er 0.
+- Hent bygg og dokumenter med boligmappa_import (bmns) én gang. Er det flere igjen, kommer de inn av seg selv. Ikke kall verktøyet i en løkke.
 Henvis til Plank-bygg med [navn](plank://building/ID). Når brukeren vil ha en fast oversikt, lag en side med boligmappa.tree / boligmappa.documents.`;
+
+const HELP_DOC = `## Hjelpesenter
+Artiklene forklarer hvordan Plank brukes. De skal stemme med det som faktisk vises, og de skal ikke inneholde kundedata.
+
+- list_help viser artiklene. needs_rewrite=1 betyr at teksten skal sjekkes.
+- get_help henter én artikkel. seen_text er teksten fra siste skjermbilde. Mangler den, er siden ikke åpnet ennå.
+- capture_screen åpner en side, tar skjermbilde og leser overskrifter, knapper og synlig tekst. Bruk route fra artikkelen, for eksempel /tasks. Kall den bare når seen_text mangler, og maks fire ganger per kjøring.
+- save_help skriver tittel, ingress og brødtekst i markdown. Kall den også når teksten fortsatt stemmer, så artikkelen merkes som gjennomgått. Ny slug er små bokstaver, tall og bindestrek.
+- Beskriv bare knapper og felt som står i seen_text eller som capture_screen fant. Ikke nevn navn på eiendommer, bygg, personer, dokumenter eller tall fra skjermbildet.
+- Skriv kort, på bokmål, slik en kollega forklarer det.`;
 
 export function buildSystemPrompt(opts: {
   agentName: string;
@@ -120,6 +130,7 @@ Typiske periodiske kontroller: brannalarmanlegg (årlig, NS 3960), sprinkleranle
   if (opts.tools.includes("artifacts")) parts.push(BRIDGE_DOC);
   if (opts.tools.includes("laft") || opts.tools.includes("laft_import") || opts.tools.includes("laft_write")) parts.push(LAFT_DOC);
   if (opts.tools.includes("boligmappa")) parts.push(BOLIGMAPPA_DOC);
+  if (opts.tools.includes("help")) parts.push(HELP_DOC);
   if (opts.instructions.trim()) parts.push(`## Dine instrukser\n${opts.instructions.trim()}`);
   return parts.join("\n\n");
 }

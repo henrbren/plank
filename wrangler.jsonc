@@ -30,8 +30,20 @@
   // Workers AI brukes til å konvertere PDF/Office/bilder til markdown (toMarkdown).
   "ai": { "binding": "AI" },
 
+  // Browser Rendering tar skjermbilder til hjelpesenteret. Mangler bindingen, hopper fangsten over.
+  "browser": { "binding": "BROWSER" },
+
   // Planlagte agenter sjekkes hvert 15. minutt.
   "triggers": { "crons": ["*/15 * * * *"] },
+
+  // Standardgrensen er 30 s CPU. En agentsamtale med flere verktøysteg passerer den og blir til Feil 503.
+  "limits": { "cpu_ms": 120000 },
+
+  // Henting fra Boligmappa fortsetter her, ett steg av gangen, så samtalen ikke gjør hele jobben selv.
+  "queues": {
+    "producers": [{ "binding": "BOLIGMAPPA_QUEUE", "queue": "plank-boligmappa" }],
+    "consumers": [{ "queue": "plank-boligmappa", "max_batch_size": 1, "max_retries": 5, "max_concurrency": 1 }]
+  },
 
   "workers_dev": true,
   // mappa.vixon.no er testdomene for Næringsmappa-merket. Vipps virker bare på *.laft.io (id.laft.io-allowlist).

@@ -14,6 +14,20 @@ interface ApiOptions {
   signal?: AbortSignal;
 }
 
+async function errorMessage(res: Response): Promise<string> {
+  const raw = await res.text().catch(() => "");
+  if (raw) {
+    try {
+      const data = JSON.parse(raw) as { error?: string };
+      if (typeof data.error === "string" && data.error.trim()) return data.error;
+    } catch {
+      /* ikke JSON – typisk Cloudflares egen 503-side */
+    }
+  }
+  if (res.status === 502 || res.status === 503 || res.status === 504) return "Tjenesten svarte ikke i tide. Prøv igjen om et øyeblikk.";
+  return `Feil ${res.status}`;
+}
+
 /** Kaller Plank-API-et. path er relativ til /api. */
 export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Promise<T> {
   const headers: Record<string, string> = { "x-plank": "1" };
@@ -35,16 +49,7 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
   if (res.status === 401 && !path.startsWith("/auth")) {
     window.dispatchEvent(new CustomEvent("plank:unauthorized"));
   }
-  if (!res.ok) {
-    let message = `Feil ${res.status}`;
-    try {
-      const data = (await res.json()) as { error?: string };
-      if (data.error) message = data.error;
-    } catch {
-      /* ignorer */
-    }
-    throw new ApiError(res.status, message);
-  }
+  if (!res.ok) throw new ApiError(res.status, await errorMessage(res));
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
@@ -58,16 +63,7 @@ export async function streamPost<E>(path: string, body: unknown, onEvent: (e: E)
     signal,
     credentials: "same-origin",
   });
-  if (!res.ok || !res.body) {
-    let message = `Feil ${res.status}`;
-    try {
-      const data = (await res.json()) as { error?: string };
-      if (data.error) message = data.error;
-    } catch {
-      /* ignorer */
-    }
-    throw new ApiError(res.status, message);
-  }
+  if (!res.ok || !res.body) throw new ApiError(res.status, await errorMessage(res));
   const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
   let buffer = "";
   for (;;) {

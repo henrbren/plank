@@ -381,7 +381,8 @@ export type ToolGroup =
   | "laft"
   | "laft_import"
   | "laft_write"
-  | "boligmappa";
+  | "boligmappa"
+  | "help";
 
 export const TOOL_GROUPS: Record<ToolGroup, { label: string; description: string; write?: boolean }> = {
   documents: { label: "Les dokumenter", description: "Søke i og lese opplastede dokumenter" },
@@ -399,6 +400,7 @@ export const TOOL_GROUPS: Record<ToolGroup, { label: string; description: string
   laft_import: { label: "Hente fra LAFT", description: "Ta bygg, etasjer, rom og dokumenter fra LAFT inn i Plank", write: true },
   laft_write: { label: "Endre i LAFT", description: "Opprette, kommentere og oppdatere arbeidsordrer i LAFT", write: true },
   boligmappa: { label: "Boligmappa", description: "Søke i Boligmappa og hente bygg og dokumenter inn i Plank", write: true },
+  help: { label: "Hjelpesenter", description: "Lese og oppdatere hjelpen, og ta skjermbilder av sidene", write: true },
 };
 
 /** Grupper som bare gir mening når organisasjonen har koblet til tjenesten */
@@ -446,6 +448,30 @@ export interface AgentTemplate {
   effort: Effort;
   schedule?: string;
   schedule_prompt?: string;
+}
+
+export interface HelpArticle {
+  slug: string;
+  title: string;
+  summary: string;
+  category: string;
+  route: string;
+  sort: number;
+  has_shot: boolean;
+  updated_at: number;
+}
+
+export interface HelpIndex {
+  agent_id: string | null;
+  /** Begrenset tilgang ser ikke skjermbilder, de kan vise andre eiendommer. */
+  can_view_shots: boolean;
+  articles: HelpArticle[];
+}
+
+export interface HelpDetail {
+  agent_id: string | null;
+  can_view_shots: boolean;
+  article: HelpArticle & { body: string };
 }
 
 export interface AgentRun {

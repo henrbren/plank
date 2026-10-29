@@ -1,6 +1,6 @@
 import type { Env } from "../env";
 import type { AutoImportStep, BmBuilding, BmDocument, BmEstate, BmTree, DocumentKind } from "../../shared/types";
-import { activityStatement } from "./activity";
+import { activityStatement, logActivity } from "./activity";
 import { assertCanAddBuilding, buildingLimit } from "./billing";
 import { all, first, insert } from "./db";
 import { guessMime, processDocument } from "./documents";
@@ -90,7 +90,37 @@ async function accessToken(env: Env): Promise<string> {
   return json.access_token;
 }
 
-async function apiGet(env: Env, path: string): Promise<{ items: Json[]; pageCount: number | null }> {
+interface Page {
+  items: Json[];
+  pageCount: number | null;
+  total: number | null;
+}
+
+function metaNumber(meta: Json, keys: string[]): number | null {
+  for (const key of keys) {
+    const value = num(meta[key]);
+    if (value != null) return value;
+  }
+  return null;
+}
+
+function pageOf(json: { meta?: Json; metadata?: Json; pagination?: Json }): { pageCount: number | null; total: number | null } {
+  const blocks = [json.meta, json.metadata, json.pagination].flatMap((block) => {
+    const obj = asObj(block);
+    if (!obj) return [];
+    const nested = asObj(obj.pagination);
+    return nested ? [obj, nested] : [obj];
+  });
+  let pageCount: number | null = null;
+  let total: number | null = null;
+  for (const meta of blocks) {
+    pageCount ??= metaNumber(meta, ["pageCount", "totalPages", "pages"]);
+    total ??= metaNumber(meta, ["totalCount", "total", "totalItems"]);
+  }
+  return { pageCount, total };
+}
+
+async function apiGet(env: Env, path: string): Promise<Page> {
   const call = async () =>
     fetchRetry(`${baseUrl(env)}${path}`, { headers: { Authorization: `Bearer ${await accessToken(env)}`, Accept: "application/json" } }, { ...BM, timeoutMs: CALL_MS, budgetMs: STEP_MS });
   let res = await call();
@@ -98,15 +128,31 @@ async function apiGet(env: Env, path: string): Promise<{ items: Json[]; pageCoun
     tokenCache = null;
     res = await call();
   }
-  if (res.status === 404) return { items: [], pageCount: 1 };
+  if (res.status === 404) return { items: [], pageCount: 1, total: 0 };
   if (!res.ok) throw new ApiError(502, `Boligmappa svarte ${res.status}`);
   const json = (await res.json().catch(() => {
     throw new TransientError("Boligmappa sendte et ufullstendig svar");
-  })) as { success?: boolean; response?: unknown; meta?: Json; metadata?: Json };
+  })) as { success?: boolean; response?: unknown; meta?: Json; metadata?: Json; pagination?: Json };
   const items = Array.isArray(json.response) ? (json.response as Json[]) : [];
-  const meta = (json.meta ?? json.metadata ?? {}) as Json;
-  const pageCount = typeof meta.pageCount === "number" ? meta.pageCount : null;
-  return { items, pageCount };
+  return { items, ...pageOf(json) };
+}
+
+/**
+ * En kort side er ikke siste side. Boligmappa kan levere færre enn pageSize selv om neste side finnes,
+ * og da ble resten (typisk «22 av 44») aldri hentet.
+ */
+export function pageDone(input: { itemCount: number; page: number; pageCount: number | null; total: number | null; have: number; added: number }): boolean {
+  if (input.page >= 50) return true;
+  if (input.itemCount === 0) return true;
+  if (input.total != null && input.total > 0) return input.have >= input.total;
+  if (input.pageCount != null && input.pageCount > 0) return input.page >= input.pageCount;
+  // Side 1 som ikke la til noe nytt, kan være en reprise. Da må neste side sjekkes før vi gir oss.
+  return input.page > 1 && input.added === 0;
+}
+
+async function countWhere(env: Env, sql: string, ...params: (string | number | null)[]): Promise<number> {
+  const row = await first<{ n: number }>(env.DB, sql, ...params);
+  return row?.n ?? 0;
 }
 
 function text(value: unknown): string | null {
@@ -416,7 +462,22 @@ export async function syncChunk(env: Env, orgId: string, restart: boolean, opts:
     if (!opts.force && source.status !== "ready" && source.retry_at && source.retry_at > now()) {
       return { ...source, waited: true, retryInMs: source.retry_at - now() };
     }
-    if (source.status !== "syncing") {
+    // Oppdater på en ferdig kilde skal hente sider som mangler, uten å slette bygg og filer som allerede er inne.
+    if (opts.force && (source.status === "ready" || source.phase === "done")) {
+      await reopenDocumentLists(env, orgId);
+      const fresh = await sourceOf(env, orgId);
+      source = {
+        ...(fresh ?? source),
+        status: "syncing",
+        phase: "buildings",
+        page: 1,
+        error: null,
+        updated_at: now(),
+        fail_count: 0,
+        retry_at: null,
+      };
+      await saveSource(env, source);
+    } else if (source.status !== "syncing") {
       source = { ...source, status: "syncing", error: null, updated_at: now() };
       await saveSource(env, source);
     }
@@ -428,17 +489,20 @@ export async function syncChunk(env: Env, orgId: string, restart: boolean, opts:
     do {
       if (source.phase === "buildings" || source.phase === "properties") {
         const path = source.phase === "buildings" ? "buildings" : "properties";
-        const { items, pageCount } = await apiGet(env, `organizations/${source.org_nr}/${path}?page=${source.page}&pageSize=${PAGE_SIZE}`);
+        const { items, pageCount, total } = await apiGet(env, `organizations/${source.org_nr}/${path}?page=${source.page}&pageSize=${PAGE_SIZE}`);
+        const countSql = source.phase === "buildings" ? `SELECT COUNT(*) AS n FROM bm_buildings WHERE org_id = ?` : `SELECT COUNT(*) AS n FROM bm_units WHERE org_id = ?`;
+        const before = await countWhere(env, countSql, orgId);
         if (source.phase === "buildings") {
           const rows = items.map((item) => buildingRow(orgId, item)).filter((r) => r != null);
           await storeBuildings(env, rows);
-          source.building_count += rows.length;
         } else {
           const rows = items.map((item) => unitRow(orgId, item)).filter((r) => r != null);
           await storeUnits(env, rows);
-          source.unit_count += rows.length;
         }
-        const last = items.length < PAGE_SIZE || (pageCount != null && source.page >= pageCount);
+        const have = await countWhere(env, countSql, orgId);
+        if (source.phase === "buildings") source.building_count = have;
+        else source.unit_count = have;
+        const last = pageDone({ itemCount: items.length, page: source.page, pageCount, total, have, added: have - before });
         if (last) {
           source.phase = source.phase === "buildings" ? "properties" : "documents";
           source.page = 1;
@@ -472,9 +536,11 @@ export async function syncChunk(env: Env, orgId: string, restart: boolean, opts:
         const table = owner.kind === "building" ? "bm_buildings" : "bm_units";
         current = { table, bmn: owner.bmn };
         const page = owner.docs_page + 1;
-        const { items, pageCount } = await apiGet(env, `${entity}/${encodeURIComponent(owner.bmn)}/documents?page=${page}&pageSize=${PAGE_SIZE}`);
+        const { items, pageCount, total } = await apiGet(env, `${entity}/${encodeURIComponent(owner.bmn)}/documents?page=${page}&pageSize=${PAGE_SIZE}`);
+        const before = await countWhere(env, `SELECT COUNT(*) AS n FROM bm_documents WHERE org_id = ? AND owner_kind = ? AND owner_bmn = ?`, orgId, owner.kind, owner.bmn);
         await storeDocuments(env, orgId, owner.kind, owner.bmn, items);
-        const last = items.length < PAGE_SIZE || (pageCount != null && page >= pageCount);
+        const have = await countWhere(env, `SELECT COUNT(*) AS n FROM bm_documents WHERE org_id = ? AND owner_kind = ? AND owner_bmn = ?`, orgId, owner.kind, owner.bmn);
+        const last = pageDone({ itemCount: items.length, page, pageCount, total, have, added: have - before });
         await env.DB.prepare(`UPDATE ${table} SET docs_page = ?, docs_fetched_at = ?, docs_error = NULL, docs_attempts = 0 WHERE org_id = ? AND bmn = ?`)
           .bind(page, last ? now() : null, orgId, owner.bmn)
           .run();
@@ -810,6 +876,8 @@ async function downloadToPlank(
   loc: { property_id: string; building_id: string | null },
 ): Promise<void> {
   if (!doc.download_url) throw new Error("Dokumentet har ingen nedlastingslenke");
+  const already = await first<{ imported_document_id: string | null }>(env.DB, `SELECT imported_document_id FROM bm_documents WHERE org_id = ? AND remote_id = ?`, orgId, doc.remote_id);
+  if (already?.imported_document_id) return;
   const url = doc.download_url;
   const opts = { ...BM, timeoutMs: CALL_MS, budgetMs: STEP_MS };
   let res = await fetchRetry(url, { redirect: "follow" }, opts);
@@ -823,25 +891,23 @@ async function downloadToPlank(
   const key = `orgs/${orgId}/documents/${id}/${filename}`;
   const mime = res.headers.get("content-type")?.split(";")[0]?.trim() || guessMime(filename);
   const length = Number(res.headers.get("content-length") ?? NaN);
-  const encoded = (res.headers.get("content-encoding") ?? "identity") !== "identity";
   if (Number.isFinite(length) && length === 0) throw new Error("Dokumentet var tomt");
   if (Number.isFinite(length) && length > MAX_DOC_BYTES) throw new Error("Dokumentet er for stort");
-  let size: number;
+  if (!res.body) throw new Error("Dokumentet var tomt");
+  // Strøm til R2 med tak. Hele filen i minnet (særlig flere samtidig) gjør at workeren dør med Feil 503.
+  let size = 0;
+  const capped = new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      size += chunk.byteLength;
+      if (size > MAX_DOC_BYTES) throw new Error("Dokumentet er for stort");
+      controller.enqueue(chunk);
+    },
+  });
   try {
-    if (res.body && Number.isFinite(length) && length > 0 && !encoded) {
-      // Kjent størrelse: strøm rett til R2, så flere nedlastinger samtidig ikke fyller minnet
-      const { readable, writable } = new FixedLengthStream(length);
-      const piping = res.body.pipeTo(writable);
-      await env.FILES.put(key, readable, { httpMetadata: { contentType: mime } });
-      await piping;
-      size = length;
-    } else {
-      const bytes = new Uint8Array(await res.arrayBuffer());
-      if (bytes.byteLength === 0) throw new Error("Dokumentet var tomt");
-      if (bytes.byteLength > MAX_DOC_BYTES) throw new Error("Dokumentet er for stort");
-      await env.FILES.put(key, bytes, { httpMetadata: { contentType: mime } });
-      size = bytes.byteLength;
-    }
+    const piping = res.body.pipeTo(capped.writable);
+    await env.FILES.put(key, capped.readable, { httpMetadata: { contentType: mime } });
+    await piping;
+    if (size === 0) throw new Error("Dokumentet var tomt");
   } catch (err) {
     await env.FILES.delete(key).catch(() => undefined);
     if (err instanceof Error && /tomt|for stort/.test(err.message)) throw err;
@@ -936,8 +1002,14 @@ export interface ImportProgress {
   done: boolean;
 }
 
+interface ImportCtx {
+  waitUntil(promise: Promise<unknown>): void;
+  /** Agenten skal ikke tolke PDF-er i samtalen. Køen gjør det etterpå. */
+  deferProcessing?: boolean;
+}
+
 /** Legger valgte bygg inn i porteføljen og henter noen dokumenter av gangen. */
-export async function importSelection(env: Env, orgId: string, actor: BmActor, bmns: string[], ctx: { waitUntil(promise: Promise<unknown>): void }): Promise<ImportProgress> {
+export async function importSelection(env: Env, orgId: string, actor: BmActor, bmns: string[], ctx: ImportCtx): Promise<ImportProgress> {
   const wanted = [...new Set(bmns.map((b) => b.trim()).filter(Boolean))].slice(0, 200);
   if (wanted.length === 0) throw new ApiError(400, "Velg minst ett bygg");
   const real = wanted.filter((b) => !b.startsWith("unit:"));
@@ -995,28 +1067,27 @@ export async function importSelection(env: Env, orgId: string, actor: BmActor, b
 
   const owners = placed.flatMap((p) => p.owners);
   const pending = await pendingDocuments(env, orgId, owners, DOCS_PER_STEP);
-  const results = await Promise.all(
-    pending.map(async (doc) => {
-      const home = placed.find((p) => p.owners.some((o) => o.kind === doc.owner_kind && o.bmn === doc.owner_bmn));
-      if (!home) return false;
-      try {
-        await downloadToPlank(env, orgId, actor, doc, { property_id: home.propertyId, building_id: home.buildingId });
-        const id = await first<{ imported_document_id: string }>(env.DB, `SELECT imported_document_id FROM bm_documents WHERE org_id = ? AND remote_id = ?`, orgId, doc.remote_id);
-        if (id?.imported_document_id) ctx.waitUntil(processDocument(env, id.imported_document_id));
-        return true;
-      } catch (err) {
-        // Forbigående feil gir nye forsøk senere. Først etter MAX_DOC_ATTEMPTS (eller ved varig feil) merkes dokumentet.
-        const permanent = !isTransient(err);
-        await env.DB.prepare(
-          `UPDATE bm_documents SET attempts = attempts + 1, error = CASE WHEN ? OR attempts + 1 >= ? THEN ? ELSE NULL END WHERE org_id = ? AND remote_id = ?`,
-        )
-          .bind(permanent ? 1 : 0, MAX_DOC_ATTEMPTS, err instanceof Error ? err.message : "Nedlasting feilet", orgId, doc.remote_id)
-          .run();
-        return false;
-      }
-    }),
-  );
-  const importedDocuments = results.filter(Boolean).length;
+  const importedIds: string[] = [];
+  // Ett dokument av gangen, så tre store filer ikke ligger i minnet samtidig.
+  for (const doc of pending) {
+    const home = placed.find((p) => p.owners.some((o) => o.kind === doc.owner_kind && o.bmn === doc.owner_bmn));
+    if (!home) continue;
+    try {
+      await downloadToPlank(env, orgId, actor, doc, { property_id: home.propertyId, building_id: home.buildingId });
+      const id = await first<{ imported_document_id: string }>(env.DB, `SELECT imported_document_id FROM bm_documents WHERE org_id = ? AND remote_id = ?`, orgId, doc.remote_id);
+      if (id?.imported_document_id) importedIds.push(id.imported_document_id);
+    } catch (err) {
+      // Forbigående feil gir nye forsøk senere. Først etter MAX_DOC_ATTEMPTS (eller ved varig feil) merkes dokumentet.
+      const permanent = !isTransient(err);
+      await env.DB.prepare(
+        `UPDATE bm_documents SET attempts = attempts + 1, error = CASE WHEN ? OR attempts + 1 >= ? THEN ? ELSE NULL END WHERE org_id = ? AND remote_id = ?`,
+      )
+        .bind(permanent ? 1 : 0, MAX_DOC_ATTEMPTS, err instanceof Error ? err.message : "Nedlasting feilet", orgId, doc.remote_id)
+        .run();
+    }
+  }
+  if (!ctx.deferProcessing) await scheduleProcessing(env, ctx, orgId, importedIds);
+  const importedDocuments = importedIds.length;
   const remaining = await countPending(env, orgId, owners);
 
   if (createdBuildings > 0 || (importedDocuments > 0 && remaining === 0)) {
@@ -1189,6 +1260,178 @@ export async function runAutoImports(env: Env, ctx: { waitUntil(promise: Promise
         console.error("Automatisk Boligmappa-henting feilet", row.org_id, err);
         break;
       }
+    }
+  }
+}
+
+const MAX_CHAIN = 500;
+
+export type BoligmappaJob =
+  | { kind: "sync"; orgId: string; steps: number }
+  | { kind: "import"; orgId: string; actor: BmActor; bmns: string[]; steps: number; refresh: boolean }
+  | { kind: "drain"; orgId: string; steps: number };
+
+/** Dokumentlistene merkes ferdige selv om en kort side skjulte resten. Gå gjennom dem på nytt uten å slette det som er lagret. */
+async function reopenDocumentLists(env: Env, orgId: string): Promise<void> {
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE bm_buildings SET docs_fetched_at = NULL, docs_page = 0, docs_attempts = 0, docs_error = NULL WHERE org_id = ?`).bind(orgId),
+    env.DB.prepare(`UPDATE bm_units SET docs_fetched_at = NULL, docs_page = 0, docs_attempts = 0, docs_error = NULL WHERE org_id = ?`).bind(orgId),
+    env.DB.prepare(`UPDATE bm_sources SET status = 'syncing', phase = 'documents', page = 1, error = NULL, fail_count = 0, retry_at = NULL, updated_at = ? WHERE org_id = ?`).bind(now(), orgId),
+  ]);
+}
+
+function delaySeconds(ms: number | null | undefined): number {
+  if (!ms || ms <= 0) return 0;
+  return Math.min(900, Math.ceil(ms / 1000));
+}
+
+async function enqueue(env: Env, job: BoligmappaJob, delayMs = 0): Promise<boolean> {
+  if (!env.BOLIGMAPPA_QUEUE) return false;
+  const delay = delaySeconds(delayMs);
+  try {
+    await env.BOLIGMAPPA_QUEUE.send(job, delay > 0 ? { delaySeconds: delay } : undefined);
+    return true;
+  } catch (err) {
+    console.error("Klarte ikke å legge Boligmappa i kø", err);
+    return false;
+  }
+}
+
+/** Tolking av PDF skjer i køen. Uten kø gjør HTTP-kallet det i waitUntil, mens agenten lar være. */
+async function scheduleProcessing(env: Env, ctx: ImportCtx, orgId: string, ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  if (await enqueue(env, { kind: "drain", orgId, steps: 0 })) return;
+  for (const id of ids) ctx.waitUntil(processDocument(env, id));
+}
+
+async function enableAutoImport(env: Env, orgId: string): Promise<void> {
+  await env.DB.prepare(`UPDATE bm_sources SET auto_import = 1, retry_at = NULL WHERE org_id = ?`).bind(orgId).run();
+}
+
+/** Listene er ikke ferdige. Ett steg er kjørt; resten går i kø eller tas av cron. */
+export async function continueBoligmappaSync(env: Env, orgId: string, actor: BmActor, delayMs: number | null): Promise<boolean> {
+  const queued = await enqueue(env, { kind: "sync", orgId, steps: 0 }, delayMs ?? 0);
+  if (!queued) await enableAutoImport(env, orgId);
+  await logActivity(env, { orgId, actor, action: "boligmappa.continue", summary: "Fortsetter å hente lister fra Boligmappa" });
+  return true;
+}
+
+/**
+ * Ett importsteg er kjørt. Er det flere dokumenter eller lister igjen, fortsetter køen.
+ * Returnerer false når det ikke er mer å hente (eller kvoten stoppet oss).
+ */
+export async function continueBoligmappaImport(env: Env, orgId: string, actor: BmActor, bmns: string[], res: ImportProgress): Promise<boolean> {
+  if (res.message) return false;
+  const needsDocs = res.remainingDocuments > 0;
+  // refresh går gjennom dokumentlistene på nytt. En kort side kan ha blitt lagret som om den var den siste.
+  const queued = await enqueue(env, { kind: "import", orgId, actor, bmns: bmns.slice(0, 200), steps: 0, refresh: true });
+  if (!queued) {
+    if (needsDocs) await enableAutoImport(env, orgId);
+    return needsDocs;
+  }
+  const summary = needsDocs
+    ? `Fortsetter å hente dokumenter fra Boligmappa (${res.remainingDocuments} igjen)`
+    : "Sjekker dokumentlistene i Boligmappa på nytt";
+  await logActivity(env, { orgId, actor, action: "boligmappa.continue", summary });
+  return true;
+}
+
+async function runSyncJob(env: Env, job: Extract<BoligmappaJob, { kind: "sync" }>): Promise<void> {
+  if (job.steps >= MAX_CHAIN) return;
+  const source = await sourceOf(env, job.orgId);
+  if (!source || source.status === "ready") return;
+  const step = await syncChunk(env, job.orgId, false);
+  if (step.status === "ready" || (step.status === "error" && !step.waited)) return;
+  await enqueue(env, { ...job, steps: job.steps + 1 }, step.waited ? (step.retryInMs ?? 0) : 0);
+}
+
+async function runImportJob(env: Env, job: Extract<BoligmappaJob, { kind: "import" }>, ctx: ExecutionContext): Promise<void> {
+  if (job.steps >= MAX_CHAIN) {
+    console.warn("Stopper Boligmappa-import, for mange steg", job.orgId);
+    return;
+  }
+  const source = await sourceOf(env, job.orgId);
+  if (!source) return;
+  if (source.status !== "ready") {
+    const step = await syncChunk(env, job.orgId, false);
+    if (step.status === "error" && !step.waited) return;
+    await enqueue(env, { ...job, steps: job.steps + 1 }, step.waited ? (step.retryInMs ?? 0) : 0);
+    return;
+  }
+  let bmns = job.bmns;
+  if (bmns.length === 0) bmns = (await importableBmns(env, job.orgId)).picks;
+  if (bmns.length === 0) {
+    await enqueue(env, { kind: "drain", orgId: job.orgId, steps: 0 });
+    return;
+  }
+  const res = await importSelection(env, job.orgId, job.actor, bmns, { waitUntil: (p) => ctx.waitUntil(p), deferProcessing: true });
+  if (res.message) return;
+  if (res.remainingDocuments > 0) {
+    await enqueue(env, { ...job, bmns, steps: job.steps + 1 }, res.importedDocuments > 0 ? 0 : 20_000);
+    return;
+  }
+  // Alt som var listet er inne. Gå gjennom listene én gang til, i tilfelle en kort side skjulte resten.
+  if (job.refresh) {
+    await reopenDocumentLists(env, job.orgId);
+    await enqueue(env, { ...job, bmns, refresh: false, steps: job.steps + 1 });
+    return;
+  }
+  await enqueue(env, { kind: "drain", orgId: job.orgId, steps: 0 });
+}
+
+async function runDrainJob(env: Env, job: Extract<BoligmappaJob, { kind: "drain" }>): Promise<void> {
+  if (job.steps >= MAX_CHAIN) return;
+  const row = await first<{ id: string }>(
+    env.DB,
+    `SELECT id FROM documents WHERE org_id = ? AND status = 'processing' AND boligmappa_id IS NOT NULL ORDER BY created_at LIMIT 1`,
+    job.orgId,
+  );
+  if (!row) return;
+  await processDocument(env, row.id);
+  await enqueue(env, { ...job, steps: job.steps + 1 });
+}
+
+function asJob(value: unknown): BoligmappaJob | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as { kind?: string; orgId?: string; steps?: number; actor?: BmActor; bmns?: unknown; refresh?: boolean };
+  if (typeof row.orgId !== "string" || typeof row.steps !== "number") return null;
+  if (row.kind === "sync" || row.kind === "drain") return { kind: row.kind, orgId: row.orgId, steps: row.steps };
+  if (
+    row.kind === "import" &&
+    row.actor &&
+    (row.actor.type === "user" || row.actor.type === "agent") &&
+    typeof row.actor.id === "string" &&
+    typeof row.actor.name === "string" &&
+    Array.isArray(row.bmns)
+  ) {
+    return {
+      kind: "import",
+      orgId: row.orgId,
+      steps: row.steps,
+      actor: { type: row.actor.type, id: row.actor.id, name: row.actor.name },
+      bmns: row.bmns.map(String).slice(0, 200),
+      refresh: row.refresh === true,
+    };
+  }
+  return null;
+}
+
+export async function handleBoligmappaQueue(batch: MessageBatch, env: Env, ctx: ExecutionContext): Promise<void> {
+  for (const msg of batch.messages) {
+    const job = asJob(msg.body);
+    if (!job || !boligmappaConfigured(env)) {
+      msg.ack();
+      continue;
+    }
+    try {
+      if (job.kind === "sync") await runSyncJob(env, job);
+      else if (job.kind === "import") await runImportJob(env, job, ctx);
+      else await runDrainJob(env, job);
+      msg.ack();
+    } catch (err) {
+      console.error("Boligmappa-kø feilet", job.orgId, err);
+      if (err instanceof ApiError && err.status < 500) msg.ack();
+      else msg.retry();
     }
   }
 }

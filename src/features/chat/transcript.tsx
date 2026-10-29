@@ -60,6 +60,10 @@ const TOOL_LABELS: Record<string, (i: any) => string> = {
   query_ifc_elements: (i) => `Spør BIM-modellen${i.ifc_type ? ` (${i.ifc_type})` : ""}`,
   send_email: (i) => `Sender e-post «${i.subject ?? ""}»`,
   web_search: (i) => `Søker på nettet${i.query ? ` etter «${i.query}»` : ""}`,
+  list_help: () => "Leser hjelpesenteret",
+  get_help: (i) => `Leser hjelpeartikkelen «${i.slug ?? ""}»`,
+  save_help: (i) => `Oppdaterer hjelpen «${i.title ?? i.slug ?? ""}»`,
+  capture_screen: (i) => `Tar skjermbilde av ${i.path ?? "siden"}`,
 };
 
 export function toolLabel(name: string, input: unknown): string {

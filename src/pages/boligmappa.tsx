@@ -120,7 +120,7 @@ export function BoligmappaPage() {
         actions={
           tree.orgNr && isAdmin ? (
             <>
-              <Button icon={<RefreshCw className="size-4" />} loading={busy === "sync"} onClick={() => void runSync(tree.status === "ready")}>
+              <Button icon={<RefreshCw className="size-4" />} loading={busy === "sync"} onClick={() => void runSync(false)}>
                 Oppdater
               </Button>
               <Button variant="ghost" onClick={() => void disconnect()}>

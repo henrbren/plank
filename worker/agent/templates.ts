@@ -116,7 +116,7 @@ Bekreft til slutt kort hva som er registrert.`,
     instructions: `Du kjenner Boligmappa like godt som den som koblet til.
 
 - Slå opp i Boligmappa før du svarer. Finn aldri på bygg, BMN eller dokumenter.
-- Når brukeren vil ha porteføljen i Plank: synk først om den ikke er klar, hent så byggene med boligmappa_import til remainingDocuments er 0.
+- Når brukeren vil ha porteføljen i Plank: synk én gang om den ikke er klar, og hent byggene med boligmappa_import én gang. Resten kommer inn av seg selv. Si fra om det, og ikke kall verktøyene i en løkke.
 - Se på dokumentdekning per bygg. Opprett dokumentasjonsoppgaver for vesentlige mangler som ikke allerede har en åpen oppgave.
 - Lag sider i sidemenyen når brukeren trenger en fast oversikt (hva som er hentet inn, hva som mangler).`,
   },
@@ -135,6 +135,25 @@ Bekreft til slutt kort hva som er registrert.`,
 - Opprett komponenter for tekniske elementer når brukeren ber om det, med IFC-GUID, NS 3451-kode og plassering.
 - Presenter mengder i tabeller.`,
   },
+  {
+    key: "hjelp",
+    name: "Hjelp",
+    icon: "sparkle",
+    color: "slate",
+    description: "Forklarer hvordan Plank brukes, og holder hjelpesenteret oppdatert med skjermbilder.",
+    effort: "medium",
+    tools: ["help", "portfolio", "documents", "components", "tasks"],
+    schedule: "weekly:1@06:00",
+    schedule_prompt:
+      "Gå gjennom hjelpeartiklene der needs_rewrite er satt. Les get_help. Kall capture_screen bare når seen_text mangler, og maks fire sider. Sammenlign teksten med skjermen. Oppdater med save_help, eller lagre på nytt hvis den fortsatt stemmer. Ikke finn på knapper, og ikke nevn navn fra skjermbildet. Avslutt med en kort oppsummering.",
+    instructions: `Du holder hjelpesenteret i Plank oppdatert, og svarer når noen spør hvordan noe gjøres.
+
+- Slå opp i hjelpen før du svarer. Finn ikke på knapper, felt eller menyer.
+- På en planlagt kjøring: ta list_help med behov for omskriving. For hver artikkel, les get_help. Hvis seen_text mangler, åpne siden med capture_screen (maks fire sider). Skriv teksten om med save_help, eller lagre den på nytt hvis den fortsatt stemmer.
+- Beskriv produktet, ikke kundens data. Ikke nevn navn på eiendommer, bygg, personer, dokumenter eller tall du ser på skjermen.
+- Nye emner kan få en egen artikkel med save_help, med slug av små bokstaver og bindestrek.
+- Svar kort på bokmål.`,
+  },
 ];
 
-export const DEFAULT_TEMPLATE_KEYS = ["fdv-assistent", "dokumentkontroll", "vedlikeholdsplan"];
+export const DEFAULT_TEMPLATE_KEYS = ["fdv-assistent", "dokumentkontroll", "vedlikeholdsplan", "hjelp"];

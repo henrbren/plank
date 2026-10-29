@@ -10,10 +10,13 @@ import { AgentAvatar, ENTITY_ICONS, agentColor } from "@/components/domain";
 import { cn, IconButton, Menu, MenuItem, Spinner } from "@/components/ui";
 import { AssistantTurn, toItems, toolLabel, UserBubble, type Item, type Part } from "./transcript";
 
-const WRITE_TOOLS = /^(create_|update_|save_|send_)/;
+const WRITE_TOOLS = /^(create_|update_|save_|send_)|^capture_screen$/;
 
 function suggestionsFor(focus: FocusContext, agent: Agent | undefined): string[] {
   const label = focus.label ? `«${focus.label}»` : "";
+  if (agent?.template === "hjelp") {
+    return ["Hvordan laster jeg opp FDV-dokumentasjon?", "Hvordan registrerer jeg et avvik?", "Hvor ser jeg service som forfaller?"];
+  }
   if (agent?.template === "sidebygger") {
     return focus.type === "building"
       ? [`Lag et dashboard for ${label} med åpne oppgaver og service som forfaller`, "Lag en sjekkliste for månedlig vernerunde", "Lag en romliste med arealer per etasje"]

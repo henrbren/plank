@@ -194,6 +194,7 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
   let finalText = "";
   let toolCalls = 0;
   let lastInputTokens: number | null = null;
+  const boligmappaStarted = new Set<string>();
 
   if (tools.length > 0) (tools[tools.length - 1] as { cache_control?: unknown }).cache_control = { type: "ephemeral" };
 
@@ -267,6 +268,17 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
     for (const block of content.filter((b) => b.type === "tool_use")) {
       toolCalls++;
       const name = String(block.name);
+      // Boligmappa i en løkke fyller CPU- og minnegrensen, og samtalen dør med Feil 503. Ett kall starter resten i bakgrunnen.
+      if ((name === "boligmappa_synk" || name === "boligmappa_import") && boligmappaStarted.has(name)) {
+        const outcome = {
+          content: "Resten hentes i bakgrunnen. Ikke kall dette verktøyet igjen. Fortell brukeren at de resterende dokumentene kommer inn av seg selv.",
+          summary: "Fortsetter i bakgrunnen",
+        };
+        results.push({ type: "tool_result", tool_use_id: String(block.id), content: outcome.content });
+        await emit({ type: "tool_result", id: String(block.id), name, ok: true, summary: outcome.summary });
+        continue;
+      }
+      if (name === "boligmappa_synk" || name === "boligmappa_import") boligmappaStarted.add(name);
       const outcome = await executeTool(toolCtx, defs, name, block.input);
       results.push({ type: "tool_result", tool_use_id: String(block.id), content: outcome.content, ...(outcome.isError ? { is_error: true } : {}) });
       await emit({ type: "tool_result", id: String(block.id), name, ok: !outcome.isError, summary: outcome.summary, link: outcome.link });

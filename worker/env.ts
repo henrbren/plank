@@ -1,3 +1,4 @@
+import type { BrowserWorker } from "@cloudflare/puppeteer";
 import type { Access } from "./lib/access";
 
 export interface Env {
@@ -5,6 +6,13 @@ export interface Env {
   FILES: R2Bucket;
   AI?: Ai;
   ASSETS: Fetcher;
+  /** Browser Rendering. Uten binding hoppes skjermbilder over, og resten av appen virker. */
+  BROWSER?: BrowserWorker;
+  /**
+   * Fortsetter Boligmappa-henting utenom samtalen, så en lang import ikke sprenger CPU-grensen (Feil 503).
+   * Uten binding tar cron-jobben over.
+   */
+  BOLIGMAPPA_QUEUE?: Queue;
 
   APP_URL: string;
   EMAIL_FROM: string;

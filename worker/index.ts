@@ -21,12 +21,14 @@ import { stripeWebhook } from "./routes/stripe";
 import { boligmappa } from "./routes/boligmappa";
 import { laft } from "./routes/laft";
 import { keepLaftAlive } from "./lib/laft";
-import { runAutoImports } from "./lib/boligmappa";
+import { handleBoligmappaQueue, runAutoImports } from "./lib/boligmappa";
 import { claudeConfigured } from "./lib/anthropic";
 import { emailConfigured } from "./lib/email";
 import { brandOf } from "./lib/brand";
 import { hooks } from "./routes/hooks";
 import { syncAccessRequests } from "./services/accessRequests";
+import { help } from "./routes/help";
+import { maintainHelp } from "./services/help";
 
 const app = new Hono<AppEnv>();
 
@@ -87,6 +89,7 @@ org.route("/agents", agents);
 org.route("/conversations", conversations);
 org.route("/boligmappa", boligmappa);
 org.route("/laft", laft);
+org.route("/help", help);
 app.route("/api/orgs/:orgId", org);
 
 app.all("/api/*", (c) => c.json({ error: "Ukjent API-endepunkt" }, 404));
@@ -99,6 +102,7 @@ export default {
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
     ctx.waitUntil(
       (async () => {
+        await maintainHelp(env).catch((err) => console.error("Hjelpesenter feilet", err));
         await runDueAgents(env);
         await flushUsageInvoices(env);
         await notifySpendLimits(env).catch((err) => console.error("Varsel om AI-grense feilet", err));
@@ -107,5 +111,8 @@ export default {
         await runAutoImports(env, ctx).catch((err) => console.error("Automatisk Boligmappa-henting feilet", err));
       })(),
     );
+  },
+  async queue(batch: MessageBatch, env: Env, ctx: ExecutionContext) {
+    await handleBoligmappaQueue(batch, env, ctx);
   },
 } satisfies ExportedHandler<Env>;

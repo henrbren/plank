@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv, Env } from "../env";
+import { nextRunAt } from "../agent/schedule";
 import { DEFAULT_TEMPLATE_KEYS, AGENT_TEMPLATES } from "../agent/templates";
+import { seedHelp } from "../services/help";
 import { activityScopeSql, scopeSql } from "../lib/access";
 import { requireAdmin } from "../lib/auth";
 import { brandOf, emailFrom, publicOrigin } from "../lib/brand";
@@ -44,6 +46,7 @@ export async function createOrg(env: Env, name: string, ownerId: string) {
   ];
   for (const key of DEFAULT_TEMPLATE_KEYS) {
     const tpl = AGENT_TEMPLATES.find((a) => a.key === key)!;
+    const schedule = tpl.key === "hjelp" ? (tpl.schedule ?? null) : null;
     stmts.push(
       insert(env.DB, "agents", {
         id: newId("agt"),
@@ -57,9 +60,10 @@ export async function createOrg(env: Env, name: string, ownerId: string) {
         effort: tpl.effort,
         tools: tpl.tools,
         scope_type: "org",
-        schedule: null,
+        schedule,
         schedule_prompt: tpl.schedule_prompt ?? null,
         notify_emails: [],
+        next_run_at: schedule ? (nextRunAt(schedule, t) ?? undefined) : undefined,
         template: tpl.key,
         created_by: ownerId,
         created_at: t,
@@ -68,6 +72,7 @@ export async function createOrg(env: Env, name: string, ownerId: string) {
     );
   }
   await env.DB.batch(stmts);
+  await seedHelp(env, id);
   return { id, name, role: "owner" as const, can_edit: true, limited: false, expires_on: null };
 }
 
