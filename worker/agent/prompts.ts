@@ -4,7 +4,7 @@ import type { FocusContext, ToolGroup } from "../../shared/types";
 export const BRIDGE_DOC = `## Sider (artifacts)
 Når brukeren ber om en side, et dashboard, en rapport, en sjekkliste eller et verktøy, lager du en *artifact* med create_artifact. En artifact er et komplett, selvstendig HTML-dokument som vises i Plank i en sandkasse.
 
-Sandkassen har ingen nettverkstilgang, og siden kan ikke navigere bort (lenker til eksterne sider fungerer ikke). Skript kan bare lastes fra cdn.jsdelivr.net, cdnjs.cloudflare.com og unpkg.com (bruk eksakte versjoner, f.eks. https://cdn.jsdelivr.net/npm/chart.js@4.4.1). Data hentes med det globale objektet \`plank\`:
+Sandkassen har ingen nettverkstilgang, og siden kan ikke navigere bort (lenker til eksterne sider fungerer ikke). Skript og fonter kan bare lastes fra cdn.jsdelivr.net, cdnjs.cloudflare.com og unpkg.com, med eksakt versjon. Data hentes med det globale objektet \`plank\`:
 
 \`\`\`js
 await plank.query(resource, params)   // → data (Promise)
@@ -38,8 +38,22 @@ await plank.action(name, params)      // endringer – brukeren må bekrefte i e
 Annet: \`plank.open(type, id)\` åpner en entitet i Plank (property|building|floor|room|component|task|document|artifact). \`plank.context\` gir {orgName, artifactId, buildingId, propertyId, theme}.
 
 Krav til sider:
-- Komplett HTML5-dokument med all CSS og JS inline. Responsivt (fungerer på mobil), og med støtte for både lyst og mørkt tema via prefers-color-scheme.
-- Rolig, profesjonell stil: systemfonter, god luft, tydelig hierarki. Unngå emojier.
+- Komplett HTML5-dokument med CSS og JS inline. På smal skjerm: 20px padding og ett kort i bredden.
+- Plank setter inn Inter, bakgrunn og CSS-variablene før din CSS, og kobler lyst/mørkt tema til \`html[data-theme]\`. Bruk bare variablene. Ikke definer egne farger, ikke sett bakgrunnsgradient, og ikke last en egen font.
+
+Variabler: --bg, --panel, --panel-2, --panel-3, --line, --line-strong, --ink, --ink-2, --muted, --accent, --ok, --ok-soft, --warn, --warn-soft, --bad, --bad-soft, --info, --info-soft.
+
+Mål som i appen:
+- Ytre flate: max-width 1100px, padding 28px 32px. h1 er 22px, vekt 600, letter-spacing -0.015em. Undertittel er 13.5px i --muted. Ingen toppbanner og ingen bakgrunnsgradient.
+- Kort: bakgrunn --panel, kant 1px solid var(--line), radius 12px, padding 16px. Ingen boks-skygge og ingen farget strek langs kanten.
+- Nøkkeltall: etiketten (12.5px, --muted) står over tallet. Tallet er 24px, vekt 600, font-variant-numeric: tabular-nums, farge --ink. Bruk --bad bare for avvik og forfalt, --warn når noe nærmer seg frist.
+- Korttittel: 13.5px, vekt 600, setningskasus («Service som forfaller»). Versaler bare på tabellkolonner, 11.5px i --muted.
+- Lister: primærlinje 13.5px, sekundærlinje 12px i --muted, skilt med « · ». Hover er bakgrunn --panel-2. Klikk på en rad kaller plank.open(type, id).
+- Tabell ligger i et kort. th er 11.5px, versaler, --muted. td er 13.5px. Tall bruker tabular-nums. Rader deles med kant --line.
+- Merker (TG, status, prioritet): pille, 12px, vekt 500, radius 999px, padding 1px 8px. TG0 er --ok på --ok-soft, TG1 er --info på --info-soft, TG2 er --warn på --warn-soft, TG3 er --bad på --bad-soft, TGIU er --ink-2 på --panel-2.
+- Knapper: primær har bakgrunn --ink og tekst --bg, høyde 34px, radius 8px, 13.5px. Sekundær har bakgrunn --panel og kant --line-strong.
+- Diagram bare når fordelingen er selve poenget, og da under 180px høyt. Serier i rekkefølgen --ok, --warn, --bad, --info, --accent, --muted. Færre enn åtte punkter vises som tabell eller liste.
+- Tom tilstand og feil er en kort setning i --muted eller --bad. Ingen illustrasjon og ingen emojier.
 - Hent alltid data med plank.query – ikke hardkod data som finnes i Plank. Vis lastetilstand og feilmeldinger.
 - Escape all tekst fra data før den settes inn som HTML.
 - Ikke bruk fetch, localStorage, cookies eller eksterne API-er.

@@ -90,6 +90,7 @@ function Shell() {
   const [navOpen, setNavOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const location = useLocation();
+  const onArtifact = /\/artifacts\/[^/]+$/.test(location.pathname);
 
   useEffect(() => setNavOpen(false), [location.pathname]);
 
@@ -138,7 +139,7 @@ function Shell() {
             <PanelRightOpen className="size-4.5" />
           </IconButton>
         </div>
-        <div className="@container min-h-0 flex-1 overflow-y-auto">
+        <div className={cn("@container min-h-0 flex-1 overflow-y-auto", !panel.open && !onArtifact && "lg:pb-20")}>
           <NextStepBar />
           <Outlet />
         </div>
@@ -146,7 +147,7 @@ function Shell() {
 
       {/* Agentpanel */}
       <AgentPanel />
-      {!panel.open && (
+      {!panel.open && !onArtifact && (
         <button
           onClick={() => panel.setOpen(true)}
           className="fixed right-5 bottom-5 z-20 hidden items-center gap-2 rounded-full border border-line bg-ink px-4 py-2.5 text-[13.5px] font-medium text-bg shadow-pop transition-transform hover:scale-[1.03] lg:flex"
@@ -167,15 +168,16 @@ function NavItem({ to, icon, label, end }: { to: string; icon: React.ReactNode; 
     <NavLink
       to={to}
       end={end}
+      title={label}
       className={({ isActive }) =>
         cn(
-          "flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] transition-colors",
+          "flex h-8 min-w-0 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] transition-colors",
           isActive ? "bg-panel-2 font-medium text-ink" : "text-ink-2 hover:bg-panel-2/70 hover:text-ink",
         )
       }
     >
-      <span className="text-muted [&>svg]:size-4">{icon}</span>
-      {label}
+      <span className="shrink-0 text-muted [&>svg]:size-4">{icon}</span>
+      <span className="min-w-0 truncate">{label}</span>
     </NavLink>
   );
 }
@@ -488,12 +490,13 @@ function SidebarPages() {
   const pages = useOrgQuery<SidebarPage[]>("/artifacts/sidebar");
   if (!pages.data?.length) return null;
   return (
-    <>
+    <div className="mt-3 flex flex-col gap-0.5">
+      <div className="px-2.5 pb-1 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Mine sider</div>
       {pages.data.map((p) => {
         const Icon = (p.sidebar_icon && PAGE_ICONS[p.sidebar_icon]) || LayoutDashboard;
         return <NavItem key={p.id} to={`/o/${orgId}/artifacts/${p.id}`} icon={<Icon />} label={p.title} />;
       })}
-    </>
+    </div>
   );
 }
 
@@ -553,7 +556,9 @@ function TreeRow({
       </button>
       <NavLink to={to} className="flex min-w-0 flex-1 items-center gap-2 pr-2">
         <span className="shrink-0 text-muted [&>svg]:size-3.5">{icon}</span>
-        <span className="truncate">{label}</span>
+        <span className="truncate" title={label}>
+          {label}
+        </span>
         {sub && <span className="ml-auto shrink-0 text-[11px] text-muted">{sub}</span>}
       </NavLink>
     </div>

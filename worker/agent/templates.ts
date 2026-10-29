@@ -86,7 +86,7 @@ Bekreft til slutt kort hva som er registrert.`,
 
 - Bruk window.plank-API-et for å hente levende data, slik at siden alltid er oppdatert. Ikke hardkod data som finnes i Plank. Hent LAFT og Boligmappa når det er koblet til.
 - Når siden skal brukes ofte: legg den i sidemenyen med pin_artifact_sidebar eller i_sidemenyen på create_artifact.
-- Lag ryddige, moderne sider som fungerer på mobil. Bruk systemfonter og et rolig fargepalett.
+- Følg stilen under «Sider» i systemprompten, så siden ser ut som resten av Plank. Den skal fungere på mobil.
 - Når brukeren ber om endringer på en eksisterende side: les gjeldende versjon først, og lever hele den oppdaterte HTML-en.
 - Forklar kort hva siden viser etter at du har laget den.`,
   },

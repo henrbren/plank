@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowUp, ChevronDown, History, Plus, Settings2, Square, Trash2, X } from "lucide-react";
 import type { Agent, ChatEvent, Conversation, FocusContext, StoredMessage } from "@shared/types";
@@ -32,7 +32,7 @@ function suggestionsFor(focus: FocusContext, agent: Agent | undefined): string[]
     case "component":
       return ["Når er neste service, og hva skal gjøres?", "Finn dokumentasjonen for komponenten", "Hvilke reservedeler bør vi ha på lager?"];
     case "artifact":
-      return ["Gjør siden mer oversiktlig", "Legg til et diagram", "Legg til filtrering per bygg"];
+      return ["Tilpass siden til stilen i resten av Plank", "Vis avvik og forfalt service øverst", "Gjør radene klikkbare"];
     case "task":
       return ["Hva må til for å lukke denne oppgaven?", "Finn relevant dokumentasjon"];
     default:
@@ -361,7 +361,7 @@ export function AgentPanel() {
                 <IconButton
                   label="Slett"
                   size="sm"
-                  className="opacity-0 group-hover:opacity-100"
+                  className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100"
                   onClick={async () => {
                     await api(`/orgs/${orgId}/conversations/${c.id}`, { method: "DELETE" });
                     if (c.id === panel.conversationId) newChat();
@@ -443,9 +443,7 @@ export function AgentPanel() {
               className="block max-h-56 w-full resize-none bg-transparent px-3 py-2.5 text-[14px] outline-none placeholder:text-muted"
             />
             <div className="flex items-center justify-between px-2 pb-2">
-              <Link to={agent ? `/o/${orgId}/agents/${agent.id}` : `/o/${orgId}/agents`} className="truncate px-1 text-[11.5px] text-muted hover:text-ink">
-                {agent ? agent.model.replace("claude-", "").replace(/-/g, " ") : ""}
-              </Link>
+              <span className="truncate px-1 text-[11.5px] text-muted">Enter sender · Shift+Enter ny linje</span>
               {streaming ? (
                 <IconButton label="Stopp" className="bg-ink text-bg hover:bg-ink/85 hover:text-bg" onClick={() => abortRef.current?.abort()}>
                   <Square className="size-3.5 fill-current" />

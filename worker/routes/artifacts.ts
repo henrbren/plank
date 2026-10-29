@@ -15,10 +15,9 @@ export const artifacts = new Hono<AppEnv>();
 const STARTER = `<!doctype html>
 <html lang="no"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  body { font: 15px/1.6 system-ui, -apple-system, "Segoe UI", Inter, sans-serif; margin: 0; padding: 40px 24px; color: #1f1d1a; background: #fbfaf7; }
-  @media (prefers-color-scheme: dark) { body { color: #ece8e1; background: #191816; } }
-  main { max-width: 720px; margin: 0 auto; }
-  .hint { color: #7a7368; }
+  main { max-width: 720px; margin: 0 auto; padding: 40px 24px; }
+  h1 { margin: 0 0 8px; font-size: 22px; font-weight: 600; letter-spacing: -0.015em; }
+  .hint { margin: 0; color: var(--muted); font-size: 13.5px; }
 </style></head>
 <body><main>
   <h1>Ny side</h1>

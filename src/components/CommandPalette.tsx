@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
-import { Bot, FileText, Search, Sparkles } from "lucide-react";
+import { Bot, FileText, House, Search, Sparkles, Wrench } from "lucide-react";
 import type { SearchHit } from "@shared/types";
 import { api } from "@/lib/api";
 import { useAgentPanel, useOrg } from "@/lib/app";
@@ -92,8 +92,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     }
     if (!q.trim()) {
       out.push(
+        { key: "nav-home", icon: <House className="size-4" />, label: "Oversikt", run: go(`/o/${orgId}`) },
         { key: "nav-tasks", icon: <ENTITY_ICONS.task className="size-4" />, label: "Oppgaver", run: go(`/o/${orgId}/tasks`) },
         { key: "nav-docs", icon: <FileText className="size-4" />, label: "Dokumenter", run: go(`/o/${orgId}/documents`) },
+        { key: "nav-components", icon: <Wrench className="size-4" />, label: "FDV-register", run: go(`/o/${orgId}/components`) },
         { key: "nav-agents", icon: <Bot className="size-4" />, label: "Agenter", run: go(`/o/${orgId}/agents`) },
         { key: "nav-artifacts", icon: <ENTITY_ICONS.artifact className="size-4" />, label: "Sider", run: go(`/o/${orgId}/artifacts`) },
         { key: "nav-laft", icon: <ENTITY_ICONS.building className="size-4" />, label: "LAFT", sub: "Datakilde", run: go(`/o/${orgId}/laft`) },

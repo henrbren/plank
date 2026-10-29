@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useEffectiveTheme, useOrg } from "@/lib/app";
 import { entityPath } from "@/lib/format";
+import { TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES, type TaskPriority, type TaskStatus, type TaskType } from "@shared/types";
 import { Button, Modal } from "@/components/ui";
 
 /**
@@ -24,10 +25,66 @@ const CSP = [
   "base-uri 'none'",
 ].join("; ");
 
+/** Samme flate som appen. Sidens egen CSS kommer etterpå og kan bare bygge videre på variablene. */
+const BASE_CSS = `<style>
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.3.0/files/inter-latin-wght-normal.woff2") format("woff2");
+}
+:root {
+  color-scheme: light;
+  --bg: #f7f5f1; --panel: #fdfcfa; --panel-2: #f1eee8; --panel-3: #e9e5dd;
+  --line: #e6e1d8; --line-strong: #d4cdc0;
+  --ink: #1d1b18; --ink-2: #4a453e; --muted: #857d71;
+  --accent: #a65b24;
+  --ok: #2f7a4f; --ok-soft: #e3f0e7;
+  --warn: #a8720d; --warn-soft: #f7ecd2;
+  --bad: #b4442b; --bad-soft: #f7e1db;
+  --info: #2c6a9a; --info-soft: #e0ecf5;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #141311; --panel: #1b1a17; --panel-2: #23211e; --panel-3: #2c2a26;
+  --line: #2e2b27; --line-strong: #3e3a34;
+  --ink: #ece8e1; --ink-2: #c4bdb2; --muted: #8f877b;
+  --accent: #d08a4f;
+  --ok: #6cbf8a; --ok-soft: #1d3125;
+  --warn: #e0b44f; --warn-soft: #362b14;
+  --bad: #ec8a72; --bad-soft: #3c211b;
+  --info: #79b3e0; --info-soft: #1b2b38;
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #141311; --panel: #1b1a17; --panel-2: #23211e; --panel-3: #2c2a26;
+    --line: #2e2b27; --line-strong: #3e3a34;
+    --ink: #ece8e1; --ink-2: #c4bdb2; --muted: #8f877b;
+    --accent: #d08a4f;
+    --ok: #6cbf8a; --ok-soft: #1d3125;
+    --warn: #e0b44f; --warn-soft: #362b14;
+    --bad: #ec8a72; --bad-soft: #3c211b;
+    --info: #79b3e0; --info-soft: #1b2b38;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.5 "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+</style>`;
+
 function bridgeScript(parentOrigin: string, context: Record<string, unknown>) {
   return `<script>
 (() => {
   const PARENT = ${JSON.stringify(parentOrigin)};
+  document.documentElement.dataset.theme = ${JSON.stringify(context.theme ?? "")};
   const pending = new Map();
   let seq = 0;
   const call = (kind, name, params) => new Promise((resolve, reject) => {
@@ -65,10 +122,46 @@ function bridgeScript(parentOrigin: string, context: Record<string, unknown>) {
 export function buildSrcDoc(html: string, parentOrigin: string, context: Record<string, unknown>): string {
   // CSP og bro settes inn helt først (rett etter doctype), slik at de gjelder før noe av sidens eget innhold.
   // Parseren legger dem i <head> selv om siden har sin egen <html>/<head> lenger ned.
-  const head = `<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${CSP}"><meta name="color-scheme" content="light dark">${bridgeScript(parentOrigin, context)}`;
+  const head = `<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="${CSP}"><meta name="color-scheme" content="light dark">${BASE_CSS}${bridgeScript(parentOrigin, context)}`;
   const doctype = /^\s*<!doctype[^>]*>/i.exec(html);
   if (doctype) return doctype[0] + head + html.slice(doctype[0].length);
   return `<!doctype html>${head}${html}`;
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  title: "Tittel",
+  description: "Beskrivelse",
+  type: "Type",
+  priority: "Prioritet",
+  status: "Status",
+  due_date: "Frist",
+};
+
+function actionLead(name: string, params: Record<string, unknown>): string {
+  const title = typeof params.title === "string" && params.title.trim() ? ` «${params.title.trim()}»` : "";
+  if (name === "tasks.create") return `Siden vil opprette en oppgave${title}.`;
+  if (name === "tasks.update") return `Siden vil oppdatere en oppgave${title}.`;
+  return "Siden vil gjøre en endring.";
+}
+
+function actionRows(params: Record<string, unknown>): [string, string][] {
+  const rows: [string, string][] = [];
+  for (const [key, label] of Object.entries(FIELD_LABELS)) {
+    if (key === "title") continue;
+    const raw = params[key];
+    if (raw == null || raw === "") continue;
+    const text = String(raw);
+    let value = text;
+    if (key === "type" && text in TASK_TYPES) value = TASK_TYPES[text as TaskType];
+    else if (key === "priority" && text in TASK_PRIORITIES) value = TASK_PRIORITIES[text as TaskPriority];
+    else if (key === "status" && text in TASK_STATUSES) value = TASK_STATUSES[text as TaskStatus];
+    else if (key === "due_date" && /^\d{4}-\d{2}-\d{2}/.test(text)) {
+      const date = new Date(text.length === 10 ? `${text}T12:00:00` : text);
+      if (!Number.isNaN(date.getTime())) value = new Intl.DateTimeFormat("nb-NO", { timeZone: "Europe/Oslo", day: "numeric", month: "long", year: "numeric" }).format(date);
+    }
+    rows.push([label, value]);
+  }
+  return rows;
 }
 
 const pick = (params: Record<string, unknown>, keys: string[]) => {
@@ -264,11 +357,17 @@ export function ArtifactFrame({
       >
         {confirmAction && (
           <div className="text-[13.5px]">
-            <div className="mb-2">
-              {confirmAction.name === "tasks.create" ? "Opprette oppgaven:" : "Oppdatere oppgaven:"}{" "}
-              <b>{String(confirmAction.params.title ?? confirmAction.params.id ?? "")}</b>
-            </div>
-            <pre className="max-h-48 overflow-auto rounded-lg bg-panel-2 p-2 text-[12px]">{JSON.stringify(confirmAction.params, null, 2)}</pre>
+            <p className="text-ink-2">{actionLead(confirmAction.name, confirmAction.params)}</p>
+            {actionRows(confirmAction.params).length > 0 && (
+              <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
+                {actionRows(confirmAction.params).map(([label, value]) => (
+                  <div key={label} className="contents">
+                    <dt className="text-muted">{label}</dt>
+                    <dd className="min-w-0 break-words">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
           </div>
         )}
       </Modal>

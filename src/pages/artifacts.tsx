@@ -39,9 +39,14 @@ export function ArtifactsPage() {
         <div className="grid gap-4 @xl:grid-cols-2 @4xl:grid-cols-3">
           {list.data.map((a) => (
             <Link key={a.id} to={`/o/${orgId}/artifacts/${a.id}`} className="group flex flex-col overflow-hidden rounded-xl border border-line bg-panel transition-colors hover:border-line-strong">
-              <div className="relative flex h-32 items-center justify-center overflow-hidden border-b border-line bg-[linear-gradient(135deg,var(--panel-2),var(--accent-soft))]">
-                <LayoutDashboard className="size-8 text-accent/70 transition-transform group-hover:scale-110" />
-                {a.pinned ? <Pin className="absolute top-3 right-3 size-4 text-accent" /> : null}
+              <div className="relative flex h-28 flex-col gap-2 overflow-hidden border-b border-line bg-bg p-3">
+                <div className="h-2 w-2/5 rounded-full bg-panel-3" />
+                <div className="grid min-h-0 flex-1 grid-cols-3 gap-1.5">
+                  <div className="rounded-md border border-line bg-panel" />
+                  <div className="rounded-md border border-line bg-panel" />
+                  <div className="col-span-1 rounded-md border border-line bg-panel" />
+                </div>
+                {a.pinned ? <Pin className="absolute top-2.5 right-2.5 size-3.5 text-muted" /> : null}
               </div>
               <div className="flex flex-1 flex-col p-4">
                 <div className="font-semibold">{a.title}</div>
