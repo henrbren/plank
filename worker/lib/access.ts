@@ -192,6 +192,11 @@ const READ_ONLY_ALLOWED = [
   { method: "POST", path: /^\/api\/orgs\/[^/]+\/conversations\/[^/]+\/messages$/ },
   { method: "PATCH", path: /^\/api\/orgs\/[^/]+\/conversations\/[^/]+$/ },
   { method: "DELETE", path: /^\/api\/orgs\/[^/]+\/conversations\/[^/]+$/ },
+  // Verktøylisten er allerede filtrert til lesing for brukere med lesetilgang
+  { method: "POST", path: /^\/api\/orgs\/[^/]+\/tools\/[^/]+$/ },
+  // Lesenøkler kan lages og trekkes tilbake av brukere med lesetilgang
+  { method: "POST", path: /^\/api\/orgs\/[^/]+\/api-keys\/?$/ },
+  { method: "DELETE", path: /^\/api\/orgs\/[^/]+\/api-keys\/[^/]+$/ },
 ];
 
 /** Lesetilgang: stopper alle endringer, men brukeren kan fortsatt snakke med agentene */

@@ -28,6 +28,7 @@ import {
   updateProperty,
   updateRoom,
 } from "../services/portfolio";
+import { analyzePortfolio } from "../services/analysis";
 import { createTask, listTasks, taskPatchSchema, taskSchema, updateTask } from "../services/tasks";
 import { createArtifact, getArtifactHtml, listArtifacts, saveArtifactVersion, setSidebar } from "../services/artifacts";
 import { queryIfcElements } from "../routes/ifc";
@@ -71,12 +72,19 @@ export interface ToolContext {
   env: Env;
   orgId: string;
   agent: AgentRow;
-  conversationId: string;
+  /** null når verktøyet kalles utenfra (MCP/API) */
+  conversationId: string | null;
   user: SessionUser | null;
   scope: { property_id: string | null; building_id: string | null };
+  /** Satt når verktøyet kalles via API-nøkkel eller MCP: endringer føres på brukeren, ikke en agent */
+  via?: { keyId: string; keyName: string };
+  /** Bakgrunnsjobber (f.eks. dokumentbehandling). Uten denne ventes det på jobben. */
+  waitUntil?: (p: Promise<unknown>) => void;
 }
 
 export interface ToolOutcome {
+  /** Strukturerte data for klienter som kan bruke dem (MCP structuredContent) */
+  data?: unknown;
   /** Det modellen får tilbake */
   content: string;
   /** Kort tekst for brukergrensesnittet */
@@ -85,7 +93,7 @@ export interface ToolOutcome {
   isError?: boolean;
 }
 
-interface ToolDef {
+export interface ToolDef {
   group: ToolGroup;
   tool: ClaudeTool;
   label: (input: any) => string;
@@ -104,11 +112,22 @@ function inDays(days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-async function logAgent(ctx: ToolContext, action: string, entityType: string, entityId: string, summary: string) {
+/** Hvem som står bak en endring: agenten, eller brukeren når verktøyet kalles via API/MCP */
+export function actorOf(ctx: ToolContext): { type: "user" | "agent"; id: string; name: string } {
+  if (ctx.via && ctx.user) return { type: "user", id: ctx.user.id, name: `${ctx.user.name ?? ctx.user.email} via ${ctx.via.keyName}` };
+  return { type: "agent", id: ctx.agent.id, name: ctx.agent.name };
+}
+
+/** Opprettet av (oppgaver/sider): brukeren ved API/MCP, ellers agenten */
+function creator(ctx: ToolContext): { userId?: string | null; agentId?: string | null } {
+  return ctx.via && ctx.user ? { userId: ctx.user.id } : { agentId: ctx.agent.id };
+}
+
+export async function logAgent(ctx: ToolContext, action: string, entityType: string, entityId: string, summary: string) {
   try {
     await activityStatement(ctx.env, {
       orgId: ctx.orgId,
-      actor: { type: "agent", id: ctx.agent.id, name: ctx.agent.name },
+      actor: actorOf(ctx),
       action,
       entityType,
       entityId,
@@ -316,6 +335,35 @@ const TOOLS: ToolDef[] = [
       if (!fn) throw new Error("Ukjent type");
       const data = (await fn()) as { name: string };
       return { content: json(data), summary: data.name, link: { type: i.type, id, label: data.name } };
+    },
+  },
+  {
+    group: "portfolio",
+    label: () => "Analyserer porteføljen",
+    tool: {
+      name: "analyze_portfolio",
+      description:
+        "FDV-analyse per bygg: forfalt og kommende service, tilstandsgrad (TG2/TG3), åpne avvik og oppgaver over frist, dokumentasjonsdekning og manglende FDV-dokumentasjon. Byggene sorteres etter risiko (høyest først), med funn i klartekst og lister over forfalte komponenter og hasteoppgaver. Bruk dette som utgangspunkt for statusrapporter og vedlikeholdsplaner.",
+      input_schema: {
+        type: "object",
+        properties: {
+          property_id: idProp("eiendommen analysen skal avgrenses til"),
+          building_id: idProp("bygget analysen skal avgrenses til"),
+          horizon_days: { ...int, description: "Hvor langt fram «service snart» gjelder (standard 90 dager)" },
+        },
+      },
+    },
+    run: async (ctx, i) => {
+      const r = await analyzePortfolio(ctx.env, ctx.orgId, {
+        building_id: i.building_id ?? (i.property_id ? null : ctx.scope.building_id),
+        property_id: i.property_id ?? (i.building_id ? null : ctx.scope.property_id),
+        horizon_days: i.horizon_days != null ? Number(i.horizon_days) : undefined,
+      });
+      return {
+        content: json(r),
+        data: r,
+        summary: `${r.totals.buildings} bygg, ${r.totals.service_overdue} forfalt service, ${r.totals.open_deviations} åpne avvik`,
+      };
     },
   },
   {
@@ -566,7 +614,7 @@ const TOOLS: ToolDef[] = [
       },
     },
     run: async (ctx, i) => {
-      const t = await createTask(ctx.env, ctx.orgId, taskSchema.parse(i), { agentId: ctx.agent.id });
+      const t = await createTask(ctx.env, ctx.orgId, taskSchema.parse(i), creator(ctx));
       await logAgent(ctx, "task.created", "task", t.id, t.title);
       return { content: json({ ok: true, id: t.id }), summary: t.title, link: { type: "task", id: t.id, label: t.title } };
     },
@@ -632,7 +680,7 @@ const TOOLS: ToolDef[] = [
           property_id: i.property_id ?? ctx.scope.property_id,
           conversation_id: ctx.conversationId,
         },
-        { agentId: ctx.agent.id },
+        creator(ctx),
       );
       if (i.i_sidemenyen) await setSidebar(ctx.env, ctx.orgId, a.id, { show: true, icon: i.sidemeny_ikon ?? null });
       await logAgent(ctx, "artifact.created", "artifact", a.id, a.title);
@@ -652,7 +700,7 @@ const TOOLS: ToolDef[] = [
       },
     },
     run: async (ctx, i) => {
-      const a = await saveArtifactVersion(ctx.env, ctx.orgId, String(i.artifact_id), { html: String(i.html ?? ""), note: i.change_note, title: i.title }, { agentId: ctx.agent.id });
+      const a = await saveArtifactVersion(ctx.env, ctx.orgId, String(i.artifact_id), { html: String(i.html ?? ""), note: i.change_note, title: i.title }, creator(ctx));
       return { content: json({ ok: true, artifact_id: a.id, version: a.current_version }), summary: `${a.title} (v${a.current_version})`, link: { type: "artifact", id: a.id, label: a.title } };
     },
   },
@@ -950,7 +998,7 @@ const TOOLS: ToolDef[] = [
     },
     run: async (ctx, i) => {
       const ids = (Array.isArray(i.ids) ? i.ids : []).map(String);
-      const step = await importBuildings(ctx.env, ctx.orgId, { type: "agent", id: ctx.agent.id, name: ctx.agent.name }, ids);
+      const step = await importBuildings(ctx.env, ctx.orgId, actorOf(ctx), ids);
       return { content: json(step), summary: step.message ?? `${step.createdBuildings} bygg hentet` };
     },
   },
@@ -963,7 +1011,7 @@ const TOOLS: ToolDef[] = [
       input_schema: { type: "object", properties: { ids: { type: "array", items: int }, building_id: str }, required: ["ids"] },
     },
     run: async (ctx, i) => {
-      const res = await importDocuments(ctx.env, ctx.orgId, { type: "agent", id: ctx.agent.id, name: ctx.agent.name }, (Array.isArray(i.ids) ? i.ids : []).map(Number), {
+      const res = await importDocuments(ctx.env, ctx.orgId, actorOf(ctx), (Array.isArray(i.ids) ? i.ids : []).map(Number), {
         buildingId: i.building_id ?? null,
       });
       return { content: json(res), summary: `${res.imported.length} dokumenter` };
@@ -984,7 +1032,7 @@ const TOOLS: ToolDef[] = [
     run: async (ctx, i) => {
       const buildingId = await resolveLaftBuildingId(ctx.env, ctx.orgId, String(i.building_id));
       if (!buildingId) return { content: "Bygget er ikke koblet til LAFT.", summary: "Ikke i LAFT", isError: true };
-      const wo = await createWorkOrder(ctx.env, ctx.orgId, { type: "agent", id: ctx.agent.id, name: ctx.agent.name }, {
+      const wo = await createWorkOrder(ctx.env, ctx.orgId, actorOf(ctx), {
         buildingId,
         floorId: i.floor_id ?? null,
         roomId: i.room_id ?? null,
@@ -1004,7 +1052,7 @@ const TOOLS: ToolDef[] = [
       input_schema: { type: "object", properties: { work_order_id: int, comment: str }, required: ["work_order_id", "comment"] },
     },
     run: async (ctx, i) => {
-      const r = await commentWorkOrder(ctx.env, ctx.orgId, { type: "agent", id: ctx.agent.id, name: ctx.agent.name }, Number(i.work_order_id), String(i.comment));
+      const r = await commentWorkOrder(ctx.env, ctx.orgId, actorOf(ctx), Number(i.work_order_id), String(i.comment));
       return { content: json(r), summary: `Kommentar på ${i.work_order_id}` };
     },
   },
@@ -1021,7 +1069,7 @@ const TOOLS: ToolDef[] = [
       },
     },
     run: async (ctx, i) => {
-      const r = await updateWorkOrder(ctx.env, ctx.orgId, { type: "agent", id: ctx.agent.id, name: ctx.agent.name }, Number(i.work_order_id), {
+      const r = await updateWorkOrder(ctx.env, ctx.orgId, actorOf(ctx), Number(i.work_order_id), {
         stateId: i.state_id,
         deadline: i.deadline ?? null,
         priority: i.priority ?? null,
@@ -1071,7 +1119,7 @@ const TOOLS: ToolDef[] = [
     },
     run: async (ctx, i) => {
       const jobs: Promise<unknown>[] = [];
-      const res = await importSelection(ctx.env, ctx.orgId, { type: "agent", id: ctx.agent.id, name: ctx.agent.name }, (Array.isArray(i.bmns) ? i.bmns : []).map(String), {
+      const res = await importSelection(ctx.env, ctx.orgId, actorOf(ctx), (Array.isArray(i.bmns) ? i.bmns : []).map(String), {
         waitUntil: (p) => {
           jobs.push(p);
         },
@@ -1124,14 +1172,14 @@ const TOOLS: ToolDef[] = [
       await sendEmail(ctx.env, {
         to,
         subject: String(i.subject).slice(0, 200),
-        html: emailLayout({ title: String(i.subject).slice(0, 200), bodyHtml: html, footer: `Sendt av agenten «${escapeHtml(ctx.agent.name)}» i Plank.` }),
+        html: emailLayout({ title: String(i.subject).slice(0, 200), bodyHtml: html, footer: `Sendt av ${ctx.via ? escapeHtml(actorOf(ctx).name) : `agenten «${escapeHtml(ctx.agent.name)}»`} i Plank.` }),
       });
       return { content: json({ ok: true, sent_to: to }), summary: `Sendt til ${to.length} mottaker${to.length === 1 ? "" : "e"}` };
     },
   },
 ];
 
-const ENTITY_PATHS: Record<string, string> = {
+export const ENTITY_PATHS: Record<string, string> = {
   property: "properties",
   building: "buildings",
   floor: "floors",
@@ -1186,6 +1234,17 @@ function toolAllowed(name: string, access: Access): boolean {
   if (!access.canEdit && WRITE_TOOLS.has(name)) return false;
   if (access.scope && FULL_SCOPE_TOOLS.has(name)) return false;
   return true;
+}
+
+/** Endrer verktøyet data? (brukes til MCP-annotasjoner) */
+export function isWriteTool(name: string): boolean {
+  return WRITE_TOOLS.has(name) || name === "send_email";
+}
+
+/** Klientverktøyene i gruppene som tilgangen tillater – for MCP og API (uten serververktøy som nettsøk) */
+export function toolDefsFor(groups: ToolGroup[], access: Access = currentAccess()): ToolDef[] {
+  const set = new Set(allowedGroups(groups, access));
+  return TOOLS.filter((t) => set.has(t.group) && toolAllowed(t.tool.name, access));
 }
 
 export function toolsFor(groups: ToolGroup[]): { tools: (ClaudeTool | ServerTool)[]; defs: Map<string, ToolDef> } {

@@ -1,4 +1,5 @@
 import type { Access } from "./lib/access";
+import type { ApiKeyInfo } from "./lib/apiKeys";
 
 export interface Env {
   DB: D1Database;
@@ -50,6 +51,8 @@ export interface AppVariables {
   orgId: string;
   role: "owner" | "admin" | "member";
   access: Access;
+  /** Satt når forespørselen er autentisert med API-nøkkel eller OAuth-token */
+  apiKey?: ApiKeyInfo;
 }
 
 export type AppEnv = { Bindings: Env; Variables: AppVariables };

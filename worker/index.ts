@@ -27,6 +27,11 @@ import { emailConfigured } from "./lib/email";
 import { brandOf } from "./lib/brand";
 import { hooks } from "./routes/hooks";
 import { syncAccessRequests } from "./services/accessRequests";
+import { apiKeys } from "./routes/apiKeys";
+import { tools } from "./routes/tools";
+import { mcp } from "./mcp/server";
+import { oauth, wellKnown } from "./mcp/oauth";
+import { forbidden } from "./lib/http";
 
 const app = new Hono<AppEnv>();
 
@@ -46,6 +51,11 @@ app.use("/api/*", async (c, next) => {
 app.post("/api/stripe/webhook", stripeWebhook);
 app.route("/api/hooks", hooks);
 
+// MCP og OAuth for eksterne klienter (Claude, ChatGPT, Cursor …). Bruker bare bearer-tokens, ikke cookien.
+app.route("/mcp", mcp);
+app.route("/oauth", oauth);
+app.route("/.well-known", wellKnown);
+
 app.get("/api/health", (c) =>
   c.json({
     ok: true,
@@ -63,7 +73,10 @@ app.route("/api/auth", auth);
 app.route("/api/me", me);
 
 const platform = new Hono<AppEnv>();
-platform.use("*", requireUser);
+platform.use("*", requireUser, async (c, next) => {
+  if (c.get("apiKey")) throw forbidden("Plattformadministrasjon krever innlogging i appen");
+  await next();
+});
 platform.route("/", admin);
 app.route("/api/admin", platform);
 
@@ -87,6 +100,8 @@ org.route("/agents", agents);
 org.route("/conversations", conversations);
 org.route("/boligmappa", boligmappa);
 org.route("/laft", laft);
+org.route("/api-keys", apiKeys);
+org.route("/tools", tools);
 app.route("/api/orgs/:orgId", org);
 
 app.all("/api/*", (c) => c.json({ error: "Ukjent API-endepunkt" }, 404));

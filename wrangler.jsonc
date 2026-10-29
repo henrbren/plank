@@ -6,12 +6,12 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true, "traces": { "enabled": true } },
 
-  // React-appen (bygget av Vite) serveres som statiske filer. Alt under /api og /files går til Workeren.
+  // React-appen (bygget av Vite) serveres som statiske filer. Alt under /api, /mcp, /oauth og /.well-known går til Workeren.
   "assets": {
     "directory": "./dist/client",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/mcp", "/mcp/*", "/oauth/*", "/.well-known/*"]
   },
 
   "d1_databases": [

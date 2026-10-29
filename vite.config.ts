@@ -23,6 +23,10 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": { target: "http://localhost:8787", changeOrigin: false },
+      // MCP og OAuth for eksterne klienter
+      "/mcp": { target: "http://localhost:8787", changeOrigin: false },
+      "/oauth": { target: "http://localhost:8787", changeOrigin: false },
+      "/.well-known": { target: "http://localhost:8787", changeOrigin: false },
     },
   },
 });

@@ -108,6 +108,30 @@ Verktøy gis per gruppe (velges i agentinnstillingene):
 
 **Tidsplaner** (`daily@07:00`, `weekdays@07:00`, `weekly:1@07:00`, `monthly:1@07:00`, Oslo-tid) kjøres av Cron Trigger hvert 15. minutt. Hver kjøring blir en egen samtale med rapport, og sendes på e-post til varslingslisten.
 
+## MCP og API – Plank uten nettleser
+
+Plank kan brukes direkte fra Claude, ChatGPT, Cursor og andre MCP-klienter, og fra egne skript og integrasjoner (n8n, Zapier …). Klientene får de samme verktøyene som agentene, med samme tilgangskontroll og aktivitetslogg, og aldri mer tilgang enn brukeren har selv.
+
+| Hva | Hvor |
+|---|---|
+| **MCP-server** (Streamable HTTP, tilstandsløs) | `https://<vert>/mcp` |
+| **OAuth 2.1** (PKCE, dynamisk klientregistrering) | `/.well-known/oauth-authorization-server`, `/oauth/authorize`, `/oauth/token`, `/oauth/register`, `/oauth/revoke` |
+| **REST-verktøy** | `GET /api/orgs/:orgId/tools` (liste med JSON Schema), `POST /api/orgs/:orgId/tools/:navn` (kjør) |
+| **Hele REST-API-et** | Alt under `/api/orgs/:orgId/...` virker med `Authorization: Bearer plk_…` |
+
+**Koble til Claude:** *Innstillinger → Connectors → Add custom connector* med adressen `https://<vert>/mcp`. Claude sender brukeren til Plank for innlogging, der hen velger organisasjon og lese- eller skrivetilgang. Claude Code: `claude mcp add --transport http plank https://<vert>/mcp`.
+
+**API-nøkler** lages under *Innstillinger → Claude, MCP og API*. En nøkkel gjelder én organisasjon, kan være lese- eller skrivenøkkel og kan trekkes tilbake. Tilkoblede OAuth-klienter vises i samme liste. Bare hasher lagres.
+
+```bash
+curl https://plank.vixon.no/api/orgs/$ORG/tools/analyze_portfolio \
+  -H "Authorization: Bearer $PLANK_KEY" -H "Content-Type: application/json" -d '{}'
+```
+
+Verktøy som bare finnes utenfra: `plank_info` (start her), `upload_document` (base64, tekst eller https-url), `list_agents` og `ask_agent` (la en Plank-agent gjøre jobben), og `boligmappa_koble_til` (administrator). `analyze_portfolio` gir en FDV-analyse per bygg uten AI-kostnad (risiko, forfalt service, TG2/TG3, åpne avvik, dokumentasjonsdekning), og er også tilgjengelig for agentene. MCP-serveren har i tillegg ferdige prompts: `fdv_statusrapport`, `vedlikeholdsplan`, `hent_fra_boligmappa` og `dokumentkontroll`.
+
+Sikkerhet: Med `Authorization`-header brukes bare tokenet, aldri cookien, så CSRF-vernet trengs ikke der. Nøkler kan ikke lage nye nøkler eller brukes til plattformadministrasjon. OAuth-tokens lever et døgn og fornyes med et fornyelsestoken som roteres ved bruk (90 dager). `upload_document` henter bare offentlige https-adresser.
+
 ## `window.plank` – API for artifacts
 
 ```js
@@ -145,6 +169,7 @@ Ressurser: `portfolio.tree`, `properties.list`, `buildings.get`, `components.lis
 worker/            Cloudflare Worker (API, agent-runtime, cron)
   agent/           runtime, verktøy, prompts, maler, tidsplan
   routes/          HTTP-ruter
+  mcp/             MCP-server, OAuth og verktøy for eksterne klienter
   services/        forretningslogikk (deles av ruter og agentverktøy)
   lib/             Claude-klient, e-post, dokumentbehandling, auth, DB-hjelpere
 src/               React-app

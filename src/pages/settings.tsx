@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { useOrg, useOrgApi, useOrgQuery, useSetFocus } from "@/lib/app";
 import { formatDate, formatOre } from "@/lib/format";
 import { Badge, Button, ButtonLink, Card, CardHeader, Field, Input, PageHeader, useToast } from "@/components/ui";
+import { ApiAccess } from "@/features/api/ApiAccess";
 
 export function SettingsPage() {
   const { org, orgId, me, isAdmin, canEdit, limited } = useOrg();
@@ -195,6 +196,8 @@ export function SettingsPage() {
             </div>
           ) : null}
         </Card>
+
+        <ApiAccess />
 
         <Card className="p-5">
           <CardHeader title="Systemstatus" />

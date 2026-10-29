@@ -1,10 +1,10 @@
 import { z } from "zod";
 import type { Env } from "../env";
-import { all, first, update } from "../lib/db";
+import { all, first, insert, update } from "../lib/db";
 import { notFound } from "../lib/http";
-import { ftsQuery, reindexTitle } from "../lib/documents";
+import { ftsQuery, guessMime, isIfc, processDocument, reindexTitle } from "../lib/documents";
 import { optId, optStr } from "../lib/schemas";
-import { now } from "../lib/util";
+import { newId, now } from "../lib/util";
 import { DOCUMENT_KINDS, type Document, type SearchHit } from "../../shared/types";
 import { assertCanEdit, scopeSql, sees } from "../lib/access";
 import { resolveWritableLocation } from "./portfolio";
@@ -162,4 +162,68 @@ export async function readDocumentText(env: Env, orgId: string, id: string, offs
     has_more: start + slice.length < text.length,
     next_offset: start + slice.length < text.length ? start + slice.length : null,
   };
+}
+
+export interface StoreDocumentInput {
+  filename: string;
+  bytes: ArrayBuffer;
+  title?: string | null;
+  kind?: string | null;
+  ns3451?: string | null;
+  property_id?: string | null;
+  building_id?: string | null;
+  floor_id?: string | null;
+  room_id?: string | null;
+  component_id?: string | null;
+}
+
+/**
+ * Lagrer en fil som er lest inn i minnet (API/MCP), og starter tekstuttrekk og klassifisering.
+ * Opplasting fra appen strømmer i stedet direkte til R2 (routes/documents.ts).
+ */
+export async function storeDocument(
+  env: Env,
+  orgId: string,
+  input: StoreDocumentInput,
+  opts: { userId: string | null; waitUntil?: (p: Promise<unknown>) => void },
+): Promise<Document> {
+  const loc = await resolveWritableLocation(env, orgId, {
+    property_id: input.property_id ?? null,
+    building_id: input.building_id ?? null,
+    floor_id: input.floor_id ?? null,
+    room_id: input.room_id ?? null,
+  });
+  if (input.component_id) {
+    const comp = await first<{ building_id: string | null }>(env.DB, `SELECT building_id FROM components WHERE id = ? AND org_id = ?`, input.component_id, orgId);
+    if (!comp || !sees(comp)) throw notFound("Komponenten");
+  }
+  const filename = input.filename.replace(/[\\/\u0000-\u001f]/g, "_").slice(0, 180) || "fil";
+  const kind = isIfc(filename) ? "ifc" : input.kind && input.kind in DOCUMENT_KINDS ? input.kind : "annet";
+  const mime = guessMime(filename);
+  const id = newId("doc");
+  const key = `orgs/${orgId}/documents/${id}/${filename}`;
+  await env.FILES.put(key, input.bytes, { httpMetadata: { contentType: mime } });
+  const t = now();
+  await insert(env.DB, "documents", {
+    id,
+    org_id: orgId,
+    ...loc,
+    component_id: input.component_id ?? null,
+    title: (input.title?.trim() || filename.replace(/\.[^.]+$/, "")).slice(0, 200),
+    filename,
+    mime,
+    size: input.bytes.byteLength,
+    r2_key: key,
+    kind,
+    ns3451: input.ns3451 ?? null,
+    status: "processing",
+    uploaded_by: opts.userId,
+    created_at: t,
+    updated_at: t,
+  }).run();
+  const job = processDocument(env, id);
+  if (opts.waitUntil) opts.waitUntil(job);
+  else await job;
+  const { r2_key: _k, ...doc } = await getDocument(env, orgId, id);
+  return doc as Document;
 }

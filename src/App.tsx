@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { createBrowserRouter, Navigate } from "react-router";
 import { Loading } from "./components/ui";
 import { LoginPage, OnboardingPage, RootRedirect, SendDemoPage, VerifyPage, WaitingPage } from "./pages/auth";
@@ -26,9 +26,18 @@ const ModelPage = lazy(() => import("./features/ifc/ModelPage"));
 
 const lazyEl = (el: ReactNode) => <Suspense fallback={<Loading />}>{el}</Suspense>;
 
+function ServerPage() {
+  useEffect(() => {
+    window.location.replace(window.location.pathname + window.location.search);
+  }, []);
+  return <Loading />;
+}
+
 export const router = createBrowserRouter([
   { path: "/", element: <RootRedirect /> },
   { path: "/login", element: <LoginPage /> },
+  // OAuth-godkjenning (MCP-klienter) serveres av Workeren – last siden på nytt fra serveren etter innlogging
+  { path: "/oauth/*", element: <ServerPage /> },
   { path: "/demo", element: <SendDemoPage /> },
   { path: "/auth/verify", element: <VerifyPage /> },
   { path: "/auth/vipps", element: <VippsCallbackPage /> },

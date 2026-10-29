@@ -830,3 +830,19 @@ export interface MemberAccessInput {
   building_ids: string[];
   expires_on: string | null;
 }
+
+// ─── API og MCP ──────────────────────────────────────────────────────────────
+
+export interface ApiKeySummary {
+  id: string;
+  name: string;
+  /** key = laget i innstillingene, oauth = gitt til en MCP-klient (f.eks. Claude) */
+  kind: "key" | "oauth";
+  prefix: string;
+  can_write: boolean;
+  user_id: string;
+  user_email: string;
+  expires_at: number | null;
+  last_used_at: number | null;
+  created_at: number;
+}
