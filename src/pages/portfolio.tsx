@@ -1,21 +1,23 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { Box, Building2, DoorOpen, Ellipsis, FileText, LayoutDashboard, Layers, MapPin, Pencil, Plus, Sparkles, Trash2, Upload } from "lucide-react";
-import type { Artifact, Building, Component, Document, Floor, Property, Room, Task } from "@shared/types";
+import type { Artifact, Building, Component, Document, DocumentBrief, Floor, Property, Room, Task } from "@shared/types";
 import { useAgentPanel, useOrg, useOrgApi, useOrgQuery, useSetFocus } from "@/lib/app";
+import { useLeaseModules } from "@/lib/modules";
+import { BuildingLeases } from "@/features/desk/edit";
 import { formatArea, formatDate } from "@/lib/format";
-import { Button, Card, CardHeader, cn, EmptyState, ErrorState, IconButton, KeyValues, Loading, Menu, MenuItem, PageHeader, Stat, Tabs, useConfirm, useToast } from "@/components/ui";
+import { Button, ButtonLink, Card, CardHeader, cn, EmptyState, ErrorState, IconButton, KeyValues, Loading, Menu, MenuItem, PageHeader, Stat, Tabs, useConfirm, useToast } from "@/components/ui";
 import { BuildingFormModal, ComponentFormModal, FloorFormModal, PropertyFormModal, RoomFormModal, TaskFormModal, UploadModal } from "@/components/forms";
 import { FloorplanModal } from "@/features/floorplan/FloorplanModal";
 import { PlaceCover, PlaceFrame } from "@/features/places/PlacePhoto";
 import { ComponentTable, DocumentTable, TableShell, TaskTable } from "@/components/lists";
 
-function useDelete(path: string, label: string, after: string) {
+function useDelete(path: string, label: string, after: string, message = "Dette kan ikke angres. Underliggende etasjer og rom slettes også.") {
   const call = useOrgApi();
   const navigate = useNavigate();
   const { confirm, dialog } = useConfirm();
   const run = async () => {
-    const ok = await confirm({ title: `Slette ${label}?`, message: "Dette kan ikke angres. Underliggende etasjer og rom slettes også.", confirm: "Slett", danger: true });
+    const ok = await confirm({ title: `Slette ${label}?`, message, confirm: "Slett", danger: true });
     if (!ok) return;
     await call(path, { method: "DELETE" });
     navigate(after);
@@ -28,6 +30,7 @@ function useDelete(path: string, label: string, after: string) {
 export function PropertyPage() {
   const { id } = useParams();
   const { orgId, canEdit } = useOrg();
+  const mods = useLeaseModules();
   const q = useOrgQuery<Property & { document_count: number; buildings: (Building & { floor_count: number; open_tasks: number; document_count: number })[] }>(`/portfolio/properties/${id}`);
   const tasks = useOrgQuery<Task[]>(`/tasks?property_id=${id}`);
   useSetFocus("property", id, q.data?.name);
@@ -35,7 +38,7 @@ export function PropertyPage() {
   const [edit, setEdit] = useState(false);
   const [newBuilding, setNewBuilding] = useState(false);
   const [openTask, setOpenTask] = useState<Task | null>(null);
-  const del = useDelete(`/portfolio/properties/${id}`, "eiendommen", `/o/${orgId}`);
+  const del = useDelete(`/portfolio/properties/${id}`, "eiendommen", `/o/${orgId}`, "Dette kan ikke angres. Etasjer, rom og leieobjekter på stedet slettes også. Vedtak i køen blir liggende.");
 
   if (q.isLoading) return <Loading />;
   if (q.error) return <ErrorState error={q.error} />;
@@ -73,15 +76,9 @@ export function PropertyPage() {
           </>
         }
       />
+      {mods.dokumenter && p.document_count > 0 && <PlaceDocumentsLead orgId={orgId} title="Dokumenter på eiendommen" count={p.document_count} query={`property_id=${p.id}`} archive={`property:${p.id}`} />}
       <PlaceCover kind="properties" id={p.id} name={p.name} hasImage={p.has_image} updatedAt={p.updated_at} />
       {p.description && <p className="-mt-2 mb-6 max-w-3xl text-[14px] text-ink-2">{p.description}</p>}
-
-      {p.document_count > 0 && (
-        <Link to={`/o/${orgId}/documents?eiendom=${p.id}`} className="mb-6 flex items-center gap-3 rounded-xl border border-line bg-panel px-4 py-3 hover:border-line-strong">
-          <FileText className="size-4 shrink-0 text-muted" />
-          <span className="text-[14px] font-medium">{p.document_count === 1 ? "Ett dokument" : `${p.document_count} dokumenter`} på eiendommen</span>
-        </Link>
-      )}
 
       <h2 className="mb-3 text-[15px] font-semibold">Bygg</h2>
       {p.buildings.length === 0 ? (
@@ -98,7 +95,7 @@ export function PropertyPage() {
               </div>
               <div className="mt-3 flex gap-4 text-[12.5px] text-ink-2">
                 <span>{b.floor_count} etasjer</span>
-                <span>{b.document_count} dokumenter</span>
+                {mods.dokumenter && <span>{b.document_count} dokumenter</span>}
                 <span className={b.open_tasks > 0 ? "text-warn" : ""}>{b.open_tasks} åpne oppgaver</span>
               </div>
               </div>
@@ -134,15 +131,29 @@ type Tab = "overview" | "documents" | "components" | "tasks" | "bim" | "artifact
 export function BuildingPage() {
   const { id } = useParams();
   const { orgId, canEdit } = useOrg();
+  const mods = useLeaseModules();
   const [params, setParams] = useSearchParams();
-  const tab = (params.get("tab") as Tab) ?? "overview";
-  const setTab = (t: Tab) => setParams(t === "overview" ? {} : { tab: t }, { replace: true });
   const q = useOrgQuery<BuildingDetail>(`/portfolio/buildings/${id}`);
+  const explicit = params.get("tab");
+  const allowed: Tab[] = [
+    ...(mods.dokumenter ? ["documents" as const] : []),
+    "overview",
+    ...(mods.komponenter ? ["components" as const] : []),
+    "tasks",
+    ...(mods.drift ? ["bim" as const] : []),
+    ...(mods.sider ? ["artifacts" as const] : []),
+  ];
+  const tab: Tab = allowed.includes(explicit as Tab)
+    ? (explicit as Tab)
+    : mods.dokumenter && (q.data?.stats?.documents ?? 0) > 0
+      ? "documents"
+      : "overview";
+  const setTab = (t: Tab) => setParams({ tab: t }, { replace: true });
   useSetFocus("building", id, q.data?.name);
   const panel = useAgentPanel();
   const [modal, setModal] = useState<null | "edit" | "floor" | "plan" | "upload" | "component" | "task">(null);
   const [openTask, setOpenTask] = useState<Task | null>(null);
-  const del = useDelete(`/portfolio/buildings/${id}`, "bygget", `/o/${orgId}/properties/${q.data?.property_id ?? ""}`);
+  const del = useDelete(`/portfolio/buildings/${id}`, "bygget", `/o/${orgId}/properties/${q.data?.property_id ?? ""}`, "Dette kan ikke angres. Etasjer, rom og leieobjekter i bygget slettes også. Vedtak i køen blir liggende.");
 
   if (q.isLoading) return <Loading />;
   if (q.error) return <ErrorState error={q.error} />;
@@ -159,7 +170,7 @@ export function BuildingPage() {
         subtitle={[b.building_type, b.year_built && `bygget ${b.year_built}`, b.gross_area && `BTA ${formatArea(b.gross_area)}`, b.building_number && `bygningsnr. ${b.building_number}`].filter(Boolean).join(" · ") || "Bygg"}
         actions={
           <>
-            {canEdit && (
+            {canEdit && mods.dokumenter && (
               <Button icon={<Upload className="size-4" />} onClick={() => setModal("upload")}>
                 Last opp
               </Button>
@@ -184,21 +195,20 @@ export function BuildingPage() {
           </>
         }
       />
-      <PlaceCover kind="buildings" id={b.id} name={b.name} hasImage={b.has_image} updatedAt={b.updated_at} />
       <Tabs
         value={tab}
         onChange={setTab}
-        tabs={[
-          { value: "overview", label: "Oversikt" },
-          { value: "documents", label: "Dokumenter", count: s?.documents },
-          { value: "components", label: "Komponenter", count: s?.components },
-          { value: "tasks", label: "Oppgaver", count: s?.open_tasks },
-          { value: "bim", label: "BIM", count: s?.ifc_models },
-          { value: "artifacts", label: "Sider", count: s?.artifacts },
-        ]}
+        tabs={allowed.map((value) => {
+          const count = value === "documents" ? s?.documents : value === "components" ? s?.components : value === "tasks" ? s?.open_tasks : value === "bim" ? s?.ifc_models : value === "artifacts" ? s?.artifacts : undefined;
+          const label = value === "documents" ? "Dokumenter" : value === "overview" ? "Oversikt" : value === "components" ? "Komponenter" : value === "tasks" ? "Oppgaver" : value === "bim" ? "BIM" : "Sider";
+          return { value, label, count };
+        })}
       />
 
       {tab === "overview" && (
+        <>
+        {mods.utleie && <BuildingLeases buildingId={b.id} showEmpty />}
+        <PlaceCover kind="buildings" id={b.id} name={b.name} hasImage={b.has_image} updatedAt={b.updated_at} />
         <div className="grid grid-cols-[minmax(0,1fr)] gap-5 @4xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
           <div>
             <div className="mb-3 flex items-center justify-between">
@@ -221,9 +231,11 @@ export function BuildingPage() {
                   canEdit && <div className="flex flex-wrap gap-2">
                     <Button variant="primary" onClick={() => setModal("plan")}>Fra plantegning</Button>
                     <Button onClick={() => setModal("floor")}>Ny etasje</Button>
-                    <Button variant="ghost" onClick={() => setTab("bim")}>
-                      Importer fra IFC
-                    </Button>
+                    {mods.drift && (
+                      <Button variant="ghost" onClick={() => setTab("bim")}>
+                        Importer fra IFC
+                      </Button>
+                    )}
                   </div>
                 }
               />
@@ -257,9 +269,9 @@ export function BuildingPage() {
             )}
           </div>
           <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className={cn("grid gap-3", mods.komponenter ? "grid-cols-2" : "grid-cols-1")}>
               <Stat label="Åpne oppgaver" value={s?.open_tasks ?? 0} />
-              <Stat label="Komponenter" value={s?.components ?? 0} />
+              {mods.komponenter && <Stat label="Komponenter" value={s?.components ?? 0} />}
             </div>
             <Card>
               <CardHeader title="Om bygget" />
@@ -277,9 +289,10 @@ export function BuildingPage() {
             </Card>
           </div>
         </div>
+        </>
       )}
 
-      {tab === "documents" && <BuildingDocuments buildingId={b.id} propertyId={b.property_id} propertyName={b.property_name} onUpload={() => setModal("upload")} />}
+      {tab === "documents" && <BuildingDocuments buildingId={b.id} propertyId={b.property_id} propertyName={b.property_name} count={s?.documents ?? 0} onUpload={() => setModal("upload")} />}
       {tab === "components" && <BuildingComponents buildingId={b.id} onNew={() => setModal("component")} />}
       {tab === "tasks" && <BuildingTasks buildingId={b.id} onNew={() => setModal("task")} onOpen={setOpenTask} />}
       {tab === "bim" && <BuildingBim buildingId={b.id} onUpload={() => setModal("upload")} onPlan={() => setModal("plan")} />}
@@ -303,6 +316,74 @@ export function BuildingPage() {
   );
 }
 
+function PlaceDocumentsLead({
+  orgId,
+  title,
+  count,
+  query,
+  archive,
+  empty,
+  showBuilding = true,
+}: {
+  orgId: string;
+  title?: string;
+  count: number;
+  query: string;
+  archive: string;
+  empty?: React.ReactNode;
+  showBuilding?: boolean;
+}) {
+  const docs = useOrgQuery<DocumentBrief[]>(count > 0 ? `/documents?brief=1&limit=8&${query}` : null, {
+    refetchInterval: (q) => ((q.state.data as DocumentBrief[] | undefined)?.some((d) => d.status === "processing") ? 3000 : false),
+  });
+  const archiveUrl = `/o/${orgId}/documents?vis=${archive}`;
+  if (count === 0) {
+    return <EmptyState title="Ingen dokumenter" description="Last opp FDV-dokumentasjon, produktdatablad, tegninger og rapporter." action={empty} />;
+  }
+  const rows = docs.data ?? [];
+  const more = count > rows.length;
+  return (
+    <section className="mb-8">
+      {title && (
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-[18px] font-semibold">{title}</h2>
+            <p className="text-[13px] text-muted">{count === 1 ? "Ett dokument" : `${count} dokumenter`}</p>
+          </div>
+          <ButtonLink to={archiveUrl} variant="primary" size="sm">Åpne arkivet</ButtonLink>
+        </div>
+      )}
+      {docs.isLoading && !rows.length ? (
+        <p className="text-[13.5px] text-muted">Henter dokumenter …</p>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-line bg-panel">
+          {rows.map((doc) => {
+            const date = formatDate(doc.created_at);
+            return (
+              <Link
+                key={doc.id}
+                to={doc.kind === "ifc" ? `/o/${orgId}/models/${doc.id}` : `${archiveUrl}&dok=${doc.id}`}
+                className="flex items-center gap-3 border-b border-line px-4 py-3 last:border-b-0 hover:bg-panel-2"
+              >
+                <FileText className="size-4 shrink-0 text-muted" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14.5px] font-semibold">{doc.title}</span>
+                  <span className="block truncate text-[12.5px] text-muted">{[showBuilding ? doc.building_name : null, date !== "–" ? date : null].filter(Boolean).join(" · ")}</span>
+                </span>
+              </Link>
+            );
+          })}
+          {more && (
+            <Link to={archiveUrl} className="block px-4 py-3 text-[13.5px] font-medium text-ink hover:bg-panel-2">
+              Se alle {count} dokumenter
+            </Link>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function SectionHead({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
     <div className="mb-3 flex items-center justify-between">
@@ -312,24 +393,28 @@ function SectionHead({ title, action }: { title: string; action?: React.ReactNod
   );
 }
 
-function BuildingDocuments({ buildingId, propertyId, propertyName, onUpload }: { buildingId: string; propertyId: string; propertyName: string; onUpload: () => void }) {
+function BuildingDocuments({ buildingId, propertyId, propertyName, count, onUpload }: { buildingId: string; propertyId: string; propertyName: string; count: number; onUpload: () => void }) {
   const { orgId, canEdit } = useOrg();
-  const docs = useOrgQuery<Document[]>(`/documents?building_id=${buildingId}`, { refetchInterval: (q) => ((q.state.data as Document[] | undefined)?.some((d) => d.status === "processing") ? 3000 : false) });
-  const onProperty = useOrgQuery<Document[]>(`/documents?property_id=${propertyId}`);
-  if (docs.isLoading) return <Loading />;
+  const onProperty = useOrgQuery<DocumentBrief[]>(`/documents?brief=1&property_id=${propertyId}&limit=500`);
   const elsewhere = (onProperty.data ?? []).filter((d) => d.building_id !== buildingId).length;
   return (
     <>
-      <SectionHead title="Dokumenter" action={canEdit && <Button size="sm" icon={<Upload className="size-3.5" />} onClick={onUpload}>Last opp</Button>} />
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-[18px] font-semibold">Dokumenter</h2>
+        <div className="flex gap-2">
+          {canEdit && <Button size="sm" icon={<Upload className="size-3.5" />} onClick={onUpload}>Last opp</Button>}
+          {count > 0 && <ButtonLink to={`/o/${orgId}/documents?vis=building:${buildingId}`} variant="primary" size="sm">Åpne arkivet</ButtonLink>}
+        </div>
+      </div>
       {elsewhere > 0 && (
         <p className="mb-3 rounded-xl bg-panel-2 px-4 py-3 text-[13.5px] text-ink-2">
           {elsewhere === 1 ? "Ett dokument ligger" : `${elsewhere} dokumenter ligger`} på eiendommen {propertyName}, og vises ikke i denne listen.{" "}
-          <Link to={`/o/${orgId}/documents?eiendom=${propertyId}`} className="font-medium text-ink underline">
+          <Link to={`/o/${orgId}/documents?vis=property:${propertyId}`} className="font-medium text-ink underline">
             Se eiendommens dokumenter
           </Link>
         </p>
       )}
-      {docs.data?.length ? <DocumentTable documents={docs.data} showLocation={false} /> : <EmptyState title="Ingen dokumenter på bygget" description="Last opp FDV-dokumentasjon, produktdatablad, tegninger og rapporter. Dokumenter som gjelder hele eiendommen, ligger ikke i denne listen." action={canEdit ? <Button onClick={onUpload}>Last opp</Button> : undefined} />}
+      <PlaceDocumentsLead orgId={orgId} count={count} query={`building_id=${buildingId}`} archive={`building:${buildingId}`} showBuilding={false} empty={canEdit ? <Button onClick={onUpload}>Last opp</Button> : undefined} />
     </>
   );
 }
@@ -340,7 +425,7 @@ function BuildingComponents({ buildingId, onNew }: { buildingId: string; onNew: 
   if (comps.isLoading) return <Loading />;
   return (
     <>
-      <SectionHead title="FDV-register" action={canEdit && <Button size="sm" icon={<Plus className="size-3.5" />} onClick={onNew}>Ny komponent</Button>} />
+      <SectionHead title="Komponenter" action={canEdit && <Button size="sm" icon={<Plus className="size-3.5" />} onClick={onNew}>Ny komponent</Button>} />
       {comps.data?.length ? <ComponentTable components={comps.data} /> : <EmptyState title="Ingen komponenter" description="Registrer tekniske anlegg og utstyr – eller be Vedlikeholdsplanleggeren hente dem fra dokumentasjonen." action={canEdit ? <Button onClick={onNew}>Ny komponent</Button> : undefined} />}
     </>
   );
@@ -478,6 +563,7 @@ function BuildingArtifacts({ building }: { building: BuildingDetail }) {
 export function FloorPage() {
   const { id } = useParams();
   const { orgId, canEdit } = useOrg();
+  const mods = useLeaseModules();
   const q = useOrgQuery<Floor & { building_name: string; property_id: string; property_name: string; rooms: (Room & { component_count: number })[] }>(`/portfolio/floors/${id}`);
   const comps = useOrgQuery<Component[]>(`/components?floor_id=${id}`);
   useSetFocus("floor", id, q.data ? `${q.data.building_name} › ${q.data.name}` : undefined);
@@ -532,7 +618,7 @@ export function FloorPage() {
               <th className="px-3 py-2 text-left font-semibold">Rom</th>
               <th className="px-3 py-2 text-left font-semibold">Funksjon</th>
               <th className="px-3 py-2 text-left font-semibold">Areal</th>
-              <th className="px-3 py-2 text-left font-semibold">Komponenter</th>
+              {mods.komponenter && <th className="px-3 py-2 text-left font-semibold">Komponenter</th>}
               <th className="w-10" />
             </tr>
           }
@@ -547,7 +633,7 @@ export function FloorPage() {
               </td>
               <td className="px-3 py-2.5 text-ink-2">{r.usage ?? "–"}</td>
               <td className="px-3 py-2.5 text-ink-2 tabular-nums">{formatArea(r.area)}</td>
-              <td className="px-3 py-2.5 text-ink-2 tabular-nums">{r.component_count}</td>
+              {mods.komponenter && <td className="px-3 py-2.5 text-ink-2 tabular-nums">{r.component_count}</td>}
               <td className="px-2">
                 {canEdit && (
                   <IconButton label="Rediger" size="sm" onClick={() => setEditRoom(r)}>
@@ -559,15 +645,19 @@ export function FloorPage() {
           ))}
         </TableShell>
       )}
-      <div className="mt-8 mb-3 flex items-center justify-between">
-        <h2 className="text-[15px] font-semibold">Komponenter i etasjen</h2>
-        {canEdit && (
-          <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setModal("component")}>
-            Ny komponent
-          </Button>
-        )}
-      </div>
-      {comps.data?.length ? <ComponentTable components={comps.data} /> : <div className="text-[13px] text-muted">Ingen komponenter registrert.</div>}
+      {mods.komponenter && (
+        <>
+          <div className="mt-8 mb-3 flex items-center justify-between">
+            <h2 className="text-[15px] font-semibold">Komponenter i etasjen</h2>
+            {canEdit && (
+              <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setModal("component")}>
+                Ny komponent
+              </Button>
+            )}
+          </div>
+          {comps.data?.length ? <ComponentTable components={comps.data} /> : <div className="text-[13px] text-muted">Ingen komponenter registrert.</div>}
+        </>
+      )}
       <FloorFormModal open={modal === "edit"} onClose={() => setModal(null)} floor={f} />
       <RoomFormModal open={modal === "room" || !!editRoom} onClose={() => (setModal(null), setEditRoom(null))} floorId={f.id} room={editRoom ?? undefined} />
       <ComponentFormModal open={modal === "component"} onClose={() => setModal(null)} defaults={{ property_id: f.property_id, building_id: f.building_id, floor_id: f.id }} />
@@ -581,6 +671,7 @@ export function FloorPage() {
 export function RoomPage() {
   const { id } = useParams();
   const { orgId, canEdit } = useOrg();
+  const mods = useLeaseModules();
   const q = useOrgQuery<Room & { floor_name: string; building_name: string; property_id: string }>(`/portfolio/rooms/${id}`);
   const comps = useOrgQuery<Component[]>(`/components?room_id=${id}`);
   const docs = useOrgQuery<Document[]>(`/documents?room_id=${id}`);
@@ -630,16 +721,20 @@ export function RoomPage() {
           </>
         }
       />
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[15px] font-semibold">Komponenter</h2>
-        {canEdit && (
-          <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setModal("component")}>
-            Ny komponent
-          </Button>
-        )}
-      </div>
-      {comps.data?.length ? <ComponentTable components={comps.data} showLocation={false} /> : <div className="text-[13px] text-muted">Ingen komponenter i rommet.</div>}
-      {docs.data && docs.data.length > 0 && (
+      {mods.komponenter && (
+        <>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-[15px] font-semibold">Komponenter</h2>
+            {canEdit && (
+              <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setModal("component")}>
+                Ny komponent
+              </Button>
+            )}
+          </div>
+          {comps.data?.length ? <ComponentTable components={comps.data} showLocation={false} /> : <div className="text-[13px] text-muted">Ingen komponenter i rommet.</div>}
+        </>
+      )}
+      {mods.dokumenter && docs.data && docs.data.length > 0 && (
         <>
           <h2 className="mt-8 mb-3 text-[15px] font-semibold">Dokumenter</h2>
           <DocumentTable documents={docs.data} showLocation={false} />

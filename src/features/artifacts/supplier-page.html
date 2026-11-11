@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leverandører</title>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<style>
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; color: var(--ink); }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 32px; }
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 4px; }
+  .sub { font-size: 13.5px; color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .ct { font-size: 13.5px; font-weight: 600; margin: 0 0 4px; }
+  .hint { font-size: 12px; color: var(--muted); margin: 0 0 12px; }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+  .kpis .card { margin: 0; }
+  .kl { font-size: 12.5px; color: var(--muted); }
+  .kv { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); margin-top: 4px; }
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  input[type=search], select { height: 34px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink); font: inherit; font-size: 13.5px; padding: 0 10px; }
+  input[type=search] { flex: 1; min-width: 200px; }
+  .tabs { display: inline-flex; background: var(--panel-2); border-radius: 10px; padding: 3px; gap: 2px; }
+  .tab { height: 28px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: 13.5px; padding: 0 14px; cursor: pointer; }
+  .tab.active { background: var(--panel); color: var(--ink); border-color: var(--line); font-weight: 500; }
+  .tw { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); font-weight: 500; text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { font-size: 13.5px; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr.sup { cursor: pointer; }
+  tr.sup:hover td { background: var(--panel-2); }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+  th.num { text-align: right; }
+  .p { font-size: 13.5px; font-weight: 500; }
+  .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .pill { display: inline-block; font-size: 12px; font-weight: 500; border-radius: 999px; padding: 1px 8px; background: var(--panel-2); color: var(--ink-2); margin: 0 4px 4px 0; white-space: nowrap; }
+  .chev { display: inline-block; width: 14px; color: var(--muted); transition: transform .15s; }
+  tr.open .chev { transform: rotate(90deg); }
+  tr.docs td { background: var(--panel-2); padding: 4px 10px 8px 34px; }
+  .list { list-style: none; margin: 0; padding: 0; }
+  .list li { padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+  .list li:hover { background: var(--panel-2); }
+  tr.docs .list li:hover { background: var(--panel-3); }
+  .muted { color: var(--muted); font-size: 13.5px; }
+  .bad { color: var(--bad); font-size: 13.5px; }
+  .btn2 { height: 34px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink); font: inherit; font-size: 13.5px; padding: 0 12px; cursor: pointer; }
+  .row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .ctrl { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .chk { font-size: 13.5px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  #stage { position: relative; height: 560px; border-radius: 8px; background: var(--panel-2); overflow: hidden; }
+  #stage canvas { display: block; }
+  #stageMsg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; padding: 20px; text-align: center; }
+  #tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; max-width: 320px; z-index: 5; }
+  .lbl { font-size: 12px; color: var(--ink-2); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+  .lbl.supl { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+  .yr { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  #legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 12px; color: var(--muted); }
+  #legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; }
+  @media (max-width: 720px) {
+    .wrap { padding: 20px; }
+    .kpis { grid-template-columns: 1fr; }
+    .hide-sm { display: none; }
+    #stage { height: 420px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Leverandører</h1>
+  <p class="sub">Firma som har utført arbeid eller laget dokumentasjon, hentet automatisk fra dokumentene i Plank.</p>
+
+  <div class="kpis">
+    <div class="card"><div class="kl">Leverandører</div><div class="kv" id="k1">–</div></div>
+    <div class="card"><div class="kl">Dokumenter med leverandør</div><div class="kv" id="k2">–</div></div>
+    <div class="card"><div class="kl">Dokumenter uten identifisert leverandør</div><div class="kv" id="k3">–</div></div>
+  </div>
+
+  <div class="card filters">
+    <input id="q" type="search" placeholder="Søk etter leverandør, dokument eller arbeid">
+    <select id="bld"><option value="">Alle bygg</option></select>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="tabell" role="tab">Tabell</button>
+      <button class="tab" data-tab="3d" role="tab">3D</button>
+    </div>
+  </div>
+
+  <div id="view-tabell">
+    <div class="card">
+      <div class="ct">Leverandører</div>
+      <p class="hint">Klikk på en leverandør for å se dokumentene. Kontaktinfo er hentet fra dokumentteksten der den finnes.</p>
+      <div id="sup"><p class="muted">Laster dokumenter …</p></div>
+    </div>
+
+    <div class="card">
+      <div class="ct">Andre firma nevnt i dokumentene</div>
+      <p class="hint">Nevnt som kunde, eier eller uten tydelig rolle. Disse regnes ikke som leverandører.</p>
+      <div id="oth"></div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <div class="ct">Dokumenter uten identifisert leverandør</div>
+          <p class="hint">Bilder, tegninger og dokumenter der det ikke er funnet et firmanavn med selskapsform (AS, ASA, ANS osv.).</p>
+        </div>
+        <button class="btn2" id="toggleNo" type="button">Vis</button>
+      </div>
+      <div id="nosup" hidden></div>
+    </div>
+  </div>
+
+  <div id="view-3d" hidden>
+    <div class="card">
+      <div class="row">
+        <div style="flex:1;min-width:240px">
+          <div class="ct">Leverandører i 3D</div>
+          <p class="hint">Hver kule er et dokument, plassert rundt bygget det gjelder. Høyden viser når arbeidet ble utført, og linjene går til leverandøren. Dra for å rotere og scroll for å zoome. Klikk på en kule for å åpne dokumentet, på et bygg for å åpne bygget, eller på en leverandør for å se den i tabellen.</p>
+        </div>
+        <div class="ctrl">
+          <label class="chk"><input type="checkbox" id="showNo"> Vis dokumenter uten leverandør</label>
+          <button class="btn2" id="reset3d" type="button">Tilbakestill visning</button>
+        </div>
+      </div>
+      <div id="stage"><p class="muted" id="stageMsg">Laster 3D …</p><div id="tip" hidden></div></div>
+      <div id="legend"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const $ = id => document.getElementById(id);
+  const KIND = {
+    fdv: 'FDV', produktdatablad: 'Produktdatablad', brukermanual: 'Brukermanual', tegning: 'Tegning',
+    ifc: 'IFC', sertifikat: 'Sertifikat', rapport: 'Rapport', kontroll: 'Kontroll', avtale: 'Avtale', bilde: 'Bilde', annet: 'Annet'
+  };
+  const MONTHS = { januar: 1, februar: 2, mars: 3, april: 4, mai: 5, juni: 6, juli: 7, august: 8, september: 9, oktober: 10, november: 11, desember: 12 };
+  const MNAMES = Object.keys(MONTHS).join('|');
+
+  const SUFFIX = '(?:ASA|AS|ANS|DA|SA|BA|NUF|AB|ApS|A\\/S|GmbH|Oy)';
+  const WORD = "[A-ZÆØÅ][A-Za-zÆØÅæøåÉéÜüÖöÄä0-9&'’.\\-]*";
+  const COMPANY_RE = new RegExp('((?:' + WORD + '\\s+){1,4})(' + SUFFIX + ')(?![A-Za-zÆØÅæøå0-9])', 'g');
+  const SUP_PRE = /\b(fra|av|leverandør|leverandøren|installatør|entreprenør|utførende|firma)\s*:?\s*$/i;
+  const CUS_PRE = /\b(hos|ved|for|til|på|kunde|eier|oppdragsgiver)\s*:?\s*$/i;
+
+  const keyOf = n => n.toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim();
+  const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  function extraText(d) {
+    const x = d.extracted;
+    if (!x || typeof x !== 'object') return '';
+    const bits = [];
+    const parties = Array.isArray(x.parties) ? x.parties.slice() : [];
+    if (x.supplier) parties.push({ role: 'leverandør', name: x.supplier, org_nr: x.supplier_org_nr || null });
+    const seen = new Set();
+    for (const p of parties) {
+      if (!p || !p.name) continue;
+      const name = String(p.name).replace(/\s+/g, ' ').trim();
+      const k = keyOf(name);
+      if (!k || seen.has(k)) continue;
+      seen.add(k);
+      const org = p.org_nr ? ' ' + String(p.org_nr).replace(/\s+/g, '') : '';
+      bits.push(name + org);
+    }
+    if (x.installed_at) bits.push(String(x.installed_at));
+    if (x.last_service_at) bits.push(String(x.last_service_at));
+    return bits.join('. ');
+  }
+
+  function docText(d) {
+    return [d.title || '', d.summary || '', TEXTS.get(d.id) || '', extraText(d)].filter(Boolean).join('. ');
+  }
+
+  function docDate(text) {
+    let best = null;
+    const take = (y, m, d) => {
+      y = +y; m = +m; d = +d;
+      if (y < 1950 || y > 2100 || m < 1 || m > 12) return;
+      const day = d >= 1 && d <= 31 ? d : 1;
+      const t = new Date(y, m - 1, day);
+      if (!best || t > best.t) best = { t, y, precise: d >= 1 && d <= 31 };
+    };
+    let m;
+    const r0 = /\b(19[5-9]\d|20\d{2})-(\d{2})-(\d{2})\b/g;
+    while ((m = r0.exec(text))) take(m[1], m[2], m[3]);
+    const r1 = /\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b/g;
+    while ((m = r1.exec(text))) take(m[3], m[2], m[1]);
+    const r2 = new RegExp('\\b(?:(\\d{1,2})\\.\\s*)?(' + MNAMES + ')\\s+(\\d{4})\\b', 'gi');
+    while ((m = r2.exec(text))) take(m[3], MONTHS[m[2].toLowerCase()], m[1] || 0);
+    if (!best) {
+      const r3 = /\bi (19[5-9]\d|20\d{2})\b/g;
+      while ((m = r3.exec(text))) take(m[1], 1, 0);
+    }
+    return best;
+  }
+
+  function fmtDate(dd) {
+    if (!dd) return '';
+    if (dd.precise) return dd.t.toLocaleDateString('nb-NO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return String(dd.y);
+  }
+
+  function orgDigits(raw) {
+    const d = String(raw || '').replace(/\D/g, '');
+    return d.length === 9 ? d : '';
+  }
+
+  function looksLikeCompany(name) {
+    return new RegExp('^(?:' + WORD + '\\s+){1,4}(?:' + SUFFIX + ')$').test(String(name || '').replace(/\s+/g, ' ').trim());
+  }
+
+  function applyExtractedRoles() {
+    for (const d of DOCS) {
+      const x = d.extracted;
+      if (!x || typeof x !== 'object') continue;
+      const parties = Array.isArray(x.parties) ? x.parties.slice() : [];
+      if (x.supplier) parties.push({ role: 'leverandør', name: x.supplier, org_nr: x.supplier_org_nr || null });
+      const set = DOCFIRMS.get(d.id) || new Set();
+      const seen = new Set();
+      for (const p of parties) {
+        if (!p || !p.name) continue;
+        const role = String(p.role || '');
+        if (role !== 'leverandør' && role !== 'service' && role !== 'entreprenør' && role !== 'produsent') continue;
+        const name = String(p.name).replace(/\s+/g, ' ').trim();
+        if (!looksLikeCompany(name)) continue;
+        const k = keyOf(name);
+        if (seen.has(k)) continue;
+        seen.add(k);
+        let f = FIRMS.get(k);
+        if (!f) {
+          f = { key: k, variants: new Map(), sup: 0, cus: 0, neu: 0, name };
+          FIRMS.set(k, f);
+        }
+        f.sup++;
+        if (!f.name) f.name = name;
+        f.isSupplier = f.sup > 0 && f.sup > f.cus;
+        set.add(k);
+      }
+      DOCFIRMS.set(d.id, set);
+    }
+  }
+
+  function extract(docs) {
+    const firms = new Map();
+    const docFirms = new Map();
+    for (const d of docs) {
+      const text = docText(d);
+      const set = new Set();
+      let m;
+      COMPANY_RE.lastIndex = 0;
+      while ((m = COMPANY_RE.exec(text))) {
+        const name = (m[1] + m[2]).replace(/\s+/g, ' ').trim();
+        const k = keyOf(name);
+        if (k.split(' ').length < 2) continue;
+        const pre = text.slice(Math.max(0, m.index - 30), m.index);
+        let f = firms.get(k);
+        if (!f) { f = { key: k, variants: new Map(), sup: 0, cus: 0, neu: 0 }; firms.set(k, f); }
+        f.variants.set(name, (f.variants.get(name) || 0) + 1);
+        if (SUP_PRE.test(pre)) f.sup++;
+        else if (CUS_PRE.test(pre)) f.cus++;
+        else f.neu++;
+        set.add(k);
+      }
+      docFirms.set(d.id, set);
+    }
+    for (const f of firms.values()) {
+      let best = null, bs = -1;
+      for (const [v, c] of f.variants) {
+        const caps = /^[A-ZÆØÅ]{3,}\b/.test(v) ? 0 : 0.5;
+        if (c + caps > bs) { bs = c + caps; best = v; }
+      }
+      f.name = best;
+      f.isSupplier = f.sup > 0 && f.sup > f.cus;
+    }
+    return { firms, docFirms };
+  }
+
+  let DOCS = [], FIRMS = new Map(), DOCFIRMS = new Map(), DATES = new Map(), INFO = new Map(), TEXTS = new Map();
+  let BUILDING_IDS = new Map(), KIND_COLOR = new Map();
+  const expanded = new Set();
+
+  function filteredDocs() {
+    const b = $('bld').value;
+    return DOCS.filter(d => !b || d.building_name === b);
+  }
+  function supKeys(d) { return [...(DOCFIRMS.get(d.id) || [])].filter(k => FIRMS.get(k) && FIRMS.get(k).isSupplier); }
+  function matchesQ(d) {
+    const q = $('q').value.trim().toLowerCase();
+    if (!q) return true;
+    if (docText(d).toLowerCase().includes(q)) return true;
+    return supKeys(d).some(k => {
+      const f = FIRMS.get(k), info = INFO.get(k) || {};
+      return [f.name, info.org, info.address, info.email, info.contact].join(' ').toLowerCase().includes(q);
+    });
+  }
+
+  function render() {
+    const q = $('q').value.trim().toLowerCase();
+    const docs = filteredDocs();
+    const sup = new Map();
+    const oth = new Map();
+    const noSup = [];
+    for (const d of docs) {
+      const ks = DOCFIRMS.get(d.id) || new Set();
+      let has = false;
+      for (const k of ks) {
+        const f = FIRMS.get(k);
+        if (!f) continue;
+        const target = f.isSupplier ? sup : oth;
+        if (f.isSupplier) has = true;
+        if (!target.has(k)) target.set(k, []);
+        target.get(k).push(d);
+      }
+      if (!has) noSup.push(d);
+    }
+
+    const matches = (f, list) => {
+      if (!q) return true;
+      const info = INFO.get(f.key) || {};
+      const hay = [f.name, info.org, info.address, info.email, info.contact].join(' ').toLowerCase();
+      if (hay.includes(q)) return true;
+      return list.some(d => docText(d).toLowerCase().includes(q));
+    };
+
+    const supRows = [...sup.entries()].map(([k, list]) => ({ f: FIRMS.get(k), list }))
+      .filter(r => r.f && matches(r.f, r.list))
+      .sort((a, b) => b.list.length - a.list.length || a.f.name.localeCompare(b.f.name, 'nb'));
+
+    $('k1').textContent = String(sup.size);
+    $('k2').textContent = String(docs.length - noSup.length);
+    $('k3').textContent = String(noSup.length);
+
+    if (!supRows.length) {
+      $('sup').innerHTML = '<p class="muted">' + (sup.size ? 'Ingen leverandører passer søket.' : 'Fant ingen leverandører i dokumentene.') + '</p>';
+    } else {
+      let h = '<div class="tw"><table><thead><tr><th>Leverandør</th><th class="num">Dokumenter</th><th class="hide-sm">Bygg</th><th class="hide-sm">Dokumenttyper</th><th class="num">Periode</th></tr></thead><tbody>';
+      for (const r of supRows) {
+        const f = r.f, info = INFO.get(f.key) || {};
+        const blds = [...new Set(r.list.map(d => d.building_name).filter(Boolean))];
+        const kinds = {};
+        r.list.forEach(d => { const k = KIND[d.kind] || d.kind || 'Ukjent'; kinds[k] = (kinds[k] || 0) + 1; });
+        const years = r.list.map(d => DATES.get(d.id)).filter(Boolean).map(x => x.y);
+        const period = years.length ? (Math.min(...years) === Math.max(...years) ? String(years[0]) : Math.min(...years) + '–' + Math.max(...years)) : '–';
+        const sec = [];
+        if (info.org) sec.push('Org.nr ' + info.org.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3'));
+        if (info.address) sec.push(info.address);
+        const sec2 = [];
+        if (info.contact) sec2.push(info.contact);
+        if (info.phone) sec2.push('Tlf. ' + info.phone.replace(/(\d{2})(\d{2})(\d{2})(\d{2})/, '$1 $2 $3 $4'));
+        if (info.email) sec2.push(info.email);
+        const open = expanded.has(f.key);
+        h += '<tr class="sup' + (open ? ' open' : '') + '" data-k="' + esc(f.key) + '"><td><div class="p"><span class="chev">›</span> ' + esc(f.name) + '</div>'
+          + (sec.length ? '<div class="s" style="padding-left:18px">' + esc(sec.join(' · ')) + '</div>' : '')
+          + (sec2.length ? '<div class="s" style="padding-left:18px">' + esc(sec2.join(' · ')) + '</div>' : '')
+          + '</td><td class="num">' + r.list.length + '</td><td class="hide-sm">' + esc(blds.join(', ') || '–') + '</td><td class="hide-sm">'
+          + Object.entries(kinds).sort((a, b) => b[1] - a[1]).map(([k, c]) => '<span class="pill">' + esc(k) + ' ' + c + '</span>').join('')
+          + '</td><td class="num">' + esc(period) + '</td></tr>';
+        if (open) {
+          const sorted = r.list.slice().sort((a, b) => ((DATES.get(b.id) || {}).t || 0) - ((DATES.get(a.id) || {}).t || 0));
+          h += '<tr class="docs"><td colspan="5"><ul class="list">' + sorted.map(d => docLi(d)).join('') + '</ul></td></tr>';
+        }
+      }
+      h += '</tbody></table></div>';
+      $('sup').innerHTML = h;
+    }
+
+    const othRows = [...oth.entries()].map(([k, list]) => ({ f: FIRMS.get(k), list })).filter(r => r.f)
+      .sort((a, b) => b.list.length - a.list.length || a.f.name.localeCompare(b.f.name, 'nb'));
+    $('oth').innerHTML = othRows.length
+      ? othRows.map(r => '<span class="pill">' + esc(r.f.name) + ' · ' + r.list.length + ' dok.</span>').join('')
+      : '<p class="muted">Ingen andre firma funnet.</p>';
+
+    const ns = noSup.slice().sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+    $('nosup').innerHTML = ns.length ? '<ul class="list">' + ns.map(d => docLi(d)).join('') + '</ul>' : '<p class="muted">Alle dokumenter har en identifisert leverandør.</p>';
+
+    if (T && !$('view-3d').hidden) build3d();
+  }
+
+  function docLi(d) {
+    const sec = [KIND[d.kind] || d.kind, d.building_name, fmtDate(DATES.get(d.id))].filter(Boolean);
+    return '<li data-doc="' + esc(d.id) + '"><div style="font-size:13.5px">' + esc(d.title || 'Uten tittel') + '</div><div class="s">' + esc(sec.join(' · ')) + '</div></li>';
+  }
+
+  document.addEventListener('click', e => {
+    const li = e.target.closest('li[data-doc]');
+    if (li) { plank.open('document', li.dataset.doc); return; }
+    const tr = e.target.closest('tr.sup');
+    if (tr) {
+      const k = tr.dataset.k;
+      expanded.has(k) ? expanded.delete(k) : expanded.add(k);
+      render();
+    }
+  });
+  $('q').addEventListener('input', render);
+  $('bld').addEventListener('change', render);
+  $('toggleNo').addEventListener('click', () => {
+    const el = $('nosup');
+    el.hidden = !el.hidden;
+    $('toggleNo').textContent = el.hidden ? 'Vis' : 'Skjul';
+  });
+
+  function setTab(t) {
+    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+    $('view-tabell').hidden = t !== 'tabell';
+    $('view-3d').hidden = t !== '3d';
+    if (t === '3d') {
+      ensure3d().then(() => { build3d(); if (!T.fitted) fitCamera(); })
+        .catch(err => { $('stageMsg').hidden = false; $('stageMsg').className = 'bad'; $('stageMsg').textContent = 'Kunne ikke laste 3D-visningen: ' + (err && err.message || err); });
+    }
+  }
+  document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+
+  let T = null, threeLoading = null, LAYOUT = null;
+  const cv = document.createElement('canvas'); cv.width = cv.height = 1;
+  const cx2 = cv.getContext('2d', { willReadFrequently: true });
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function colorOf(n) {
+    if (!cx2) return 0x888888;
+    cx2.clearRect(0, 0, 1, 1);
+    cx2.fillStyle = '#888888';
+    cx2.fillStyle = cssVar(n) || '#888888';
+    cx2.fillRect(0, 0, 1, 1);
+    const d = cx2.getImageData(0, 0, 1, 1).data;
+    return (d[0] << 16) | (d[1] << 8) | d[2];
+  }
+
+  function ensure3d() {
+    if (T) return Promise.resolve(T);
+    if (!threeLoading) threeLoading = (async () => {
+      const THREE = await import('three');
+      const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+      const { CSS2DRenderer, CSS2DObject } = await import('three/addons/renderers/CSS2DRenderer.js');
+      const stage = $('stage');
+      const w = stage.clientWidth || 800, h = stage.clientHeight || 560;
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(w, h);
+      renderer.setClearColor(0x000000, 0);
+      stage.appendChild(renderer.domElement);
+      const labelRenderer = new CSS2DRenderer();
+      labelRenderer.setSize(w, h);
+      Object.assign(labelRenderer.domElement.style, { position: 'absolute', top: '0', left: '0', pointerEvents: 'none' });
+      stage.appendChild(labelRenderer.domElement);
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 5000);
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.6;
+      controls.addEventListener('start', () => { controls.autoRotate = false; });
+      const group = new THREE.Group();
+      scene.add(group);
+      T = { THREE, CSS2DObject, scene, camera, renderer, labelRenderer, controls, group, pick: [], labels: [], fitted: false };
+
+      const ray = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+      let hovered = null, downAt = null;
+      const pickAt = e => {
+        const r = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+        mouse.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+        ray.setFromCamera(mouse, camera);
+        const hits = ray.intersectObjects(T.pick, false);
+        return hits.length ? hits[0].object : null;
+      };
+      const setHover = (obj, e) => {
+        if (hovered && hovered !== obj && hovered.scale) hovered.scale.setScalar(1);
+        hovered = obj;
+        const tip = $('tip');
+        if (!obj) { tip.hidden = true; renderer.domElement.style.cursor = 'grab'; return; }
+        if (obj.scale) obj.scale.setScalar(1.5);
+        renderer.domElement.style.cursor = 'pointer';
+        const u = obj.userData || {};
+        tip.innerHTML = '<div style="font-size:13.5px;font-weight:500">' + esc(u.title) + '</div>' + (u.sec ? '<div class="s">' + esc(u.sec) + '</div>' : '');
+        tip.hidden = false;
+        const r = $('stage').getBoundingClientRect();
+        let x = e.clientX - r.left + 14, y = e.clientY - r.top + 14;
+        const tw = tip.offsetWidth, th = tip.offsetHeight;
+        if (x + tw > r.width - 8) x = e.clientX - r.left - tw - 14;
+        if (y + th > r.height - 8) y = e.clientY - r.top - th - 14;
+        tip.style.left = Math.max(8, x) + 'px';
+        tip.style.top = Math.max(8, y) + 'px';
+      };
+      renderer.domElement.addEventListener('pointermove', e => setHover(pickAt(e), e));
+      renderer.domElement.addEventListener('pointerleave', () => setHover(null));
+      renderer.domElement.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; });
+      renderer.domElement.addEventListener('pointerup', e => {
+        if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 5) { downAt = null; return; }
+        downAt = null;
+        const obj = pickAt(e);
+        if (!obj) return;
+        const u = obj.userData || {};
+        if (u.type === 'doc') plank.open('document', u.id);
+        else if (u.type === 'building' && u.id) plank.open('building', u.id);
+        else if (u.type === 'supplier') {
+          expanded.add(u.key);
+          setTab('tabell');
+          render();
+          const row = document.querySelector('tr.sup[data-k="' + CSS.escape(u.key) + '"]');
+          if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+
+      new ResizeObserver(() => {
+        const w2 = stage.clientWidth, h2 = stage.clientHeight;
+        if (!w2 || !h2) return;
+        renderer.setSize(w2, h2);
+        labelRenderer.setSize(w2, h2);
+        camera.aspect = w2 / h2;
+        camera.updateProjectionMatrix();
+      }).observe(stage);
+
+      new MutationObserver(() => { if (T) build3d(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+      const loop = () => {
+        requestAnimationFrame(loop);
+        if ($('view-3d').hidden) return;
+        controls.update();
+        renderer.render(scene, camera);
+        labelRenderer.render(scene, camera);
+      };
+      loop();
+      return T;
+    })();
+    return threeLoading;
+  }
+
+  function clear3d() {
+    T.labels.forEach(l => { if (l.element && l.element.parentNode) l.element.parentNode.removeChild(l.element); l.removeFromParent(); });
+    T.labels = [];
+    const seen = new Set();
+    T.group.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+      const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+      mats.forEach(m => { if (m && !seen.has(m)) { seen.add(m); m.dispose(); } });
+    });
+    T.group.clear();
+    T.pick = [];
+  }
+
+  function label(text, cls, x, y, z) {
+    const el = document.createElement('div');
+    el.className = cls;
+    el.textContent = text;
+    const o = new T.CSS2DObject(el);
+    o.position.set(x, y, z);
+    T.group.add(o);
+    T.labels.push(o);
+    return o;
+  }
+
+  function build3d() {
+    if (!T) return;
+    const THREE = T.THREE;
+    clear3d();
+    const showNo = $('showNo').checked;
+    const items = filteredDocs().map(d => {
+      const dt = DATES.get(d.id);
+      const tv = dt ? dt.t.getFullYear() + dt.t.getMonth() / 12 + (dt.t.getDate() - 1) / 365 : null;
+      return { d, sups: supKeys(d), dt, tv, hit: matchesQ(d) };
+    }).filter(x => showNo || x.sups.length);
+
+    const msg = $('stageMsg');
+    if (!items.length) {
+      LAYOUT = null;
+      msg.hidden = false; msg.className = 'muted';
+      msg.textContent = showNo ? 'Ingen dokumenter å vise.' : 'Ingen dokumenter med leverandør å vise.';
+      $('legend').innerHTML = '';
+      return;
+    }
+    msg.hidden = true;
+
+    const C = {
+      ink: colorOf('--ink'), ink2: colorOf('--ink-2'), muted: colorOf('--muted'),
+      line: colorOf('--line'), lineStrong: colorOf('--line-strong'), panel3: colorOf('--panel-3')
+    };
+    const palette = ['--ok', '--warn', '--info', '--accent', '--ink-2'].map(colorOf);
+
+    const tvs = items.map(x => x.tv).filter(v => v != null);
+    const minT = tvs.length ? Math.floor(Math.min(...tvs)) : 0;
+    const maxT = tvs.length ? Math.floor(Math.max(...tvs)) + 1 : 1;
+    const H = 60;
+    const yOf = tv => tv == null ? -11 : (maxT === minT ? H / 2 : (tv - minT) / (maxT - minT) * H);
+
+    const bNames = [...new Set(items.map(x => x.d.building_name || 'Uten bygg'))].sort((a, b) => a.localeCompare(b, 'nb'));
+    const nb = bNames.length;
+    const R = nb > 1 ? Math.max(45, nb * 16) : 0;
+    const bPos = new Map();
+    bNames.forEach((b, i) => {
+      const a = nb > 1 ? (i / nb) * Math.PI * 2 : 0;
+      bPos.set(b, new THREE.Vector3(R * Math.cos(a), 0, R * Math.sin(a)));
+    });
+
+    const sphere = new THREE.SphereGeometry(1.1, 18, 14);
+    const sphereSmall = new THREE.SphereGeometry(0.8, 14, 10);
+    const matCache = new Map();
+    const mat = (color, faded) => {
+      const k = color + '|' + (faded ? 1 : 0);
+      if (!matCache.has(k)) matCache.set(k, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: faded ? 0.15 : 1 }));
+      return matCache.get(k);
+    };
+    const kindColor = kind => palette[(KIND_COLOR.has(kind) ? KIND_COLOR.get(kind) : palette.length - 1) % palette.length];
+
+    const step = Math.max(1, Math.ceil((maxT - minT) / 8));
+    const docPos = new Map();
+    const docR = 12;
+
+    bNames.forEach((b, bi) => {
+      const p = bPos.get(b);
+      const box = new THREE.Mesh(new THREE.BoxGeometry(10, 4, 10), new THREE.MeshBasicMaterial({ color: C.panel3 }));
+      box.position.set(p.x, -4, p.z);
+      const nHere = items.filter(x => (x.d.building_name || 'Uten bygg') === b).length;
+      box.userData = { type: 'building', id: BUILDING_IDS.get(b) || null, title: b, sec: nHere + ' dokumenter' + (BUILDING_IDS.get(b) ? ' · klikk for å åpne bygget' : '') };
+      T.group.add(box); T.pick.push(box);
+      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(box.geometry), new THREE.LineBasicMaterial({ color: C.lineStrong }));
+      edges.position.copy(box.position);
+      T.group.add(edges);
+      label(b, 'lbl', p.x, -8.5, p.z);
+
+      if (tvs.length) {
+        const axis = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p.x, -2, p.z), new THREE.Vector3(p.x, H, p.z)]);
+        T.group.add(new THREE.Line(axis, new THREE.LineBasicMaterial({ color: C.lineStrong })));
+        for (let yr = minT; yr <= maxT; yr += step) {
+          const pts = [];
+          for (let i = 0; i <= 64; i++) { const a = i / 64 * Math.PI * 2; pts.push(new THREE.Vector3(p.x + docR * Math.cos(a), yOf(yr), p.z + docR * Math.sin(a))); }
+          T.group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: C.line, transparent: true, opacity: 0.8 })));
+          if (nb <= 3 || bi === 0) label(String(yr), 'yr', p.x + docR + 4, yOf(yr), p.z);
+        }
+      }
+      const bItems = items.filter(x => (x.d.building_name || 'Uten bygg') === b)
+        .sort((a, c) => (a.tv ?? -1e9) - (c.tv ?? -1e9));
+      if (bItems.some(x => x.tv == null) && tvs.length) label('Uten dato', 'yr', p.x + docR + 4, yOf(null), p.z);
+      bItems.forEach((x, i) => {
+        const a = i * 2.39996;
+        const pos = new THREE.Vector3(p.x + docR * Math.cos(a), yOf(x.tv), p.z + docR * Math.sin(a));
+        const has = x.sups.length > 0;
+        const m = new THREE.Mesh(has ? sphere : sphereSmall, mat(has ? kindColor(x.d.kind) : C.muted, !x.hit));
+        m.position.copy(pos);
+        const supNames = x.sups.map(k => FIRMS.get(k).name).join(', ');
+        m.userData = {
+          type: 'doc', id: x.d.id, title: x.d.title || 'Uten tittel',
+          sec: [KIND[x.d.kind] || x.d.kind, x.d.building_name, fmtDate(x.dt), supNames || 'Uten leverandør'].filter(Boolean).join(' · ')
+        };
+        T.group.add(m); T.pick.push(m);
+        docPos.set(x.d.id, pos);
+      });
+    });
+
+    const supSet = new Map();
+    items.forEach(x => x.sups.forEach(k => { if (!supSet.has(k)) supSet.set(k, []); supSet.get(k).push(x); }));
+    const sKeys = [...supSet.keys()].sort((a, b) => supSet.get(b).length - supSet.get(a).length);
+    const ns = sKeys.length;
+    const center = new THREE.Vector3();
+    bPos.forEach(v => center.add(v));
+    center.divideScalar(Math.max(1, nb));
+    const RS = ns > 1 ? Math.max(24, ns * 10, R * 0.7) : 0;
+    const supY = H + 22;
+    const lineMatOn = new THREE.LineBasicMaterial({ color: C.lineStrong, transparent: true, opacity: 0.55 });
+    const lineMatOff = new THREE.LineBasicMaterial({ color: C.lineStrong, transparent: true, opacity: 0.08 });
+    sKeys.forEach((k, i) => {
+      const a = (i / Math.max(1, ns)) * Math.PI * 2 + Math.PI / 4;
+      const sp = new THREE.Vector3(center.x + RS * Math.cos(a), supY, center.z + RS * Math.sin(a));
+      const list = supSet.get(k);
+      const node = new THREE.Mesh(new THREE.SphereGeometry(3.2, 28, 20), new THREE.MeshBasicMaterial({ color: C.ink }));
+      node.position.copy(sp);
+      const info = INFO.get(k) || {};
+      node.userData = {
+        type: 'supplier', key: k, title: FIRMS.get(k).name,
+        sec: [list.length + ' dokumenter', info.org ? 'Org.nr ' + info.org.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') : '', 'klikk for å se i tabellen'].filter(Boolean).join(' · ')
+      };
+      T.group.add(node); T.pick.push(node);
+      label(FIRMS.get(k).name, 'lbl supl', sp.x, sp.y + 6.5, sp.z);
+      const on = [], off = [];
+      list.forEach(x => { const p = docPos.get(x.d.id); if (p) (x.hit ? on : off).push(sp.clone(), p.clone()); });
+      if (on.length) T.group.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(on), lineMatOn));
+      if (off.length) T.group.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(off), lineMatOff));
+    });
+
+    LAYOUT = { center, R, H, RS, supY };
+
+    const kindsHere = [...new Set(items.filter(x => x.sups.length).map(x => x.d.kind))]
+      .sort((a, b) => (KIND_COLOR.get(a) ?? 99) - (KIND_COLOR.get(b) ?? 99));
+    const hex = n => '#' + n.toString(16).padStart(6, '0');
+    let lg = '<span><i class="dot" style="background:' + hex(C.ink) + ';width:12px;height:12px"></i>Leverandør</span>';
+    kindsHere.forEach(k => { lg += '<span><i class="dot" style="background:' + hex(kindColor(k)) + '"></i>' + esc(KIND[k] || k || 'Ukjent') + '</span>'; });
+    if (showNo && items.some(x => !x.sups.length)) lg += '<span><i class="dot" style="background:' + hex(C.muted) + ';width:8px;height:8px"></i>Uten leverandør</span>';
+    lg += '<span>' + (tvs.length ? 'Høyde: ' + minT + '–' + maxT : '') + '</span>';
+    $('legend').innerHTML = lg;
+  }
+
+  function fitCamera() {
+    if (!T || !LAYOUT) return;
+    const { center, R, H, RS, supY } = LAYOUT;
+    const span = Math.max(R * 2 + 40, RS * 2 + 30, supY + 30, 90);
+    T.camera.position.set(center.x + span * 0.95, supY * 0.75, center.z + span * 0.95);
+    T.controls.target.set(center.x, H * 0.55, center.z);
+    T.controls.autoRotate = true;
+    T.controls.update();
+    T.fitted = true;
+  }
+
+  $('showNo').addEventListener('change', () => { if (T) build3d(); });
+  $('reset3d').addEventListener('click', fitCamera);
+
+  function rememberOrg(name, org) {
+    const digits = orgDigits(org);
+    if (!digits || !name) return;
+    const f = FIRMS.get(keyOf(name));
+    if (!f) return;
+    const info = INFO.get(f.key) || {};
+    if (!info.org) info.org = digits;
+    INFO.set(f.key, info);
+  }
+
+  function seedInfo() {
+    for (const d of DOCS) {
+      const x = d.extracted;
+      if (!x || typeof x !== 'object') continue;
+      if (x.supplier) rememberOrg(x.supplier, x.supplier_org_nr);
+      for (const p of x.parties || []) if (p && p.name) rememberOrg(p.name, p.org_nr);
+    }
+  }
+
+  async function enrichOne(f) {
+    try {
+      const res = await plank.query('documents.search', { q: f.name });
+      const snippets = (res || []).map(r => String(r.snippet || '').replace(/[«»]/g, ''));
+      const nameRe = reEsc(f.name).replace(/\s+/g, '\\s+');
+      const info = INFO.get(f.key) || {};
+      const domainWord = f.name.split(/\s+/)[0].toLowerCase().replace(/[^a-zæøå0-9]/g, '');
+      for (const s of snippets) {
+        if (!info.org) {
+          const m = new RegExp(nameRe + '\\s+(.{0,80}?)\\s*\\b(\\d{3}\\s?\\d{3}\\s?\\d{3})\\b', 'i').exec(s);
+          if (m) {
+            const digits = orgDigits(m[2]);
+            if (digits) info.org = digits;
+            const a = m[1].replace(/\s+/g, ' ').trim();
+            if (/\d{4}/.test(a)) info.address = a;
+          }
+        }
+        if (!info.email || !info.phone) {
+          const c = /Telefon\s+E-post\s*\n\s*(?:\d+\s+)?([A-ZÆØÅ][^\d\n@]{1,60}?)\s+(\d{2}\s?\d{2}\s?\d{2}\s?\d{2})\s+([\w.+-]+@[\w-]+\.[a-z]{2,})/.exec(s);
+          if (c && domainWord && c[3].toLowerCase().includes(domainWord)) {
+            info.contact = info.contact || c[1].trim();
+            info.phone = info.phone || c[2].replace(/\s+/g, '');
+            info.email = info.email || c[3];
+          }
+        }
+        if (!info.email && domainWord) {
+          const em = (s.match(/[\w.+-]+@[\w-]+\.[a-z]{2,}/g) || []).find(x => x.toLowerCase().split('@')[1].includes(domainWord));
+          if (em) info.email = em;
+        }
+      }
+      INFO.set(f.key, info);
+      render();
+    } catch (e) { /* kontaktinfo er valgfri */ }
+  }
+
+  async function enrich() {
+    const sups = [...FIRMS.values()].filter(f => f.isSupplier);
+    let i = 0;
+    const worker = async () => {
+      while (i < sups.length) {
+        const f = sups[i++];
+        await enrichOne(f);
+      }
+    };
+    await Promise.all([worker(), worker(), worker()]);
+  }
+
+  async function load() {
+    try {
+      const [docs, texts] = await Promise.all([
+        plank.query('documents.list', {}),
+        plank.query('documents.texts', {}).catch(() => []),
+      ]);
+      DOCS = Array.isArray(docs) ? docs : [];
+      TEXTS = new Map((Array.isArray(texts) ? texts : []).filter(t => t && t.id).map(t => [t.id, String(t.text || '')]));
+      const ex = extract(DOCS);
+      FIRMS = ex.firms; DOCFIRMS = ex.docFirms;
+      applyExtractedRoles();
+      seedInfo();
+      DOCS.forEach(d => {
+        DATES.set(d.id, docDate(docText(d)));
+        if (d.building_id && d.building_name && !BUILDING_IDS.has(d.building_name)) BUILDING_IDS.set(d.building_name, d.building_id);
+      });
+      const kc = {};
+      DOCS.forEach(d => { if (supKeys(d).length) kc[d.kind] = (kc[d.kind] || 0) + 1; });
+      Object.entries(kc).sort((a, b) => b[1] - a[1]).forEach(([k], i) => KIND_COLOR.set(k, i));
+      const blds = [...new Set(DOCS.map(d => d.building_name).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'nb'));
+      $('bld').innerHTML = '<option value="">Alle bygg</option>' + blds.map(b => '<option>' + esc(b) + '</option>').join('');
+      render();
+      enrich();
+      plank.query('portfolio.tree', {}).then(tree => {
+        (tree || []).forEach(p => (p.buildings || []).forEach(b => { if (b && b.name && b.id && !BUILDING_IDS.has(b.name)) BUILDING_IDS.set(b.name, b.id); }));
+        if (T && !$('view-3d').hidden) build3d();
+      }).catch(() => {});
+    } catch (e) {
+      $('sup').innerHTML = '<p class="bad">Kunne ikke hente dokumenter: ' + esc(e && e.message || e) + '</p>';
+    }
+  }
+  load();
+})();
+</script>
+</body>
+</html>

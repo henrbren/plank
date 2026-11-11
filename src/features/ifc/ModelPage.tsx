@@ -333,7 +333,7 @@ export default function ModelPage() {
                 size="sm"
                 variant="ghost"
                 icon={<Sparkles className="size-3.5" />}
-                onClick={() => panel.ask(`Fortell meg om IFC-elementet «${selected.name ?? selected.type}» (${selected.type}, GUID ${selected.guid}) i modellen «${d.title}». Finnes det i FDV-registeret, og hva bør vi vite om drift og vedlikehold?`)}
+                onClick={() => panel.ask(`Fortell meg om IFC-elementet «${selected.name ?? selected.type}» (${selected.type}, GUID ${selected.guid}) i modellen «${d.title}». Finnes det blant komponentene, og hva bør vi vite om drift og vedlikehold?`)}
               >
                 Spør agenten om elementet
               </Button>

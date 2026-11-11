@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { BRANDS, brandFromHost, resolveBrand, type Brand } from "../../shared/brand";
+import { BRANDS, brandFromHost, isLaftHost, resolveBrand, type Brand } from "../../shared/brand";
 import type { AppEnv, Env } from "../env";
 
 export function brandOf(c: Context<AppEnv>): Brand {
@@ -8,7 +8,16 @@ export function brandOf(c: Context<AppEnv>): Brand {
 
 /** Kom forespørselen inn via et LAFT-domene (mappa.laft.io, sameie.laft.io …)? */
 export function laftHost(c: Context<AppEnv>): boolean {
-  return brandFromHost(new URL(c.req.url).hostname).id !== "plank";
+  return isLaftHost(new URL(c.req.url).hostname);
+}
+
+/** Leie-workeren har APP_URL på leie.vixon.no. Lokal utvikling og Plank blir plank. */
+export function productOfApp(appUrl: string | undefined): "leie" | "plank" {
+  try {
+    return brandFromHost(new URL(appUrl ?? "http://localhost").hostname).id === "leie" ? "leie" : "plank";
+  } catch {
+    return "plank";
+  }
 }
 
 export function publicOrigin(c: Context<AppEnv>): string {

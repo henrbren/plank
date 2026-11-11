@@ -7,7 +7,8 @@ import { first } from "../lib/db";
 import { body, notFound } from "../lib/http";
 import { optId, optStr } from "../lib/schemas";
 import { now } from "../lib/util";
-import { createArtifact, getArtifact, getArtifactHtml, listArtifacts, listVersions, moveSidebar, saveArtifactVersion, setSidebar, sidebarPages } from "../services/artifacts";
+import { createArtifact, getArtifact, getArtifactHtml, listArtifacts, listVersions, moveSidebar, saveArtifactVersion, setArtifactShare, setSidebar, shareModeOf, sidebarPages } from "../services/artifacts";
+import { ensureSupplierPage } from "../services/suppliers";
 import { SIDEBAR_ICONS } from "../../shared/types";
 
 export const artifacts = new Hono<AppEnv>();
@@ -35,6 +36,13 @@ artifacts.post("/", async (c) => {
   const a = await createArtifact(c.env, c.get("orgId"), { ...input, html: input.html || STARTER }, { userId: u.id });
   await logActivity(c.env, { orgId: c.get("orgId"), actor: { type: "user", id: u.id, name: u.name ?? u.email }, action: "artifact.created", entityType: "artifact", entityId: a.id, summary: a.title });
   return c.json(a, 201);
+});
+
+artifacts.post("/suppliers", async (c) => {
+  assertCanEdit();
+  const page = await ensureSupplierPage(c.env, c.get("orgId"));
+  const full = await getArtifact(c.env, c.get("orgId"), page.id);
+  return c.json(full);
 });
 
 artifacts.get("/sidebar", async (c) => c.json(await sidebarPages(c.env, c.get("orgId"))));
@@ -84,17 +92,29 @@ artifacts.post("/:id/restore", async (c) => {
 artifacts.patch("/:id", async (c) => {
   const input = await body(
     c,
-    z.object({ title: z.string().trim().min(1).max(200).optional(), description: optStr(1000).optional(), pinned: z.boolean().optional(), building_id: optId().optional() }),
+    z.object({
+      title: z.string().trim().min(1).max(200).optional(),
+      description: optStr(1000).optional(),
+      pinned: z.boolean().optional(),
+      building_id: optId().optional(),
+      share_mode: z.enum(["off", "login", "link"]).optional(),
+      share_rotate: z.boolean().optional(),
+    }),
   );
   const orgId = c.get("orgId");
   const a = await getArtifact(c.env, orgId, c.req.param("id"));
   assertCanEdit(a);
+  const beforeMode = shareModeOf(a.share_mode);
+  const beforeToken = a.share_token;
   if (input.building_id) {
     const b = await first(c.env.DB, `SELECT id FROM buildings WHERE id = ? AND org_id = ?`, input.building_id, orgId);
     if (!b) throw notFound("Bygget");
     assertCanEdit({ building_id: input.building_id });
   } else if (input.building_id === null) {
     assertCanEdit({ property_id: a.property_id });
+  }
+  if (input.share_mode !== undefined || input.share_rotate) {
+    await setArtifactShare(c.env, orgId, a.id, { mode: input.share_mode, rotate: input.share_rotate });
   }
   await c.env.DB.prepare(
     `UPDATE artifacts SET title = ?, description = ?, pinned = ?, building_id = ?, property_id = COALESCE((SELECT property_id FROM buildings WHERE id = ? AND org_id = ?), property_id), updated_at = ? WHERE id = ?`,
@@ -110,7 +130,21 @@ artifacts.patch("/:id", async (c) => {
       a.id,
     )
     .run();
-  return c.json(await getArtifact(c.env, orgId, a.id));
+  const updated = await getArtifact(c.env, orgId, a.id);
+  const u = c.get("user");
+  const actor = { type: "user" as const, id: u.id, name: u.name ?? u.email };
+  if (updated.share_mode !== beforeMode) {
+    const summary =
+      updated.share_mode === "off"
+        ? `Sluttet å dele siden «${updated.title}»`
+        : updated.share_mode === "login"
+          ? `Delte siden «${updated.title}» med innloggede`
+          : `Delte siden «${updated.title}» med alle som har lenken`;
+    await logActivity(c.env, { orgId, actor, action: "artifact.shared", entityType: "artifact", entityId: a.id, summary });
+  } else if (input.share_rotate && updated.share_token && updated.share_token !== beforeToken) {
+    await logActivity(c.env, { orgId, actor, action: "artifact.shared", entityType: "artifact", entityId: a.id, summary: `Byttet delingslenke for «${updated.title}»` });
+  }
+  return c.json(updated);
 });
 
 artifacts.delete("/:id", async (c) => {

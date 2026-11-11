@@ -5,15 +5,33 @@ import { ArrowUp, ChevronDown, History, Plus, Settings2, Square, Trash2, X } fro
 import type { Agent, ChatEvent, Conversation, FocusContext, StoredMessage } from "@shared/types";
 import { api, ApiError, streamPost } from "@/lib/api";
 import { useAgentPanel, useFocus, useOrg, useOrgQuery } from "@/lib/app";
+import { useBrand } from "@/lib/brand";
 import { timeAgo } from "@/lib/format";
 import { AgentAvatar, ENTITY_ICONS, agentColor } from "@/components/domain";
 import { cn, IconButton, Menu, MenuItem, Spinner } from "@/components/ui";
+import { PlanLink, TrialNote } from "@/features/billing/TrialNote";
 import { AssistantTurn, toItems, toolLabel, UserBubble, type Item, type Part } from "./transcript";
 
-const WRITE_TOOLS = /^(create_|update_|save_|send_)|^capture_screen$/;
+const WRITE_TOOLS = /^(create_|update_|save_|send_|delete_)|^capture_screen$/;
 
-function suggestionsFor(focus: FocusContext, agent: Agent | undefined): string[] {
+function agentFace(agent: Agent, lease: boolean): { name: string; description: string | null } {
+  if (lease && agent.template === "fdv-assistent") {
+    return {
+      name: "Leie",
+      description: "Forklarer en sak på pulten og skriver neste brev. Ber du om det, setter den opp drift, dokumenter eller komponenter.",
+    };
+  }
+  return { name: agent.name, description: agent.description };
+}
+
+function suggestionsFor(focus: FocusContext, agent: Agent | undefined, lease: boolean): string[] {
   const label = focus.label ? `«${focus.label}»` : "";
+  if (lease && (focus.type === "org" || focus.type == null)) {
+    return ["Hva tar jeg først i dag?", "Forklar den øverste saken på pulten", "Hvilke leieforhold løper ut det neste året?"];
+  }
+  if (lease && focus.type === "building") {
+    return [`Hvilke leieforhold ligger på ${label}?`, "Hva står ledig her?", "Er det restanse på bygget?"];
+  }
   if (agent?.template === "hjelp") {
     return ["Hvordan laster jeg opp FDV-dokumentasjon?", "Hvordan registrerer jeg et avvik?", "Hvor ser jeg service som forfaller?"];
   }
@@ -45,6 +63,7 @@ function suggestionsFor(focus: FocusContext, agent: Agent | undefined): string[]
 
 export function AgentPanel() {
   const { orgId } = useOrg();
+  const lease = useBrand().id === "leie";
   const panel = useAgentPanel();
   const { focus } = useFocus();
   const qc = useQueryClient();
@@ -70,6 +89,7 @@ export function AgentPanel() {
   const agentList = agents.data ?? [];
   const activeAgentId = convData?.agent_id ?? panel.agentId ?? agentList[0]?.id ?? null;
   const agent = agentList.find((a) => a.id === activeAgentId);
+  const face = agent ? agentFace(agent, lease) : null;
 
   useEffect(() => setUseContext(true), [focus.type, focus.id]);
 
@@ -290,7 +310,7 @@ export function AgentPanel() {
           trigger={() => (
             <button className="flex max-w-full items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-panel-2">
               {agent ? <AgentAvatar icon={agent.icon} color={agent.color} size="sm" /> : <Spinner />}
-              <span className="truncate text-[13.5px] font-semibold">{agent?.name ?? "Velg agent"}</span>
+              <span className="truncate text-[13.5px] font-semibold">{face?.name ?? "Velg agent"}</span>
               <ChevronDown className="size-3.5 shrink-0 text-muted" />
             </button>
           )}
@@ -308,7 +328,7 @@ export function AgentPanel() {
                     newChat(a.id);
                   }}
                 >
-                  {a.name}
+                  {agentFace(a, lease).name}
                 </MenuItem>
               ))}
               <div className="my-1 border-t border-line" />
@@ -392,12 +412,12 @@ export function AgentPanel() {
               {agent && (
                 <div className="mb-5">
                   <AgentAvatar icon={agent.icon} color={agent.color} size="lg" />
-                  <div className="mt-3 text-[16px] font-semibold">{agent.name}</div>
-                  {agent.description && <div className="mt-1 text-[13px] text-muted">{agent.description}</div>}
+                  <div className="mt-3 text-[16px] font-semibold">{face?.name}</div>
+                  {face?.description && <div className="mt-1 text-[13px] text-muted">{face.description}</div>}
                 </div>
               )}
               <div className="flex flex-col gap-1.5">
-                {suggestionsFor(focus, agent).map((s) => (
+                {suggestionsFor(focus, agent, lease).map((s) => (
                   <button key={s} onClick={() => send(s)} className="rounded-xl border border-line px-3 py-2 text-left text-[13px] text-ink-2 transition-colors hover:border-line-strong hover:bg-panel-2 hover:text-ink">
                     {s}
                   </button>
@@ -424,6 +444,11 @@ export function AgentPanel() {
         </div>
       ) : (
         <div className="shrink-0 border-t border-line p-3">
+          {items.length === 0 && !loadingConv && (
+            <TrialNote className="mb-2 max-w-none text-[12.5px]">
+              Spør fritt mens dere prøver. Abonnementet tar med AI-bruk hver måned. <PlanLink>Se planene</PlanLink>
+            </TrialNote>
+          )}
           <div className="rounded-xl border border-line-strong bg-bg focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15">
             {focus.type !== "org" && useContext && (
               <div className="flex items-center gap-1.5 px-2.5 pt-2">
@@ -442,7 +467,7 @@ export function AgentPanel() {
               onChange={(e) => setText(e.target.value)}
               onKeyDown={onKey}
               rows={1}
-              placeholder={agent ? `Spør ${agent.name} …` : "Skriv en melding …"}
+              placeholder={face ? `Spør ${face.name} …` : "Skriv en melding …"}
               className="block max-h-56 w-full resize-none bg-transparent px-3 py-2.5 text-[14px] outline-none placeholder:text-muted"
             />
             <div className="flex items-center justify-between px-2 pb-2">

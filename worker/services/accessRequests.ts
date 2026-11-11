@@ -4,7 +4,7 @@ import { escapeHtml, newId, now } from "../lib/util";
 import { logActivity } from "../lib/activity";
 import { brregRoles, nameMatches, type BrregCompany } from "../lib/brreg";
 import { enqueueKommune, fetchAccessDecision, grantedBuildingCount, msBase, sendAccessRequest } from "../lib/boligmappaMs";
-import { boligmappaConfigured, connectBoligmappa } from "../lib/boligmappa";
+import { boligmappaConfigured, connectBoligmappa, setBoligmappaNotify, startBoligmappaTransfer } from "../lib/boligmappa";
 import { emailConfigured, emailLayout, sendEmail } from "../lib/email";
 import { emailFrom } from "../lib/brand";
 import { createOrg } from "../routes/orgs";
@@ -37,6 +37,7 @@ export interface AccessRequestRow {
   decided_at: number | null;
   org_id: string | null;
   created_at: number;
+  bm_notify: number;
 }
 
 export interface AccessContext {
@@ -133,7 +134,7 @@ async function notifyStaff(env: Env, row: AccessRequestRow, brand: Brand): Promi
  */
 export async function createAccessRequest(
   env: Env,
-  input: { company: BrregCompany; brand: Brand; origin: string; email: string; name: string; user: SessionUser | null; ip: string | null },
+  input: { company: BrregCompany; brand: Brand; origin: string; email: string; name: string; user: SessionUser | null; ip: string | null; bmNotify?: boolean },
 ): Promise<{ row: AccessRequestRow; deliver: () => Promise<void> }> {
   const { company, brand } = input;
   const existing = await first<AccessRequestRow>(
@@ -143,6 +144,10 @@ export async function createAccessRequest(
     company.orgNr,
   );
   if (existing) {
+    if (input.bmNotify !== undefined) {
+      existing.bm_notify = input.bmNotify ? 1 : 0;
+      await env.DB.prepare(`UPDATE access_requests SET bm_notify = ? WHERE id = ?`).bind(existing.bm_notify, existing.id).run();
+    }
     return {
       row: existing,
       deliver: async () => {
@@ -176,12 +181,30 @@ export async function createAccessRequest(
     decided_at: null,
     org_id: null,
     created_at: now(),
+    bm_notify: input.bmNotify ? 1 : 0,
   };
   await env.DB.prepare(
-    `INSERT INTO access_requests (id, kind, org_nr, org_name, org_form, brand, origin, email, name, user_id, consent_text, consent_at, ip, context, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+    `INSERT INTO access_requests (id, kind, org_nr, org_name, org_form, brand, origin, email, name, user_id, consent_text, consent_at, ip, context, status, created_at, bm_notify)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
   )
-    .bind(row.id, row.kind, row.org_nr, row.org_name, row.org_form, row.brand, row.origin, row.email, row.name, row.user_id, row.consent_text, row.consent_at, row.ip, row.context, row.created_at)
+    .bind(
+      row.id,
+      row.kind,
+      row.org_nr,
+      row.org_name,
+      row.org_form,
+      row.brand,
+      row.origin,
+      row.email,
+      row.name,
+      row.user_id,
+      row.consent_text,
+      row.consent_at,
+      row.ip,
+      row.context,
+      row.created_at,
+      row.bm_notify,
+    )
     .run();
 
   return {
@@ -215,14 +238,19 @@ async function provision(env: Env, row: AccessRequestRow, brand: Brand): Promise
     user.id,
     row.org_nr,
   );
-  if (mine) return mine.id;
+  if (mine) {
+    if (row.bm_notify === 1) await setBoligmappaNotify(env, mine.id, user.id, true);
+    return mine.id;
+  }
 
   const org = await createOrg(env, (row.org_name || row.org_nr).slice(0, 100), user.id);
   await env.DB.prepare(`UPDATE orgs SET org_nr = ?, brand = ? WHERE id = ?`).bind(row.org_nr, brand.id, org.id).run();
+  if (row.bm_notify === 1) await setBoligmappaNotify(env, org.id, user.id, true);
   if (boligmappaConfigured(env)) {
     try {
       await connectBoligmappa(env, org.id, row.org_nr, { autoImport: true });
       await grantAgents(env, org.id, ["boligmappa"]);
+      await startBoligmappaTransfer(env, org.id, { type: "user", id: user.id, name: user.name ?? row.email });
     } catch (err) {
       console.error("Kunne ikke koble Boligmappa etter godkjent tilgang", err);
     }

@@ -4,6 +4,7 @@ import { recordUsage } from "../lib/usage";
 import { all, first } from "../lib/db";
 import { newId, now, parseJson, truncate } from "../lib/util";
 import type { ChatEvent, FocusContext, ToolGroup } from "../../shared/types";
+import { productOfApp } from "../lib/brand";
 import { buildSystemPrompt, contextBlock } from "./prompts";
 import { allowedGroups, executeTool, resolveScope, toolLabel, toolsFor, type AgentRow, type ToolContext } from "./tools";
 import { currentAccess, sees } from "../lib/access";
@@ -171,6 +172,7 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
       tools: groups,
       scheduled: Boolean(opts.scheduled),
       access: currentAccess(),
+      product: productOfApp(env.APP_URL),
     });
     await env.DB.prepare(`UPDATE conversations SET system_prompt = ?, tool_groups = ? WHERE id = ?`).bind(system, JSON.stringify(groups), conversationId).run();
   }

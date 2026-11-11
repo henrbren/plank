@@ -37,6 +37,10 @@ export interface Env {
   BOLIGMAPPA_TOKEN_HOST?: string;
   BOLIGMAPPA_API_BASE_URL?: string;
 
+  /** resolvar.laft.io: bygningsnummer → adresse med husnummer. Samme oppslag som boligmappa-ms. */
+  RESOLVAR_API_KEY?: string;
+  RESOLVAR_BASE_URL?: string;
+
   /** 32 byte base64 – krypterer LAFT-tokens i D1 */
   LAFT_TOKEN_KEY?: string;
   LAFT_ID_URL?: string;

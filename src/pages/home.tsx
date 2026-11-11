@@ -1,13 +1,34 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Activity, Bot, Building2, FileText, LayoutDashboard, Plus, Sparkles, SquareCheck, Upload, Wrench } from "lucide-react";
-import type { Agent, Artifact, OrgOverview } from "@shared/types";
+import { Activity, Bot, FileText, LayoutDashboard, Map, Plus, Sparkles, SquareCheck, Upload, Wrench } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import type { ActivityItem, Agent, Artifact, OrgOverview, SinceLast } from "@shared/types";
 import { useAgentPanel, useOrg, useOrgApi, useOrgQuery, useSetFocus } from "@/lib/app";
-import { timeAgo } from "@/lib/format";
-import { AgentAvatar, DueDate, ServiceBadge, TaskTypeBadge } from "@/components/domain";
-import { Button, Card, CardHeader, ErrorState, Loading, PageHeader, Stat, useToast } from "@/components/ui";
+import { entityPath, timeAgo } from "@/lib/format";
+import { AgentAvatar, DueDate, ENTITY_ICONS, ServiceBadge, TaskTypeBadge } from "@/components/domain";
+import { Button, Card, CardHeader, cn, ErrorState, Loading, PageHeader, Stat, useToast } from "@/components/ui";
 import { UploadModal } from "@/components/forms";
-import { Journey } from "@/features/onboarding/NextStep";
+import { Journey, useNextAction } from "@/features/onboarding/NextStep";
+
+const AI_PAGES: { title: string; text: string; prompt?: string; suppliers?: boolean }[] = [
+  {
+    title: "Leverandører",
+    text: "Firma i dokumentene, med tabell og 3D",
+    suppliers: true,
+  },
+  {
+    title: "Service og oppgaver",
+    text: "Forfall og åpne oppgaver per bygg",
+    prompt:
+      "Lag en side (artifact) som viser service som forfaller og åpne oppgaver, gruppert per bygg. Hent components.list og tasks.list. Ikke finn på frister. Følg stilen under «Sider». Legg siden i sidemenyen.",
+  },
+  {
+    title: "Tilstand",
+    text: "Komponenter fordelt på tilstandsgrad",
+    prompt:
+      "Lag en side (artifact) som viser komponentenes tilstandsgrad (condition: TG0, TG1, TG2, TG3, TGIU). Hent components.list og grupper per bygg. Ikke finn på grader. Følg stilen under «Sider». Legg siden i sidemenyen.",
+  },
+];
 
 export function HomePage() {
   const { orgId, org, me, isAdmin, canEdit, limited } = useOrg();
@@ -21,6 +42,8 @@ export function HomePage() {
   const navigate = useNavigate();
   const [seeding, setSeeding] = useState(false);
   const [upload, setUpload] = useState(false);
+  const [makingSuppliers, setMakingSuppliers] = useState(false);
+  const { step } = useNextAction();
 
   if (overview.isLoading) return <Loading />;
   if (overview.error) return <ErrorState error={overview.error} />;
@@ -44,9 +67,29 @@ export function HomePage() {
     }
   };
 
+  const makeSuppliers = async () => {
+    if (makingSuppliers) return;
+    setMakingSuppliers(true);
+    try {
+      const a = await call<Artifact>("/artifacts/suppliers", { method: "POST" });
+      navigate(`/o/${orgId}/artifacts/${a.id}`);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Kunne ikke lage siden", "bad");
+    } finally {
+      setMakingSuppliers(false);
+    }
+  };
+
   const empty = o.counts.properties === 0;
+  const showTasks = o.counts.tasks > 0;
+  const showComponents = o.counts.components > 0;
+  const statCount = 2 + (showTasks ? 1 : 0) + (showComponents ? 1 : 0);
+  const showRecent = o.recent_documents.length > 0;
+  const showLeft = showTasks || showComponents || showRecent;
   const pinned = (artifacts.data ?? []).filter((a) => a.pinned).slice(0, 4);
+  const builder = agents.data?.find((a) => a.template === "sidebygger")?.id ?? agents.data?.find((a) => a.template === "fdv-assistent")?.id;
   const overdue = o.service_due.filter((c) => c.next_service_at && c.next_service_at < o.today).length;
+  const starting = Boolean(step && step.funnel != null && step.kind !== "pay");
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-7 sm:px-8">
@@ -54,7 +97,8 @@ export function HomePage() {
         title={`${greeting}${firstName ? `, ${firstName}` : ""}`}
         subtitle={`${org.name} · ${new Intl.DateTimeFormat("nb-NO", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}`}
         actions={
-          !empty && (
+          !empty &&
+          !starting && (
             <>
               {canEdit && (
                 <Button icon={<Upload className="size-4" />} onClick={() => setUpload(true)}>
@@ -71,18 +115,55 @@ export function HomePage() {
 
       <Journey onDemo={isAdmin ? seed : undefined} seeding={seeding} />
 
-      {empty ? null : (
-        <div className="mb-6 grid grid-cols-2 gap-3 @2xl:grid-cols-4">
+      {starting && !empty && (
+        <p className="text-[14px] text-muted">
+          {o.counts.buildings === 1 ? "1 bygg" : `${o.counts.buildings} bygg`} og {o.counts.documents === 1 ? "1 dokument" : `${o.counts.documents} dokumenter`} er inne.
+        </p>
+      )}
+
+      {!starting && !empty && <SinceCard since={o.since} orgId={orgId} />}
+
+      {empty || starting ? null : (
+        <div className={cn("mb-6 grid grid-cols-2 gap-3", statCount === 3 && "@2xl:grid-cols-3", statCount >= 4 && "@2xl:grid-cols-4")}>
           <Stat label="Bygg" value={o.counts.buildings} hint={`${o.counts.properties} eiendommer`} />
-          <Stat label="Åpne oppgaver" value={o.counts.open_tasks} to={`${base}/tasks`} />
-          <Stat label="Service på overtid" value={overdue} tone={overdue > 0 ? "bad" : undefined} hint={`${o.service_due.length} innen 60 dager`} to={`${base}/components`} />
-          <Stat label="Dokumenter" value={o.counts.documents} hint={`${o.counts.components} komponenter`} to={`${base}/documents`} />
+          {showTasks && <Stat label="Åpne oppgaver" value={o.counts.open_tasks} to={`${base}/tasks`} />}
+          {showComponents && <Stat label="Service på overtid" value={overdue} tone={overdue > 0 ? "bad" : undefined} hint={`${o.service_due.length} innen 60 dager`} to={`${base}/components`} />}
+          <Stat label="Dokumenter" value={o.counts.documents} hint={showComponents ? `${o.counts.components} komponenter` : undefined} to={`${base}/documents`} />
         </div>
       )}
 
-      {!empty && <div className="grid grid-cols-[minmax(0,1fr)] gap-5 @4xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-5">
-          <Card>
+      {!empty && !starting && (
+        <Card className="mb-6">
+          <CardHeader
+            title="Lag med AI"
+            icon={<Sparkles className="size-4" />}
+            action={
+              <Link to={`${base}/kart`} className="inline-flex items-center gap-1.5 text-[12.5px] text-muted hover:text-ink">
+                <Map className="size-3.5" />
+                Kart over eiendommene
+              </Link>
+            }
+          />
+          <div className="grid gap-2 @xl:grid-cols-3">
+            {AI_PAGES.map((page) => (
+              <button
+                key={page.title}
+                type="button"
+                disabled={page.suppliers && makingSuppliers}
+                onClick={() => (page.suppliers ? void makeSuppliers() : page.prompt && panel.ask(page.prompt, { agentId: builder, newConversation: true }))}
+                className="rounded-lg border border-line bg-bg px-3 py-2.5 text-left hover:bg-panel-2 disabled:opacity-60"
+              >
+                <span className="block text-[13.5px] font-medium">{page.title}</span>
+                <span className="mt-0.5 block text-[12px] text-muted">{page.suppliers && makingSuppliers ? "Lager siden …" : page.text}</span>
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {!empty && !starting && <div className={cn("grid grid-cols-[minmax(0,1fr)] gap-5", showLeft && "@4xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]")}>
+        {showLeft && <div className="flex flex-col gap-5">
+          {showTasks && <Card>
             <CardHeader
               title="Neste oppgaver"
               icon={<SquareCheck className="size-4" />}
@@ -114,15 +195,15 @@ export function HomePage() {
                 ))}
               </ul>
             )}
-          </Card>
+          </Card>}
 
-          <Card>
+          {showComponents && <Card>
             <CardHeader
               title="Service som forfaller"
               icon={<Wrench className="size-4" />}
               action={
                 <Link to={`${base}/components`} className="text-[12.5px] text-muted hover:text-ink">
-                  FDV-register
+                  Komponenter
                 </Link>
               }
             />
@@ -145,9 +226,9 @@ export function HomePage() {
                 ))}
               </ul>
             )}
-          </Card>
+          </Card>}
 
-          {o.recent_documents.length > 0 && (
+          {showRecent && (
             <Card>
               <CardHeader
                 title="Nylige dokumenter"
@@ -171,7 +252,7 @@ export function HomePage() {
               </ul>
             </Card>
           )}
-        </div>
+        </div>}
 
         <div className="flex flex-col gap-5">
           <Card>
@@ -221,29 +302,143 @@ export function HomePage() {
             </Card>
           )}
 
-          <Card>
-            <CardHeader title="Aktivitet" icon={<Activity className="size-4" />} />
-            {o.activity.length === 0 ? (
-              <div className="py-2 text-[13px] text-muted">Ingen aktivitet ennå.</div>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {o.activity.map((a) => (
-                  <li key={a.id} className="flex gap-2.5 text-[13px]">
-                    <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-panel-2 text-muted">
-                      {a.actor_type === "agent" ? <Bot className="size-3" /> : <Building2 className="size-3" />}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="font-medium">{a.actor_name ?? "System"}</span> <span className="text-ink-2">{a.summary ?? a.action}</span>
-                      <span className="block text-[11.5px] text-muted">{timeAgo(a.created_at)}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
         </div>
       </div>}
       <UploadModal open={upload} onClose={() => setUpload(false)} />
     </div>
+  );
+}
+
+const LINKABLE = new Set(["property", "building", "floor", "room", "document", "component", "task", "artifact", "conversation"]);
+
+function sinceWhen(at: number): string {
+  const d = new Date(at);
+  const time = new Intl.DateTimeFormat("nb-NO", { hour: "2-digit", minute: "2-digit" }).format(d);
+  const now = new Date();
+  const start = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const days = Math.round((start(now) - start(d)) / 86_400_000);
+  if (days <= 0) return `i dag kl. ${time}`;
+  if (days === 1) return `i går kl. ${time}`;
+  if (days < 7) return `${new Intl.DateTimeFormat("nb-NO", { weekday: "long" }).format(d)} kl. ${time}`;
+  return new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }).format(d);
+}
+
+function dayHeading(at: number): string {
+  const d = new Date(at);
+  const now = new Date();
+  const start = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const days = Math.round((start(now) - start(d)) / 86_400_000);
+  if (days <= 0) return "I dag";
+  if (days === 1) return "I går";
+  if (days < 7) return new Intl.DateTimeFormat("nb-NO", { weekday: "long" }).format(d);
+  return new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "long" }).format(d);
+}
+
+function tally(s: SinceLast): string | null {
+  const bits: string[] = [];
+  const add = (n: number, one: string, many: string) => {
+    if (n > 0) bits.push(`${n} ${n === 1 ? one : many}`);
+  };
+  add(s.documents, "dokument", "dokumenter");
+  add(s.tasks, "oppgave", "oppgaver");
+  add(s.components, "komponent", "komponenter");
+  add(s.pages, "side", "sider");
+  add(s.imports, "henting", "hentinger");
+  add(s.runs, "agentkjøring", "agentkjøringer");
+  if (bits.length === 0) return null;
+  if (bits.length === 1) return bits[0]!;
+  return `${bits.slice(0, -1).join(", ")} og ${bits[bits.length - 1]}`;
+}
+
+function activityIcon(item: ActivityItem): LucideIcon {
+  if (item.entity_type && ENTITY_ICONS[item.entity_type]) return ENTITY_ICONS[item.entity_type];
+  if (item.action.startsWith("agent.")) return Bot;
+  if (item.action.includes("document") || item.action.startsWith("laft.") || item.action.startsWith("boligmappa.")) return FileText;
+  return Activity;
+}
+
+function activityHref(orgId: string, item: ActivityItem): string | null {
+  if (item.action === "boligmappa.documents_arrived") return `/o/${orgId}/documents`;
+  if (!item.entity_type || !item.entity_id) return null;
+  if (item.action.endsWith(".deleted") || item.action.endsWith("_removed")) return null;
+  if (item.entity_type === "agent") return `/o/${orgId}/agents/${item.entity_id}`;
+  if (!LINKABLE.has(item.entity_type)) return null;
+  return entityPath(orgId, item.entity_type, item.entity_id);
+}
+
+function SinceCard({ since, orgId }: { since: SinceLast; orgId: string }) {
+  const [expanded, setExpanded] = useState(false);
+  if (since.mode === "visit" && since.total === 0 && since.at != null) {
+    return <p className="mb-6 rounded-xl border border-line bg-panel px-4 py-3 text-[13.5px] text-ink-2">Ingenting nytt siden {sinceWhen(since.at)}.</p>;
+  }
+  if (since.items.length === 0) return null;
+
+  const title = since.mode === "visit" ? "Siden sist" : since.mode === "week" ? "Den siste uken" : "Siste som har skjedd";
+  const line = tally(since);
+  const lead =
+    line && since.mode === "visit" && since.at != null
+      ? `${line} siden ${sinceWhen(since.at)}.`
+      : line
+        ? `${line}.`
+        : since.mode === "visit" && since.at != null
+          ? `Siden ${sinceWhen(since.at)}.`
+          : since.mode === "week"
+            ? "Det som har beveget seg de siste sju dagene."
+            : null;
+  const days = new Set(since.items.map((item) => new Date(item.created_at).toDateString()));
+  const showDays = days.size > 1;
+  const visible = expanded ? since.items : since.items.slice(0, 6);
+  let lastDay = "";
+
+  return (
+    <Card className="mb-6">
+      <CardHeader title={title} icon={<Activity className="size-4" />} />
+      {lead && <p className="mb-2 text-[13.5px] text-ink-2">{lead}</p>}
+      <ul className="-mx-2">
+        {visible.map((item) => {
+          const day = new Date(item.created_at).toDateString();
+          const heading = showDays && day !== lastDay ? dayHeading(item.created_at) : null;
+          lastDay = day;
+          const href = activityHref(orgId, item);
+          const Icon = activityIcon(item);
+          const actor = item.actor_name ?? (item.actor_type === "agent" ? "Agent" : item.actor_type === "system" ? "Plank" : "Noen");
+          const body = (
+            <>
+              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-panel-2 text-muted">
+                <Icon className="size-3.5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13.5px]">{item.summary ?? item.action}</span>
+                <span className="block truncate text-[12px] text-muted">
+                  {actor} · {timeAgo(item.created_at)}
+                </span>
+              </span>
+            </>
+          );
+          return (
+            <li key={item.id}>
+              {heading && <div className="px-2 pt-2 pb-0.5 text-[12px] font-medium text-muted">{heading}</div>}
+              {href ? (
+                <Link to={href} className="flex items-start gap-3 rounded-lg px-2 py-2 hover:bg-panel-2">
+                  {body}
+                </Link>
+              ) : (
+                <div className="flex items-start gap-3 px-2 py-2">{body}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {(since.items.length > 6 || since.total > since.items.length) && (
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+          {since.items.length > 6 && (
+            <button type="button" onClick={() => setExpanded((open) => !open)} className="text-[12.5px] text-muted hover:text-ink">
+              {expanded ? "Vis færre" : `Vis alle ${since.items.length}`}
+            </button>
+          )}
+          {since.total > since.items.length && <span className="text-[12px] text-muted">{since.total - since.items.length} til er ikke listet her.</span>}
+        </div>
+      )}
+    </Card>
   );
 }

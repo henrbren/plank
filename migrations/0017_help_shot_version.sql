@@ -1,0 +1,1 @@
+ALTER TABLE help_articles ADD COLUMN shot_version INTEGER NOT NULL DEFAULT 0;

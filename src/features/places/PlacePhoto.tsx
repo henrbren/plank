@@ -22,7 +22,7 @@ export function PlaceFrame({ kind, id, hasImage, updatedAt }: { kind: Kind; id: 
   return <img src={placeImageUrl(orgId, kind, id, updatedAt)} alt="" className="aspect-[16/10] w-full object-cover" />;
 }
 
-/** Stort bilde øverst på eiendom og bygg, med samme ramme og utsnitt. */
+/** Bilde øverst på eiendom og bygg. Samme høyde med og uten bilde, så siden ikke hopper. */
 export function PlaceCover({ kind, id, name, hasImage, updatedAt }: { kind: Kind; id: string; name: string; hasImage: boolean; updatedAt: number }) {
   const { orgId, canEdit } = useOrg();
   const call = useOrgApi();
@@ -76,7 +76,7 @@ export function PlaceCover({ kind, id, name, hasImage, updatedAt }: { kind: Kind
           type="button"
           disabled={busy}
           onClick={() => input.current?.click()}
-          className="flex aspect-[2/1] w-full max-h-64 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-line-strong bg-panel-2 text-muted transition-colors hover:border-accent hover:text-ink disabled:opacity-60"
+          className="flex h-36 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-line-strong bg-panel-2 text-muted transition-colors hover:border-accent hover:text-ink disabled:opacity-60 sm:h-44"
         >
           <ImagePlus className="size-5" />
           <span className="text-[13.5px] font-medium">{busy ? "Laster opp…" : `Legg til bilde av ${label}`}</span>
@@ -88,7 +88,7 @@ export function PlaceCover({ kind, id, name, hasImage, updatedAt }: { kind: Kind
   return (
     <div className="group relative mb-6 overflow-hidden rounded-2xl border border-line bg-panel-2">
       {fileInput}
-      <img src={placeImageUrl(orgId, kind, id, updatedAt)} alt={name} className="aspect-[2/1] max-h-80 w-full object-cover" />
+      <img src={placeImageUrl(orgId, kind, id, updatedAt)} alt={name} className="h-36 w-full object-cover sm:h-44" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/25 via-transparent to-ink/10" />
       <div className={cn("absolute right-3 bottom-3 flex gap-2", !busy && "sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100", !canEdit && "hidden")}>
         <Button size="sm" disabled={busy} onClick={() => input.current?.click()}>

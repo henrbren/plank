@@ -25,6 +25,7 @@ interface ImportStep {
   remainingDocuments: number;
   message: string | null;
   done: boolean;
+  retryInMs?: number | null;
 }
 
 function phaseLabel(tree: BmTree): string {
@@ -345,6 +346,9 @@ function Buildings({ tree, refreshTree }: { tree: BmTree; refreshTree: () => Pro
           setPicked(new Set());
           break;
         }
+        if (step.retryInMs && step.retryInMs > 0) {
+          await new Promise((r) => setTimeout(r, Math.min(10_000, step.retryInMs ?? 2_000)));
+        }
       }
     } catch (err) {
       toast(err instanceof Error ? err.message : "Kunne ikke hente bygg", "bad");
@@ -503,8 +507,7 @@ function Documents({ tree, refreshTree }: { tree: BmTree; refreshTree: () => Pro
   const path = `/boligmappa/documents${building ? `?building=${encodeURIComponent(building)}` : ""}`;
   const docs = useOrgQuery<BmDocument[]>(path);
 
-  const runImport = async () => {
-    const bmns = building ? [building] : [...picked];
+  const runImport = async (bmns: string[], emptyText: string) => {
     if (bmns.length === 0) return;
     setBusy(true);
     try {
@@ -519,9 +522,12 @@ function Documents({ tree, refreshTree }: { tree: BmTree; refreshTree: () => Pro
           break;
         }
         if (step.done) {
-          toast(docsCount ? `Hentet ${docsCount} dokumenter` : "Ingen nye dokumenter");
+          toast(docsCount ? `Hentet ${docsCount} dokumenter` : emptyText);
           setPicked(new Set());
           break;
+        }
+        if (step.retryInMs && step.retryInMs > 0) {
+          await new Promise((r) => setTimeout(r, Math.min(10_000, step.retryInMs ?? 2_000)));
         }
       }
     } catch (err) {
@@ -530,6 +536,7 @@ function Documents({ tree, refreshTree }: { tree: BmTree; refreshTree: () => Pro
       setBusy(false);
     }
   };
+  const failedOwners = [...new Set((docs.data ?? []).filter((doc) => doc.error?.includes("avbrutt")).map((doc) => doc.ownerBmn))];
 
   return (
     <div>
@@ -550,11 +557,19 @@ function Documents({ tree, refreshTree }: { tree: BmTree; refreshTree: () => Pro
           ))}
         </select>
         {isAdmin && (building || picked.size > 0) && (
-          <Button variant="primary" loading={busy} onClick={() => void runImport()}>
+          <Button variant="primary" loading={busy} onClick={() => void runImport(building ? [building] : [...picked], "Ingen nye dokumenter")}>
             {building ? "Hent dokumentene" : `Hent ${picked.size} bygg`}
           </Button>
         )}
       </div>
+      {isAdmin && failedOwners.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-panel px-4 py-3 text-[13px] text-ink-2">
+          <span>Noen filer kom ikke inn. Listen ligger her, og vi kopierer dem inn på nytt.</span>
+          <Button variant="primary" loading={busy} onClick={() => void runImport(failedOwners, "Boligmappa svarte ikke på filene. De ligger i listen og kan hentes på nytt.")}>
+            Hent på nytt
+          </Button>
+        </div>
+      )}
       {docs.isLoading && <Loading />}
       {docs.data && docs.data.length === 0 && <EmptyState icon={<FileText className="size-5" />} title="Ingen dokumenter" description="Oppdater fra Boligmappa, eller velg et annet bygg." />}
       <ul className="divide-y divide-line rounded-xl border border-line bg-panel">
@@ -584,7 +599,9 @@ function Documents({ tree, refreshTree }: { tree: BmTree; refreshTree: () => Pro
                 I Plank
               </Link>
             ) : n.error ? (
-              <span className="text-[12.5px] text-bad">{n.error}</span>
+              <span className="shrink-0 text-right text-[12.5px] text-muted" title={n.error}>
+                {n.error.includes("avbrutt") ? "Boligmappa brøt forbindelsen" : n.error}
+              </span>
             ) : (
               <span className="text-[12.5px] text-muted">Ikke hentet</span>
             )}

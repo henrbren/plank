@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { Code, Ellipsis, History, LayoutDashboard, Maximize2, Minimize2, PanelLeft, PanelLeftClose, Pin, PinOff, Plus, Sparkles, Trash2, TriangleAlert } from "lucide-react";
-import type { Agent, Artifact, ArtifactVersion } from "@shared/types";
+import { Check, Code, Ellipsis, History, LayoutDashboard, Link2, Maximize2, Minimize2, PanelLeft, PanelLeftClose, Pin, PinOff, Plus, Share2, Sparkles, Trash2, TriangleAlert } from "lucide-react";
+import type { Agent, Artifact, ArtifactShareMode, ArtifactVersion } from "@shared/types";
 import { useAgentPanel, useOrg, useOrgApi, useOrgQuery, useSetFocus } from "@/lib/app";
 import { formatDateTime, timeAgo } from "@/lib/format";
 import { Badge, Button, EmptyState, ErrorState, Field, IconButton, Input, Loading, Menu, MenuItem, Modal, PageHeader, Textarea, cn, useConfirm, useToast } from "@/components/ui";
@@ -122,7 +122,8 @@ function NewArtifactModal({ open, onClose }: { open: boolean; onClose: () => voi
 
 export function ArtifactPage() {
   const { id } = useParams();
-  const { orgId } = useOrg();
+  const { orgId, org, canEdit, limited } = useOrg();
+  const canShare = canEdit && !limited;
   const navigate = useNavigate();
   const call = useOrgApi();
   const toast = useToast();
@@ -135,6 +136,7 @@ export function ArtifactPage() {
   useSetFocus("artifact", id, meta.data?.title);
   const [full, setFull] = useState(false);
   const [code, setCode] = useState(false);
+  const [share, setShare] = useState(false);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const onRuntimeError = useCallback((m: string) => setRuntimeError(m), []);
 
@@ -220,6 +222,11 @@ export function ArtifactPage() {
             Gjenopprett denne versjonen
           </Button>
         )}
+        {canShare && (
+          <Button size="sm" icon={<Share2 className="size-3.5" />} onClick={() => setShare(true)}>
+            Del
+          </Button>
+        )}
         <Button size="sm" variant="primary" icon={<Sparkles className="size-3.5" />} onClick={() => panel.setOpen(true)}>
           Endre med agent
         </Button>
@@ -258,9 +265,23 @@ export function ArtifactPage() {
         </div>
       )}
       <div className="min-h-0 flex-1">
-        {html.data ? <ArtifactFrame key={`${a.id}-${html.data.version}`} html={html.data.html} artifactId={a.id} buildingId={a.building_id} propertyId={a.property_id} onRuntimeError={onRuntimeError} /> : <Loading />}
+        {html.data ? (
+          <ArtifactFrame
+            key={`${a.id}-${html.data.version}`}
+            html={html.data.html}
+            artifactId={a.id}
+            buildingId={a.building_id}
+            propertyId={a.property_id}
+            orgName={org.name}
+            orgId={orgId}
+            onRuntimeError={onRuntimeError}
+          />
+        ) : (
+          <Loading />
+        )}
       </div>
       <CodeModal open={code} onClose={() => setCode(false)} artifactId={a.id} html={html.data?.html ?? ""} />
+      {share && <ShareModal artifact={a} onClose={() => setShare(false)} />}
       {dialog}
     </div>
   );
@@ -303,6 +324,108 @@ function CodeModal({ open, onClose, artifactId, html }: { open: boolean; onClose
       }
     >
       <Textarea value={value} onChange={(e) => setValue(e.target.value)} className="h-[60vh] font-mono text-[12.5px] leading-relaxed" spellCheck={false} />
+    </Modal>
+  );
+}
+
+const SHARE_CHOICES: { id: ArtifactShareMode; title: string; body: string }[] = [
+  { id: "off", title: "Ikke delt", body: "Bare folk i organisasjonen, inne i Plank." },
+  { id: "login", title: "Innloggede", body: "Alle med en Plank-konto og lenken. De ser bare denne siden." },
+  { id: "link", title: "Alle med lenken", body: "Ingen innlogging. De ser bare denne siden." },
+];
+
+function ShareModal({ artifact, onClose }: { artifact: Artifact; onClose: () => void }) {
+  const call = useOrgApi();
+  const toast = useToast();
+  const { confirm, dialog } = useConfirm();
+  const [busy, setBusy] = useState(false);
+  const mode = artifact.share_mode ?? "off";
+  const url = artifact.share_token ? `${window.location.origin}/s/${artifact.share_token}` : "";
+
+  const save = async (body: { share_mode?: ArtifactShareMode; share_rotate?: boolean }) => {
+    setBusy(true);
+    try {
+      await call(`/artifacts/${artifact.id}`, { method: "PATCH", body });
+      return true;
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Kunne ikke lagre delingen", "bad");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      size="sm"
+      title="Del siden"
+      footer={
+        <Button variant="ghost" onClick={onClose}>
+          Lukk
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-2">
+        {SHARE_CHOICES.map((choice) => (
+          <button
+            key={choice.id}
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              if (choice.id !== mode) void save({ share_mode: choice.id });
+            }}
+            className={cn(
+              "relative rounded-xl border p-3 pr-9 text-left transition-colors disabled:opacity-60",
+              mode === choice.id ? "border-accent bg-accent-soft/50 ring-2 ring-accent/15" : "border-line bg-panel hover:border-line-strong",
+            )}
+          >
+            <span className="block text-[13.5px] font-semibold">{choice.title}</span>
+            <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-2">{choice.body}</span>
+            {mode === choice.id && <Check className="absolute top-3 right-3 size-4 text-accent" />}
+          </button>
+        ))}
+      </div>
+      <p className="mt-3 text-[12.5px] leading-relaxed text-muted">
+        De som åpner lenken ser bare denne siden, og kan ikke endre noe. Dataene siden henter, følger med.
+      </p>
+      {mode !== "off" && url && (
+        <div className="mt-3 flex flex-col gap-2">
+          <Field label="Lenke">
+            <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
+          </Field>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              icon={<Link2 className="size-3.5" />}
+              onClick={() => {
+                void navigator.clipboard.writeText(url).then(
+                  () => toast("Lenken er kopiert", "ok"),
+                  () => toast("Kopier lenken fra feltet", "bad"),
+                );
+              }}
+            >
+              Kopier lenke
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => {
+                void (async () => {
+                  const ok = await confirm({ title: "Ny lenke?", message: "Den gamle lenken slutter å virke.", confirm: "Erstatt lenken" });
+                  if (!ok) return;
+                  if (await save({ share_rotate: true })) toast("Ny lenke er klar", "ok");
+                })();
+              }}
+            >
+              Ny lenke
+            </Button>
+          </div>
+        </div>
+      )}
+      {dialog}
     </Modal>
   );
 }

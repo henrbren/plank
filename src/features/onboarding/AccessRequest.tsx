@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { formatOrgNr } from "@/lib/format";
 import { useBrand } from "@/lib/brand";
 import { accessConsentText } from "@shared/access";
+import { BmNotifyChoice } from "./BmNotify";
 
 interface Company {
   orgNr: string;
@@ -24,10 +25,12 @@ export interface AccessRequestResult {
 export function AccessRequestForm({
   user,
   initialOrgNr,
+  initialNotify = true,
   onDone,
 }: {
   user?: { email: string; name: string | null } | null;
   initialOrgNr?: string;
+  initialNotify?: boolean;
   onDone: (result: AccessRequestResult) => void;
 }) {
   const [orgNr, setOrgNr] = useState(initialOrgNr ?? "");
@@ -37,6 +40,7 @@ export function AccessRequestForm({
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [consent, setConsent] = useState(false);
+  const [notifyDocs, setNotifyDocs] = useState(initialNotify);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const looked = useRef<string | null>(null);
@@ -70,7 +74,11 @@ export function AccessRequestForm({
     setBusy(true);
     setError(null);
     try {
-      onDone(await api<AccessRequestResult>("/auth/access-request", { body: { orgNr: company.orgNr, name, email, consent } }));
+      onDone(
+        await api<AccessRequestResult>("/auth/access-request", {
+          body: { orgNr: company.orgNr, name, email, consent, ...(company.municipal ? {} : { bmNotify: notifyDocs }) },
+        }),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Noe gikk galt");
       setBusy(false);
@@ -119,6 +127,11 @@ export function AccessRequestForm({
           onChange={(e) => setEmail(e.target.value)}
         />
       </Field>
+      {company && !company.municipal && (
+        <div className="-mx-2 rounded-2xl border border-line bg-panel">
+          <BmNotifyChoice checked={notifyDocs} onChange={setNotifyDocs} />
+        </div>
+      )}
       <div className="-mx-2">
         <Checkbox
           checked={consent}

@@ -44,7 +44,7 @@ export async function sendEmail(env: Env, input: SendEmailInput): Promise<{ id: 
 }
 
 /** Felles, enkel e-postlayout */
-export function emailLayout(opts: { title: string; bodyHtml: string; cta?: { label: string; url: string }; footer?: string; brand?: string }): string {
+export function emailLayout(opts: { title: string; bodyHtml: string; cta?: { label: string; url: string }; footer?: string; brand?: string; mark?: string }): string {
   const cta = opts.cta
     ? `<p style="margin:28px 0"><a href="${escapeHtml(opts.cta.url)}" style="background:#1f1d1a;color:#fbfaf7;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;display:inline-block">${escapeHtml(opts.cta.label)}</a></p>`
     : "";
@@ -53,7 +53,7 @@ export function emailLayout(opts: { title: string; bodyHtml: string; cta?: { lab
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fbfaf7;border:1px solid #e4ded4;border-radius:12px;padding:32px">
 <tr><td>
 <div style="font-weight:700;font-size:18px;letter-spacing:-0.01em;margin-bottom:24px">
-<span style="display:inline-block;width:10px;height:10px;background:#b4652b;border-radius:2px;margin-right:8px"></span>${escapeHtml(opts.brand ?? "Plank")}</div>
+<span style="display:inline-block;width:10px;height:10px;background:${escapeHtml(opts.mark ?? "#b4652b")};border-radius:2px;margin-right:8px"></span>${escapeHtml(opts.brand ?? "Plank")}</div>
 <h1 style="font-size:20px;line-height:1.3;margin:0 0 16px">${escapeHtml(opts.title)}</h1>
 <div style="font-size:15px;line-height:1.6">${opts.bodyHtml}</div>
 ${cta}
@@ -65,7 +65,7 @@ ${cta}
 export function demoInviteEmail(url: string): { subject: string; html: string; text: string } {
   const body =
     "<p>Noen mener du bør se Plank – arbeidsflaten for forvaltning, drift og vedlikehold.</p>" +
-    "<p>Porteføljen ligger til venstre, dokumentene og FDV-registeret i midten, og agentene til høyre. De leser FDV-dokumentasjonen, holder oversikten oppdatert og svarer på spørsmål om byggene. Du kan også spørre mot BIM-modellen og lage egne sider med levende data.</p>" +
+    "<p>Porteføljen ligger til venstre, dokumentene og komponentene i midten, og agentene til høyre. De leser FDV-dokumentasjonen, holder oversikten oppdatert og svarer på spørsmål om byggene. Du kan også spørre mot BIM-modellen og lage egne sider med levende data.</p>" +
     "<p>Knappen under logger deg inn. Lenken varer i <b>48 timer</b> og kan brukes én gang. Første gang du åpner den, får du en ferdig demoportefølje – eiendommer, dokumenter, oppgaver og en modell – så du kan klikke deg rundt med en gang.</p>";
   const text = [
     "Noen mener du bør se Plank – arbeidsflaten for forvaltning, drift og vedlikehold.",
@@ -156,6 +156,133 @@ export function spendLimitEmail(opts: {
   };
 }
 
+/** Når bygg og dokumenter fra Boligmappa er overført, eller hentingen har gitt opp */
+export function boligmappaReadyEmail(opts: {
+  brand: string;
+  orgName: string;
+  buildings: number;
+  documents: number;
+  failed: number;
+  empty: boolean;
+  stopped: boolean;
+  quotaNote: string | null;
+  url: string;
+}): { subject: string; html: string; text: string } {
+  const org = escapeHtml(opts.orgName);
+  const n = (v: number) => v.toLocaleString("nb-NO");
+  const lines = opts.stopped
+    ? [
+        `Hentingen fra Boligmappa for ${opts.orgName} stoppet fordi tjenesten ikke svarte.`,
+        "Åpne arbeidsflaten og trykk Prøv igjen. Det som allerede er inne, blir liggende.",
+      ]
+    : opts.empty
+      ? [
+          `Vi slo opp ${opts.orgName} i Boligmappa, men fant ingen bygg på organisasjonsnummeret.`,
+          "Du kan legge inn eiendommer selv, eller prøve hentingen på nytt senere.",
+        ]
+      : [
+          `Vi har overført ${n(opts.documents)} dokumenter fra ${n(opts.buildings)} bygg i ${opts.orgName}.`,
+          opts.failed > 0
+            ? `${n(opts.failed)} dokumenter lot seg ikke hente. Du kan prøve dem på nytt fra Boligmappa-siden.`
+            : "Alt som var tilgjengelig, ligger nå i arkivet.",
+          ...(opts.quotaNote ? [opts.quotaNote] : []),
+          "Agenten kan lese det som er inne og hjelpe deg videre med oppsettet.",
+        ];
+  const subject = opts.stopped
+    ? `Hentingen fra Boligmappa stoppet for ${opts.orgName}`
+    : opts.empty
+      ? `Ingen bygg i Boligmappa for ${opts.orgName}`
+      : `Dokumentene til ${opts.orgName} er inne`;
+  const title = opts.stopped ? "Hentingen stoppet" : opts.empty ? "Ingen bygg i Boligmappa" : "Dokumentene er overført";
+  return {
+    subject,
+    html: emailLayout({
+      brand: opts.brand,
+      title,
+      bodyHtml: lines.map((line) => `<p>${escapeHtml(line).replace(escapeHtml(opts.orgName), `<b>${org}</b>`)}</p>`).join(""),
+      cta: { label: opts.stopped ? "Prøv igjen" : `Åpne ${opts.brand}`, url: opts.url },
+      footer: "Du får denne e-posten fordi du startet hentingen. Den sendes én gang.",
+    }),
+    text: [...lines, "", opts.url].join("\n"),
+  };
+}
+
+/** Nye dokumenter fra Boligmappa etter den første overføringen. Bare til dem som ba om varsel. */
+export function boligmappaNewDocumentsEmail(opts: {
+  brand: string;
+  orgName: string;
+  documents: number;
+  titles: string[];
+  url: string;
+}): { subject: string; html: string; text: string } {
+  const one = opts.documents === 1;
+  const n = opts.documents.toLocaleString("nb-NO");
+  const lead = one
+    ? `Det har kommet ett nytt dokument fra Boligmappa inn i ${opts.orgName}.`
+    : `Det har kommet ${n} nye dokumenter fra Boligmappa inn i ${opts.orgName}.`;
+  const org = escapeHtml(opts.orgName);
+  const shown = opts.titles.slice(0, 8);
+  const more = opts.documents - shown.length;
+  const list = shown.length
+    ? `<ul style="margin:8px 0 0;padding-left:18px">${shown.map((title) => `<li>${escapeHtml(title)}</li>`).join("")}${more > 0 ? `<li>og ${more.toLocaleString("nb-NO")} til</li>` : ""}</ul>`
+    : "";
+  const bodyHtml =
+    `<p>${escapeHtml(lead).replace(escapeHtml(opts.orgName), `<b>${org}</b>`)}</p>` +
+    (list ? `<p>Blant dem:</p>${list}` : "") +
+    "<p>De ligger i arkivet, og agenten kan lese dem.</p>";
+  const text = [
+    lead,
+    "",
+    ...shown.map((title) => `– ${title}`),
+    ...(more > 0 ? [`og ${more.toLocaleString("nb-NO")} til`] : []),
+    "",
+    "De ligger i arkivet, og agenten kan lese dem.",
+    "",
+    opts.url,
+  ].join("\n");
+  return {
+    subject: one ? `Nytt dokument fra Boligmappa i ${opts.orgName}` : `Nye dokumenter fra Boligmappa i ${opts.orgName}`,
+    html: emailLayout({
+      brand: opts.brand,
+      title: one ? "Nytt dokument fra Boligmappa" : "Nye dokumenter fra Boligmappa",
+      bodyHtml,
+      cta: { label: "Åpne dokumentene", url: opts.url },
+      footer: "Du får denne e-posten fordi du ba om varsel under oppstarten. Du kan skru det av under Innstillinger.",
+    }),
+    text,
+  };
+}
+
+/** Første gang et område er ferdig lest og har en leverandør. Sendes én gang per eiendom. */
+export function supplierFoundEmail(opts: {
+  brand: string;
+  orgName: string;
+  areaName: string;
+  suppliers: string[];
+  url: string;
+}): { subject: string; html: string; text: string } {
+  const names = opts.suppliers.slice(0, 3);
+  const list = names.length === 1 ? names[0]! : names.length === 2 ? `${names[0]} og ${names[1]}` : `${names.slice(0, -1).join(", ")} og ${names[names.length - 1]}`;
+  const lead = names.length
+    ? `Dokumentene på ${opts.areaName} i ${opts.orgName} er lest. Vi fant ${list}.`
+    : `Dokumentene på ${opts.areaName} i ${opts.orgName} er lest, og en leverandør står i dem.`;
+  const org = escapeHtml(opts.orgName);
+  const bodyHtml =
+    `<p>${escapeHtml(lead).replace(escapeHtml(opts.orgName), `<b>${org}</b>`)}</p>` +
+    "<p>Siden Leverandører ligger i menyen. Der kan du se firmaene som har utført arbeid eller laget dokumentasjon.</p>";
+  return {
+    subject: `Leverandør funnet på ${opts.areaName}`,
+    html: emailLayout({
+      brand: opts.brand,
+      title: "Leverandør funnet",
+      bodyHtml,
+      cta: { label: "Åpne leverandørene", url: opts.url },
+      footer: "Du får denne e-posten én gang for dette området, når dokumentene er ferdig lest og en leverandør står i dem.",
+    }),
+    text: [lead, "", "Siden Leverandører ligger i menyen.", "", opts.url].join("\n"),
+  };
+}
+
 /** Første LAFT-innlogging for en e-postadresse som allerede har en Plank-konto */
 export function laftLinkEmail(url: string, laftLabel: string, brand = "Plank"): { subject: string; html: string; text: string } {
   return {
@@ -219,11 +346,12 @@ ${row("Varighet", opts.expires ? `Til og med ${escapeHtml(opts.expires)}` : "Ing
   };
 }
 
-export function magicLinkEmail(url: string, brand = "Plank"): { subject: string; html: string; text: string } {
+export function magicLinkEmail(url: string, brand = "Plank", mark = "#b4652b"): { subject: string; html: string; text: string } {
   return {
     subject: `Logg inn i ${brand}`,
     html: emailLayout({
       brand,
+      mark,
       title: `Logg inn i ${brand}`,
       bodyHtml: "<p>Klikk på knappen under for å logge inn. Lenken er gyldig i 15 minutter og kan bare brukes én gang.</p>",
       cta: { label: "Logg inn", url },

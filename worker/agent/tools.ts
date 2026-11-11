@@ -29,6 +29,7 @@ import {
   updateRoom,
 } from "../services/portfolio";
 import { createTask, listTasks, taskPatchSchema, taskSchema, updateTask } from "../services/tasks";
+import { actOnCase, createDeskItem, deskCase, deskHome, deskCreateSchema, deskPatchSchema, removeDesk, saveDesk } from "../services/desk";
 import { createArtifact, getArtifactHtml, listArtifacts, saveArtifactVersion, setSidebar } from "../services/artifacts";
 import { queryIfcElements } from "../routes/ifc";
 import { boligmappaTree, continueBoligmappaImport, continueBoligmappaSync, importSelection, listBmDocuments, syncChunk } from "../lib/boligmappa";
@@ -52,6 +53,8 @@ import {
   workOrderDashboard,
 } from "../services/laft";
 import { SIDEBAR_ICONS } from "../../shared/types";
+import { isOrgModule, ORG_MODULE_LABEL, parseOrgModules } from "../../shared/modules";
+import { productOfApp } from "../lib/brand";
 import { captureForAgent, listHelpForAgent, readHelpForAgent, saveHelpArticle } from "../services/help";
 
 export interface AgentRow {
@@ -180,6 +183,8 @@ const TOOLS: ToolDef[] = [
         status: d.status,
         building: d.building_name,
         component_id: d.component_id,
+        supplier: d.extracted?.supplier ?? null,
+        manufacturer: d.extracted?.manufacturer ?? null,
         summary: d.summary,
         total_chars: r.total_chars,
         offset: r.offset,
@@ -231,6 +236,8 @@ const TOOLS: ToolDef[] = [
         building: d.building_name,
         building_id: d.building_id,
         component_id: d.component_id,
+        component: d.extracted?.component ?? null,
+        supplier: d.extracted?.supplier ?? null,
         summary: d.summary ? truncate(d.summary, 200) : null,
         uploaded: new Date(d.created_at).toISOString().slice(0, 10),
       }));
@@ -381,11 +388,11 @@ const TOOLS: ToolDef[] = [
   // ── Komponenter ──
   {
     group: "components",
-    label: () => "Søker i FDV-registeret",
+    label: () => "Søker etter komponenter",
     tool: {
       name: "list_components",
       description:
-        "Lister komponenter i FDV-registeret (tekniske anlegg og utstyr) med NS 3451-kode, TFM, produsent, serviceintervall, siste/neste service og tilstandsgrad.",
+        "Lister komponenter (tekniske anlegg og utstyr) med NS 3451-kode, TFM, produsent, serviceintervall, siste/neste service og tilstandsgrad.",
       input_schema: {
         type: "object",
         properties: {
@@ -1194,6 +1201,209 @@ const TOOLS: ToolDef[] = [
     },
   },
 
+  // ── Moduler (Leie skjuler FDV til dette kalles) ──
+  {
+    group: "portfolio",
+    label: (i) => `Setter opp ${ORG_MODULE_LABEL[i.module as keyof typeof ORG_MODULE_LABEL] ?? "delen"}`,
+    tool: {
+      name: "update_modules",
+      description:
+        "Slår på en skjult del. På Leie: drift, kart, dokumenter, komponenter eller sider. På Plank: utleie, som er morgenpulten. Kall den når brukeren ber om den delen. Menypunktet kommer med en gang. Ikke kall den uoppfordret.",
+      input_schema: {
+        type: "object",
+        properties: {
+          module: { type: "string", enum: ["drift", "kart", "dokumenter", "komponenter", "sider", "utleie"], description: "Hvilken del som skal vises i menyen" },
+        },
+        required: ["module"],
+      },
+    },
+    run: async (ctx, i) => {
+      const module = String(i.module ?? "");
+      if (!isOrgModule(module)) {
+        return { content: "Ukjent del. Bruk drift, kart, dokumenter, komponenter, sider eller utleie.", summary: "Ukjent del", isError: true };
+      }
+      const product = productOfApp(ctx.env.APP_URL);
+      const label = ORG_MODULE_LABEL[module];
+      if (product === "leie" && module === "utleie") {
+        return { content: json({ ok: true, already: true }), summary: "Utleie er allerede satt opp" };
+      }
+      if (product !== "leie" && module !== "utleie") {
+        return { content: `${label} vises allerede når det finnes noe der. For utleie, kall update_modules med utleie.`, summary: `${label} vises allerede` };
+      }
+      const row = await first<{ modules: string | null }>(ctx.env.DB, `SELECT modules FROM orgs WHERE id = ?`, ctx.orgId);
+      const current = parseOrgModules(row?.modules);
+      if (current.includes(module)) {
+        return { content: json({ ok: true, modules: current, already: true }), summary: `${label} er allerede satt opp` };
+      }
+      const next = [...current, module];
+      await ctx.env.DB.prepare(`UPDATE orgs SET modules = ? WHERE id = ?`).bind(JSON.stringify(next), ctx.orgId).run();
+      await logAgent(ctx, "module.enabled", "org", ctx.orgId, `Satte opp ${label.toLowerCase()}`);
+      return { content: json({ ok: true, modules: next, already: false }), summary: `Satte opp ${label.toLowerCase()}` };
+    },
+  },
+
+  // ── Utleiepult ──
+  {
+    group: "portfolio",
+    label: () => "Leser utleiepulten",
+    tool: {
+      name: "desk_today",
+      description:
+        "Morgenpulten for utleie. Bolig og næring i samme kø. Returnerer de sju tallene (ledig, utløp 12 mnd, WAULT, mot marked, restanse, dager til signert, kø) og sakene sortert på frist og beløp. Ikke finn på tall som ikke står her.",
+      input_schema: { type: "object", properties: {} },
+    },
+    run: async (ctx) => {
+      const home = await deskHome(ctx.env, ctx.orgId);
+      return {
+        content: json({
+          empty: home.empty,
+          kpis: home.kpis,
+          rows: home.rows.map((r) => ({ id: r.id, kind: r.kind, lane: r.laneLabel, title: r.title, place: r.place, money: r.moneyText, when: r.when, next: r.actionLabel, why: r.why })),
+        }),
+        summary: home.empty ? "Pulten er tom" : `${home.rows.length} saker på pulten`,
+      };
+    },
+  },
+  {
+    group: "portfolio",
+    label: () => "Leser en utleiesak",
+    tool: {
+      name: "desk_case",
+      description: "Én sak på utleiepulten. case_id kommer fra desk_today. Inneholder fakta, brev, ledige boliger (offers) eller folk i kø (matches).",
+      input_schema: { type: "object", properties: { case_id: str }, required: ["case_id"] },
+    },
+    run: async (ctx, i) => {
+      const item = await deskCase(ctx.env, ctx.orgId, String(i.case_id ?? ""));
+      return { content: json(item), summary: item.title };
+    },
+  },
+  {
+    group: "tasks",
+    label: (i) => `Gjør neste på saken ${truncate(String(i.case_id ?? ""), 40)}`,
+    tool: {
+      name: "desk_act",
+      description:
+        "Utfører neste handling på en sak: skriver brevet, lager befaringen, eller gir et boligtilbud. Brevet lagres på saken og sendes ikke. For vedtak (action offer): oppgi unit_id fra offers. For ledig bolig (action match): oppgi lease_id fra matches.",
+      input_schema: { type: "object", properties: { case_id: str, unit_id: str, lease_id: str }, required: ["case_id"] },
+    },
+    run: async (ctx, i) => {
+      const res = await actOnCase(
+        ctx.env,
+        ctx.orgId,
+        String(i.case_id ?? ""),
+        { unit_id: i.unit_id ? String(i.unit_id) : undefined, lease_id: i.lease_id ? String(i.lease_id) : undefined },
+        { agentId: ctx.agent.id, name: ctx.agent.name },
+      );
+      await logAgent(ctx, "lease.act", "lease", res.item.id, res.notice);
+      return { content: json({ notice: res.notice, id: res.item.id, title: res.item.title, letters: res.item.letters.slice(0, 1), taskId: res.item.taskId }), summary: res.notice };
+    },
+  },
+  {
+    group: "portfolio",
+    label: (i) => `Legger inn ${truncate(String(i.tenant_name ?? i.unit_name ?? "på pulten"), 40)}`,
+    tool: {
+      name: "create_lease",
+      description:
+        "Legger inn noe på utleiepulten. shape ledig: et objekt uten leietaker (unit_name påkrevd). shape leie: et leieforhold (tenant_name og unit_name påkrevd). shape vedtak: en person som venter på bolig (tenant_name, kind bolig). Ikke finn på leie, markedsleie, restanse eller datoer. Utelat felt brukeren ikke har oppgitt. Beløp er hele kroner per år.",
+      input_schema: {
+        type: "object",
+        properties: {
+          shape: { type: "string", enum: ["ledig", "leie", "vedtak"] },
+          kind: { type: "string", enum: ["bolig", "naering"] },
+          tenant_name: str,
+          unit_name: str,
+          building_id: str,
+          rent_year: int,
+          market_rent_year: int,
+          start_on: str,
+          end_on: str,
+          vacant_since: str,
+          vedtak_on: str,
+          need: str,
+          household: str,
+          area_sqm: { type: "number" },
+          rooms: int,
+          arrears_nok: int,
+          arrears_days: int,
+        },
+        required: ["shape", "kind"],
+      },
+    },
+    run: async (ctx, i) => {
+      const parsed = deskCreateSchema.safeParse(i);
+      if (!parsed.success) return { content: parsed.error.issues[0]?.message ?? "Ugyldig", summary: "Ugyldig", isError: true };
+      const res = await createDeskItem(ctx.env, ctx.orgId, parsed.data, { agentId: ctx.agent.id, name: ctx.agent.name });
+      return { content: json({ notice: res.notice, id: res.item?.id ?? null, title: res.item?.title ?? null }), summary: res.notice };
+    },
+  },
+  {
+    group: "portfolio",
+    label: () => "Endrer leieforholdet",
+    tool: {
+      name: "update_lease",
+      description:
+        "Endrer et leieforhold eller objekt som allerede ligger på pulten. Oppgi case_id, lease_id eller unit_id. Send bare felt som skal endres. Beløp er hele kroner. Null tømmer et dato- eller tekstfelt. Ikke finn på tall.",
+      input_schema: {
+        type: "object",
+        properties: {
+          case_id: str,
+          lease_id: str,
+          unit_id: str,
+          kind: { type: "string", enum: ["bolig", "naering"] },
+          tenant_name: str,
+          unit_name: str,
+          building_id: str,
+          address: str,
+          rent_year: int,
+          market_rent_year: int,
+          start_on: str,
+          end_on: str,
+          break_on: str,
+          index_on: str,
+          vacant_since: str,
+          vedtak_on: str,
+          move_out_on: str,
+          keys_on: str,
+          need: str,
+          household: str,
+          area_sqm: { type: "number" },
+          rooms: int,
+          arrears_nok: int,
+          arrears_days: int,
+          status: { type: "string", enum: ["vacant", "make_ready", "occupied", "reserved"] },
+        },
+        required: [],
+      },
+    },
+    run: async (ctx, i) => {
+      const caseId = i.case_id ? String(i.case_id) : undefined;
+      const leaseId = i.lease_id ? String(i.lease_id) : undefined;
+      const unitId = i.unit_id ? String(i.unit_id) : undefined;
+      if (!caseId && !leaseId && !unitId) return { content: "Oppgi case_id, lease_id eller unit_id.", summary: "Mangler id", isError: true };
+      const parsed = deskPatchSchema.safeParse(i);
+      if (!parsed.success) return { content: parsed.error.issues[0]?.message ?? "Ugyldig", summary: "Ugyldig", isError: true };
+      const res = await saveDesk(ctx.env, ctx.orgId, { caseId, leaseId, unitId }, parsed.data, { agentId: ctx.agent.id, name: ctx.agent.name });
+      return { content: json({ notice: res.notice, id: res.item?.id ?? null, title: res.item?.title ?? null }), summary: res.notice };
+    },
+  },
+  {
+    group: "portfolio",
+    label: () => "Fjerner fra pulten",
+    tool: {
+      name: "delete_lease",
+      description: "Fjerner et leieforhold fra pulten. Objektet fjernes hvis ingen andre leieforhold bruker det. Oppgi case_id, lease_id eller unit_id. Spør brukeren før du kaller dette.",
+      input_schema: { type: "object", properties: { case_id: str, lease_id: str, unit_id: str }, required: [] },
+    },
+    run: async (ctx, i) => {
+      const caseId = i.case_id ? String(i.case_id) : undefined;
+      const leaseId = i.lease_id ? String(i.lease_id) : undefined;
+      const unitId = i.unit_id ? String(i.unit_id) : undefined;
+      if (!caseId && !leaseId && !unitId) return { content: "Oppgi case_id, lease_id eller unit_id.", summary: "Mangler id", isError: true };
+      const res = await removeDesk(ctx.env, ctx.orgId, { caseId, leaseId, unitId }, { agentId: ctx.agent.id, name: ctx.agent.name });
+      return { content: res.notice, summary: res.notice };
+    },
+  },
+
   // ── E-post ──
   {
     group: "email",
@@ -1224,7 +1434,7 @@ const TOOLS: ToolDef[] = [
       await sendEmail(ctx.env, {
         to,
         subject: String(i.subject).slice(0, 200),
-        html: emailLayout({ title: String(i.subject).slice(0, 200), bodyHtml: html, footer: `Sendt av agenten «${escapeHtml(ctx.agent.name)}» i Plank.` }),
+        html: emailLayout({ title: String(i.subject).slice(0, 200), bodyHtml: html, footer: `Sendt av agenten «${escapeHtml(ctx.agent.name)}» i ${productOfApp(ctx.env.APP_URL) === "leie" ? "Leie" : "Plank"}.` }),
       });
       return { content: json({ ok: true, sent_to: to }), summary: `Sendt til ${to.length} mottaker${to.length === 1 ? "" : "e"}` };
     },
@@ -1240,6 +1450,7 @@ const ENTITY_PATHS: Record<string, string> = {
   component: "components",
   task: "tasks",
   artifact: "artifacts",
+  desk: "pult",
 };
 
 /** Markdown → trygg HTML for e-post. Rå HTML escapes, plank://-lenker gjøres absolutte. */
@@ -1247,7 +1458,7 @@ export async function renderEmailMarkdown(env: Env, orgId: string, md: string): 
   const base = env.APP_URL.replace(/\/$/, "");
   const safe = md
     .replace(/</g, "&lt;")
-    .replace(/plank:\/\/(\w+)\/([\w-]+)/g, (_m, type: string, id: string) => `${base}/o/${orgId}/${ENTITY_PATHS[type] ?? type}/${id}`);
+    .replace(/plank:\/\/(\w+)\/([A-Za-z0-9_.-]+)/g, (_m, type: string, id: string) => `${base}/o/${orgId}/${ENTITY_PATHS[type] ?? type}/${id}`);
   return marked.parse(safe, { async: false }) as string;
 }
 
@@ -1261,6 +1472,11 @@ const WRITE_TOOLS = new Set([
   "save_component",
   "create_task",
   "update_task",
+  "desk_act",
+  "create_lease",
+  "update_lease",
+  "delete_lease",
+  "update_modules",
   "create_artifact",
   "update_artifact",
   "pin_artifact_sidebar",

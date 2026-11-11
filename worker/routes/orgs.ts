@@ -12,12 +12,13 @@ import { emailConfigured, memberInviteEmail, sendEmail } from "../lib/email";
 import { badRequest, body, forbidden, notFound } from "../lib/http";
 import { newId, normalizeEmail, now, osloDay, osloNextMonthStart, todayIso } from "../lib/util";
 import { describeAccess, inviteSchema, listMembers, memberPatchSchema, resolveMemberAccess, scopeStatements } from "../services/members";
-import { availablePlans, buildingCount, effectiveBuildingLimit, setPlan, stripeReady } from "../lib/billing";
-import { boligmappaConfigured } from "../lib/boligmappa";
+import { availablePlans, buildingCount, effectiveBuildingLimit, liveSubscription, presentPlan, seesProPlan, setPlan, stripeReady } from "../lib/billing";
+import { boligmappaConfigured, setBoligmappaNotify } from "../lib/boligmappa";
 import { forgetAiPause, usageByDay, usageThisMonth } from "../lib/usage";
 import { seedDemo } from "../lib/demo";
 import { changeSubscriptionPlan, createCreditCheckout, createPortalSession, createSubscriptionCheckout, ensureStripeCustomer } from "../lib/stripe";
 import { logActivity } from "../lib/activity";
+import { parseOrgModules } from "../../shared/modules";
 import {
   creditPack,
   PLAN_IDS,
@@ -30,6 +31,7 @@ import {
   type Component,
   type Document,
   type OrgOverview,
+  type SinceLast,
   type Role,
   type PlanId,
   type Task,
@@ -96,21 +98,30 @@ orgs.get("/billing", async (c) => {
     orgId,
   );
   const [count, usage] = await Promise.all([buildingCount(c.env, orgId), usageThisMonth(c.env, orgId)]);
+  const storedLimit = org ? effectiveBuildingLimit(org) : PLANS.standard.buildings;
+  const elevate = seesProPlan() && !liveSubscription(org?.billing_status, org?.stripe_subscription_id);
+  const shown = presentPlan(org?.plan, storedLimit, elevate);
   const info: BillingInfo = {
-    status: org?.billing_status ?? "none",
-    plan: planOf(org?.plan).id,
-    managed: org?.billing_status === "active" && !org.stripe_subscription_id,
+    status: elevate ? "active" : (org?.billing_status ?? "none"),
+    plan: shown.plan,
+    managed: elevate || (org?.billing_status === "active" && !org.stripe_subscription_id),
     portal: Boolean(org?.stripe_customer_id),
-    building_limit: org ? effectiveBuildingLimit(org) : PLANS.standard.buildings,
+    building_limit: shown.buildingLimit,
     building_count: count,
     stripe_ready: stripeReady(c.env),
     plans_available: availablePlans(c.env),
     note: org?.billing_note ?? null,
     spend_limit_ore: org?.spend_limit_ore ?? null,
     resets_at: osloNextMonthStart(),
-    usage,
+    usage: elevate ? { ...usage, includedOre: Math.max(usage.includedOre, PLANS.pro.includedAiNok * 100), paused: false } : usage,
   };
   return c.json(info);
+});
+
+orgs.patch("/bm-notify", async (c) => {
+  const input = await body(c, z.object({ on: z.boolean() }));
+  await setBoligmappaNotify(c.env, c.get("orgId"), c.get("user").id, input.on);
+  return c.json({ on: input.on });
 });
 
 orgs.get("/billing/daily", async (c) => {
@@ -253,7 +264,7 @@ orgs.get("/activation", async (c) => {
     count(`SELECT COUNT(*) AS n FROM messages WHERE org_id = ? AND role = 'user'`),
     count(`SELECT COUNT(*) AS n FROM components WHERE org_id = ? AND next_service_at IS NOT NULL AND next_service_at < ? AND ${comps.sql}`, todayIso(), ...comps.params),
     count(`SELECT id FROM components WHERE org_id = ? AND next_service_at IS NOT NULL AND next_service_at < ? AND ${comps.sql} ORDER BY next_service_at LIMIT 1`, todayIso(), ...comps.params),
-    count(`SELECT billing_status FROM orgs WHERE id = ?`),
+    count(`SELECT billing_status, stripe_subscription_id FROM orgs WHERE id = ?`),
     count(`SELECT org_nr, status, building_count FROM bm_sources WHERE org_id = ?`),
     count(
       `SELECT COUNT(*) AS n FROM bm_buildings WHERE org_id = ? AND bmn NOT IN (SELECT boligmappa_number FROM buildings WHERE org_id = ? AND boligmappa_number IS NOT NULL)`,
@@ -262,8 +273,9 @@ orgs.get("/activation", async (c) => {
   ]);
   const month = await usageThisMonth(c.env, orgId);
   const n = (r: D1Result<{ n: number }> | undefined) => (r?.results?.[0] as { n?: number } | undefined)?.n ?? 0;
-  const billingRow = org?.results?.[0] as { billing_status?: string } | undefined;
+  const billingRow = org?.results?.[0] as { billing_status?: string; stripe_subscription_id?: string | null } | undefined;
   const sourceRow = source?.results?.[0] as { status?: string; building_count?: number } | undefined;
+  const billing = (billingRow?.billing_status as BillingStatus) || "none";
   const result: Activation = {
     properties: n(propCount as D1Result<{ n: number }>),
     firstPropertyId: (firstProperty?.results?.[0] as { id?: string } | undefined)?.id ?? null,
@@ -272,7 +284,7 @@ orgs.get("/activation", async (c) => {
     talked: n(talked as D1Result<{ n: number }>) > 0,
     serviceOverdue: n(overdue as D1Result<{ n: number }>),
     serviceComponentId: (overdueOne?.results?.[0] as { id?: string } | undefined)?.id ?? null,
-    billing: (billingRow?.billing_status as BillingStatus) || "none",
+    billing: seesProPlan() && !liveSubscription(billing, billingRow?.stripe_subscription_id) ? "active" : billing,
     stripeReady: stripeReady(c.env),
     monthUsageOre: month.trialOre,
     monthInvoiceOre: month.invoiceOre,
@@ -287,18 +299,140 @@ orgs.get("/activation", async (c) => {
   return c.json(result);
 });
 
+/** Støy som ikke sier noe om hva som beveger seg i porteføljen. */
+const SINCE_QUIET = [
+  "help.capture",
+  "help.save",
+  "credits.purchased",
+  "credits.revoked",
+  "billing.plan_changed",
+  "billing.limit_changed",
+  "boligmappa.continue",
+  "property.image",
+  "building.image",
+  "property.image_removed",
+  "building.image_removed",
+  "artifact.sidebar",
+  "artifact.sidebar_added",
+  "artifact.sidebar_removed",
+];
+
+/** Et besøk varer fire timer. Oppfrisking i mellomtiden viser samme «siden sist». */
+const VISIT_MS = 4 * 60 * 60 * 1000;
+const SINCE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const SINCE_MAX_MS = 30 * 24 * 60 * 60 * 1000;
+
+function sinceWhere(after: number | null) {
+  const act = activityScopeSql();
+  const quiet = `a.action NOT IN (${SINCE_QUIET.map(() => "?").join(", ")})`;
+  const time = after != null ? " AND a.created_at > ?" : "";
+  return {
+    sql: `a.org_id = ? AND ${act.sql} AND ${quiet}${time}`,
+    params: [ ...act.params, ...SINCE_QUIET, ...(after != null ? [after] : []) ],
+  };
+}
+
+/** Hva som har skjedd siden forrige gang denne brukeren åpnet oversikten. */
+async function loadSince(db: Env["DB"], orgId: string, userId: string): Promise<SinceLast> {
+  const row = await first<{ overview_seen_at: number | null; overview_visit_at: number | null }>(
+    db,
+    `SELECT overview_seen_at, overview_visit_at FROM memberships WHERE org_id = ? AND user_id = ?`,
+    orgId,
+    userId,
+  );
+  const t = now();
+  const visitAt = row?.overview_visit_at ?? null;
+  const seenAt = row?.overview_seen_at ?? null;
+  const continuing = visitAt != null && t - visitAt < VISIT_MS;
+
+  let mode: SinceLast["mode"] = "week";
+  let after: number | null = t - SINCE_WEEK_MS;
+  let at: number | null = null;
+
+  if (continuing) {
+    if (seenAt != null) {
+      mode = "visit";
+      after = Math.max(seenAt, t - SINCE_MAX_MS);
+      at = after;
+    }
+  } else if (visitAt != null) {
+    mode = "visit";
+    after = Math.max(visitAt, t - SINCE_MAX_MS);
+    at = after;
+    await db.prepare(`UPDATE memberships SET overview_seen_at = ?, overview_visit_at = ? WHERE org_id = ? AND user_id = ?`).bind(visitAt, t, orgId, userId).run();
+  } else {
+    await db.prepare(`UPDATE memberships SET overview_visit_at = ? WHERE org_id = ? AND user_id = ?`).bind(t, orgId, userId).run();
+  }
+
+  const countsSql = `SELECT
+       COUNT(*) AS n,
+       COALESCE(SUM(CASE WHEN a.action LIKE 'document.%' OR a.action IN ('laft.documents_imported','ifc.imported','floorplan.imported') THEN 1 ELSE 0 END), 0) AS documents,
+       COALESCE(SUM(CASE WHEN a.action LIKE 'task.%' THEN 1 ELSE 0 END), 0) AS tasks,
+       COALESCE(SUM(CASE WHEN a.action LIKE 'component.%' THEN 1 ELSE 0 END), 0) AS components,
+       COALESCE(SUM(CASE WHEN a.action LIKE 'artifact.%' THEN 1 ELSE 0 END), 0) AS pages,
+       COALESCE(SUM(CASE WHEN a.action LIKE 'agent.%' THEN 1 ELSE 0 END), 0) AS runs,
+       COALESCE(SUM(CASE WHEN a.action IN ('boligmappa.imported','boligmappa.transferred','boligmappa.stopped','boligmappa.documents_arrived','laft.imported','laft.connected','laft.disconnected') THEN 1 ELSE 0 END), 0) AS imports
+     FROM activity a WHERE `;
+
+  let where = sinceWhere(after);
+  let counts = await first<{ n: number; documents: number; tasks: number; components: number; pages: number; runs: number; imports: number }>(
+    db,
+    countsSql + where.sql,
+    orgId,
+    ...where.params,
+  );
+
+  if (mode === "week" && Number(counts?.n ?? 0) === 0) {
+    mode = "recent";
+    after = null;
+    at = null;
+    where = sinceWhere(null);
+    counts = await first<{ n: number; documents: number; tasks: number; components: number; pages: number; runs: number; imports: number }>(
+      db,
+      countsSql + where.sql,
+      orgId,
+      ...where.params,
+    );
+  }
+
+  const limit = mode === "recent" ? 12 : 30;
+  const items = await all<ActivityItem>(
+    db,
+    `SELECT a.id, a.actor_type, a.actor_name, a.action, a.entity_type, a.entity_id, a.summary, a.created_at
+     FROM activity a WHERE ${where.sql} ORDER BY a.created_at DESC LIMIT ?`,
+    orgId,
+    ...where.params,
+    limit,
+  );
+
+  const num = (v: unknown) => Number(v ?? 0);
+  return {
+    at,
+    mode,
+    total: num(counts?.n),
+    documents: num(counts?.documents),
+    tasks: num(counts?.tasks),
+    components: num(counts?.components),
+    pages: num(counts?.pages),
+    runs: num(counts?.runs),
+    imports: num(counts?.imports),
+    items,
+  };
+}
+
 orgs.get("/overview", async (c) => {
   const orgId = c.get("orgId");
   const db = c.env.DB;
   const count = (sql: string, scope: { sql: string; params: string[] } = { sql: "1 = 1", params: [] }) =>
     db.prepare(sql.replace("{scope}", scope.sql)).bind(orgId, ...scope.params);
   const placed = scopeSql({ building: "building_id", property: "property_id" });
-  const [p, b, d, comp, t, a, art] = await db.batch<{ n: number }>([
+  const [p, b, d, comp, t, allTasks, a, art] = await db.batch<{ n: number }>([
     count(`SELECT COUNT(*) AS n FROM properties WHERE org_id = ? AND {scope}`, scopeSql({ property: "id" })),
     count(`SELECT COUNT(*) AS n FROM buildings WHERE org_id = ? AND {scope}`, scopeSql({ building: "id" })),
     count(`SELECT COUNT(*) AS n FROM documents WHERE org_id = ? AND {scope}`, placed),
     count(`SELECT COUNT(*) AS n FROM components WHERE org_id = ? AND {scope}`, scopeSql({ building: "building_id" })),
     count(`SELECT COUNT(*) AS n FROM tasks WHERE org_id = ? AND status IN ('open','in_progress') AND {scope}`, placed),
+    count(`SELECT COUNT(*) AS n FROM tasks WHERE org_id = ? AND {scope}`, placed),
     count(`SELECT COUNT(*) AS n FROM agents WHERE org_id = ? AND archived = 0`),
     count(`SELECT COUNT(*) AS n FROM artifacts WHERE org_id = ? AND {scope}`, placed),
   ]);
@@ -337,12 +471,16 @@ orgs.get("/overview", async (c) => {
   const act = activityScopeSql();
   const activity = await all<ActivityItem>(db, `SELECT * FROM activity a WHERE a.org_id = ? AND ${act.sql} ORDER BY a.created_at DESC LIMIT 12`, orgId, ...act.params);
 
+  const since = await loadSince(db, orgId, c.get("user").id);
+  const orgRow = await first<{ modules: string | null }>(db, `SELECT modules FROM orgs WHERE id = ?`, orgId);
   const result: OrgOverview = {
-    counts: { properties: n(p), buildings: n(b), documents: n(d), components: n(comp), open_tasks: n(t), agents: n(a), artifacts: n(art) },
+    counts: { properties: n(p), buildings: n(b), documents: n(d), components: n(comp), tasks: n(allTasks), open_tasks: n(t), agents: n(a), artifacts: n(art) },
     upcoming_tasks: upcoming,
     service_due: serviceDue,
     recent_documents: recentDocs,
     activity,
+    since,
+    modules: parseOrgModules(orgRow?.modules),
   };
   return c.json({ ...result, today: todayIso() });
 });

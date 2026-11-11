@@ -48,6 +48,8 @@ export interface RetryOptions {
   tries?: number;
   /** Navn i feilmeldinger, f.eks. «Boligmappa» */
   label: string;
+  /** Statuskoder som kastes med én gang. 429 i et parallelt kall skal ikke prøves av alle samtidig. */
+  failFast?: readonly number[];
 }
 
 /**
@@ -69,6 +71,7 @@ export async function fetchRetry(input: string, init: RequestInit, opts: RetryOp
       const after = retryAfter(res);
       await res.body?.cancel().catch(() => undefined);
       failure = new TransientError(`${opts.label} svarte ${res.status}`, after);
+      if (opts.failFast?.includes(res.status)) throw failure;
       wait = after ?? backoff(attempt);
     } catch (err) {
       failure = new TransientError(isTimeout(err) ? `${opts.label} svarte ikke i tide` : `Fikk ikke kontakt med ${opts.label}`);

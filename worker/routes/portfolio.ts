@@ -33,6 +33,8 @@ import {
   updateProperty,
   updateRoom,
 } from "../services/portfolio";
+import { propertyMap } from "../services/map";
+import { clearLeasesForPlace } from "../services/desk";
 
 export const portfolio = new Hono<AppEnv>();
 
@@ -45,6 +47,7 @@ portfolio.get("/tree", async (c) => c.json(await getTree(c.env, c.get("orgId")))
 
 // Eiendommer
 portfolio.get("/properties", async (c) => c.json(await listProperties(c.env, c.get("orgId"))));
+portfolio.get("/map", async (c) => c.json(await propertyMap(c.env, c.get("orgId"))));
 portfolio.get("/properties/:id", async (c) => c.json(await getProperty(c.env, c.get("orgId"), c.req.param("id"))));
 portfolio.post("/properties", async (c) => {
   const p = await createProperty(c.env, c.get("orgId"), await body(c, propertySchema));
@@ -378,6 +381,7 @@ for (const kind of ["property", "building", "floor", "room"] as const) {
     const id = c.req.param("id");
     const orgId = c.get("orgId");
     await assertCanEditEntity(c.env, orgId, kind, id, "Ressursen");
+    if (kind === "property" || kind === "building") await clearLeasesForPlace(c.env, orgId, kind, id);
     const keys = await imageKeysToRemove(c.env, orgId, kind, id);
     const res = await c.env.DB.prepare(deleteSql[kind]!).bind(id, orgId).run();
     if (!res.meta.changes) throw notFound();

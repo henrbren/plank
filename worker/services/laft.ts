@@ -2,8 +2,7 @@ import type { Env } from "../env";
 import { activityStatement, logActivity } from "../lib/activity";
 import { all, first, insert } from "../lib/db";
 import { assertCanAddBuilding } from "../lib/billing";
-import { kindOf } from "../lib/boligmappa";
-import { guessMime, processDocument } from "../lib/documents";
+import { guessMime, kindOf, processDocument } from "../lib/documents";
 import { ApiError, badRequest, notFound } from "../lib/http";
 import {
   assertReadOnly,

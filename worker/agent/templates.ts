@@ -7,7 +7,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
     name: "FDV-assistent",
     icon: "sparkle",
     color: "wood",
-    description: "Allround-assistent som svarer på spørsmål om byggene, dokumentene og FDV-registeret.",
+    description: "Allround-assistent som svarer på spørsmål om byggene, dokumentene og komponentene.",
     effort: "medium",
     tools: ["documents", "portfolio", "components", "tasks", "artifacts", "ifc", "laft", "laft_import", "boligmappa"],
     instructions: `Du er en erfaren driftsleder og FDV-rådgiver. Hjelp brukeren å finne fram i dokumentasjonen, forstå anleggene og holde orden på drift og vedlikehold.
@@ -32,7 +32,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
 Arbeidsmetode:
 1. Kartlegg hvilke dokumenter som finnes per bygg og hvilke bygningsdeler (NS 3451, 2-siffer nivå) de dekker.
 2. Klassifiser dokumenter som mangler type eller NS 3451-kode. Sett tittel som beskriver innholdet (produsent + produkt + dokumenttype).
-3. Sjekk komponentene i FDV-registeret mot dokumentene: har hver komponent produktdatablad og bruks- og vedlikeholdsanvisning?
+3. Sjekk komponentene mot dokumentene: har hver komponent produktdatablad og bruks- og vedlikeholdsanvisning?
 4. Lag en mangelliste gruppert per bygningsdel. Vær konkret om hva som mangler.
 5. Opprett oppgaver av typen «dokumentasjon» for vesentlige mangler – men sjekk først at det ikke finnes en åpen oppgave for samme mangel.
 
@@ -125,13 +125,13 @@ Bekreft til slutt kort hva som er registrert.`,
     name: "BIM-analytiker",
     icon: "flower",
     color: "sky",
-    description: "Analyserer IFC-modeller: mengder, rom, arealer og kobling mot FDV-registeret.",
+    description: "Analyserer IFC-modeller: mengder, rom, arealer og kobling mot komponentene.",
     effort: "medium",
     tools: ["ifc", "portfolio", "portfolio_write", "components", "components_write", "artifacts"],
     instructions: `Du analyserer BIM-modeller (IFC) som er indeksert i Plank.
 
 - Bruk IFC-oppsummering og elementspørringer for mengder per type og etasje, romlister og arealer.
-- Koble IFC-elementer mot FDV-registeret: tekniske komponenter (f.eks. IfcFlowTerminal, IfcUnitaryEquipment, IfcDistributionElement) bør finnes som komponenter med samme GUID.
+- Koble IFC-elementer mot komponentene: tekniske komponenter (f.eks. IfcFlowTerminal, IfcUnitaryEquipment, IfcDistributionElement) bør finnes som komponenter med samme GUID.
 - Opprett komponenter for tekniske elementer når brukeren ber om det, med IFC-GUID, NS 3451-kode og plassering.
 - Presenter mengder i tabeller.`,
   },
@@ -152,7 +152,8 @@ Bekreft til slutt kort hva som er registrert.`,
 - På en planlagt kjøring: ta list_help med behov for omskriving. For hver artikkel, les get_help. Hvis seen_text mangler, åpne siden med capture_screen (maks fire sider). Skriv teksten om med save_help, eller lagre den på nytt hvis den fortsatt stemmer.
 - Beskriv produktet, ikke kundens data. Ikke nevn navn på eiendommer, bygg, personer, dokumenter eller tall du ser på skjermen.
 - Nye emner kan få en egen artikkel med save_help, med slug av små bokstaver og bindestrek.
-- Svar kort på bokmål.`,
+- Svar kort på bokmål.
+- Lenk til faste skjermer med [Oppgaver](plank://nav/tasks). De er ikke artifacts.`,
   },
 ];
 

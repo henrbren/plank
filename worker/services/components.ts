@@ -81,9 +81,9 @@ export async function listComponents(env: Env, orgId: string, f: ComponentFilter
   if (f.ns3451) where.push("c.ns3451 LIKE ?"), params.push(`${f.ns3451}%`);
   if (f.service_due_before) where.push("c.next_service_at IS NOT NULL AND c.next_service_at <= ?"), params.push(f.service_due_before);
   if (f.q) {
-    where.push("(c.name LIKE ? OR c.manufacturer LIKE ? OR c.model LIKE ? OR c.tfm LIKE ? OR c.category LIKE ?)");
+    where.push("(c.name LIKE ? OR c.manufacturer LIKE ? OR c.model LIKE ? OR c.supplier LIKE ? OR c.tfm LIKE ? OR c.category LIKE ?)");
     const like = `%${f.q}%`;
-    params.push(like, like, like, like, like);
+    params.push(like, like, like, like, like, like);
   }
   const scope = scopeSql({ building: "c.building_id" });
   where.push(scope.sql), params.push(...scope.params);

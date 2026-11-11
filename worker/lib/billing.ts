@@ -1,4 +1,5 @@
 import type { Env } from "../env";
+import { currentAccess } from "./access";
 import { first } from "./db";
 import { badRequest } from "./http";
 import { osloMonthStart } from "./util";
@@ -57,6 +58,25 @@ export function effectiveBuildingLimit(org: Pick<PlanRow, "plan" | "building_lim
   return Math.max(org.building_limit, planOf(org.plan).buildings);
 }
 
+/** Plattformadmin skal bruke kontoen som Pro. Kundens abonnement i databasen endres ikke. */
+export function seesProPlan(): boolean {
+  return currentAccess().seesPro === true;
+}
+
+/** Et ekte Stripe-abonnement skal vises som det er, også for plattformadmin. */
+export function liveSubscription(status: string | null | undefined, stripeSubscriptionId: string | null | undefined): boolean {
+  return Boolean(stripeSubscriptionId) && (status === "active" || status === "past_due");
+}
+
+export function presentPlan(plan: string | null | undefined, buildingLimit: number, elevate: boolean): { plan: PlanId; buildingLimit: number } {
+  const current = planOf(plan);
+  if (!elevate) return { plan: current.id, buildingLimit };
+  return {
+    plan: rank(current) >= rank(PLANS.pro) ? current.id : "pro",
+    buildingLimit: Math.max(buildingLimit, PLANS.pro.buildings),
+  };
+}
+
 /** Bytter plan i databasen. Returnerer forrige plan, eller null hvis den var den samme. */
 export async function setPlan(env: Env, orgId: string, plan: PlanId): Promise<PlanId | null> {
   const org = await first<PlanRow>(env.DB, `SELECT plan, plan_peak, plan_peak_month, building_limit FROM orgs WHERE id = ?`, orgId);
@@ -74,14 +94,16 @@ export async function buildingCount(env: Env, orgId: string): Promise<number> {
 
 export async function buildingLimit(env: Env, orgId: string): Promise<number> {
   const org = await first<Pick<PlanRow, "plan" | "building_limit">>(env.DB, `SELECT plan, building_limit FROM orgs WHERE id = ?`, orgId);
-  return org ? effectiveBuildingLimit(org) : PLANS.standard.buildings;
+  const limit = org ? effectiveBuildingLimit(org) : PLANS.standard.buildings;
+  return seesProPlan() ? Math.max(limit, PLANS.pro.buildings) : limit;
 }
 
 /** Stopper nye bygg når organisasjonen har fylt kvoten. Pro eller en avtalt kvote gir flere. */
 export async function assertCanAddBuilding(env: Env, orgId: string): Promise<void> {
   const org = await first<Pick<PlanRow, "plan" | "building_limit">>(env.DB, `SELECT plan, building_limit FROM orgs WHERE id = ?`, orgId);
-  const plan = planOf(org?.plan);
-  const limit = org ? effectiveBuildingLimit(org) : plan.buildings;
+  const stored = planOf(org?.plan);
+  const plan = seesProPlan() && rank(stored) < rank(PLANS.pro) ? PLANS.pro : stored;
+  const limit = Math.max(org ? effectiveBuildingLimit(org) : plan.buildings, seesProPlan() ? PLANS.pro.buildings : 0);
   const count = await buildingCount(env, orgId);
   if (count < limit) return;
   if (limit > plan.buildings) throw badRequest(`Kvoten er ${limit} bygg, og de er i bruk.`);

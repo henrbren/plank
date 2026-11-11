@@ -1,5 +1,9 @@
 // Delte typer mellom Worker (API) og React-appen.
 
+import type { OrgModule } from "./modules";
+
+export type { OrgModule };
+
 export type Role = "owner" | "admin" | "member";
 
 export interface User {
@@ -18,6 +22,8 @@ export interface OrgSummary {
   limited: boolean;
   /** Siste dag med tilgang (YYYY-MM-DD), eller null */
   expires_on: string | null;
+  /** E-post når Boligmappa senere får nye dokumenter */
+  bm_notify: boolean;
 }
 
 export interface Me {
@@ -164,6 +170,29 @@ export interface Property {
   updated_at: number;
 }
 
+/** Ett punkt på eiendomskartet. lat/lon er null til adressen er funnet. */
+export interface PropertyMapPoint {
+  id: string;
+  name: string;
+  address: string | null;
+  postal_code: string | null;
+  city: string | null;
+  /** Adressen er hentet fra et bygg fordi eiendommen selv ikke har noen. */
+  address_from: "property" | "building" | null;
+  building_count: number;
+  lat: number | null;
+  lon: number | null;
+  /** ok = treff, miss = ikke i matrikkelen, none = ingen adresse, pending = ikke slått opp ennå */
+  geo: "ok" | "miss" | "none" | "pending";
+}
+
+export interface PropertyMap {
+  points: PropertyMapPoint[];
+  /** Flere adresser venter. Klienten kan hente på nytt. */
+  pending: boolean;
+  warning: string | null;
+}
+
 export interface Building {
   id: string;
   property_id: string;
@@ -280,6 +309,61 @@ export type DocumentKind = keyof typeof DOCUMENT_KINDS;
 
 export type DocumentStatus = "processing" | "ready" | "error" | "stored";
 
+/** Det vi leser ut av et FDV-dokument. Brukes til å fylle registeret, uten å skrive over felt noen har satt selv. */
+export interface DocumentParty {
+  role: "leverandør" | "produsent" | "entreprenør" | "service";
+  name: string;
+  org_nr: string | null;
+}
+
+export interface DocumentExtract {
+  title: string | null;
+  kind: DocumentKind | null;
+  ns3451: string | null;
+  summary: string | null;
+  component: string | null;
+  component_id: string | null;
+  manufacturer: string | null;
+  model: string | null;
+  serial_number: string | null;
+  tfm: string | null;
+  supplier: string | null;
+  supplier_org_nr: string | null;
+  installed_at: string | null;
+  warranty_until: string | null;
+  last_service_at: string | null;
+  service_interval_months: number | null;
+  parties: DocumentParty[];
+}
+
+/** Kort rad til dokumentlisten under et bygg eller en eiendom. */
+export interface DocumentBrief {
+  id: string;
+  property_id: string | null;
+  building_id: string | null;
+  title: string;
+  filename: string;
+  mime: string;
+  kind: DocumentKind;
+  status: DocumentStatus;
+  created_at: number;
+  building_name: string | null;
+}
+
+/** Eiendom eller bygg i dokumentoversikten, med antall dokumenter. */
+export interface DocumentPlace {
+  kind: "property" | "building" | "loose";
+  id: string;
+  property_id: string | null;
+  name: string;
+  address: string | null;
+  /** Boligmappa-nummer, bygningsnummer eller gnr/bnr */
+  number: string | null;
+  document_count: number;
+  /** False mens Boligmappa-listen fortsatt hentes og ingen filer er inne ennå */
+  files_ready: boolean;
+}
+
 export interface Document {
   id: string;
   property_id: string | null;
@@ -296,6 +380,7 @@ export interface Document {
   status: DocumentStatus;
   error: string | null;
   summary: string | null;
+  extracted: DocumentExtract | null;
   text_chars: number | null;
   uploaded_by: string | null;
   created_at: number;
@@ -389,8 +474,8 @@ export const TOOL_GROUPS: Record<ToolGroup, { label: string; description: string
   documents_write: { label: "Klassifisere dokumenter", description: "Endre tittel, type, NS 3451-kode og plassering på dokumenter", write: true },
   portfolio: { label: "Les portefølje", description: "Se eiendommer, bygg, etasjer og rom" },
   portfolio_write: { label: "Endre portefølje", description: "Opprette og endre bygg, etasjer og rom", write: true },
-  components: { label: "Les FDV-register", description: "Se komponenter, serviceintervaller og tilstand" },
-  components_write: { label: "Endre FDV-register", description: "Opprette og oppdatere komponenter", write: true },
+  components: { label: "Les komponenter", description: "Se komponenter, serviceintervaller og tilstand" },
+  components_write: { label: "Endre komponenter", description: "Opprette og oppdatere komponenter", write: true },
   tasks: { label: "Oppgaver og avvik", description: "Se, opprette og oppdatere oppgaver, avvik og kontroller", write: true },
   artifacts: { label: "Lage sider (artifacts)", description: "Bygge interaktive sider og dashboards, og feste dem i sidemenyen", write: true },
   ifc: { label: "BIM / IFC", description: "Spørre mot elementer i IFC-modeller" },
@@ -545,7 +630,144 @@ export interface EntityLink {
   label: string;
 }
 
+// ─── Utleiepult ──────────────────────────────────────────────────────────────
+
+export type LeaseKind = "bolig" | "naering";
+
+/** Tallene på pulten. Hvert tall er et filter på den samme køen. */
+export type DeskTall = "ledig" | "utlop" | "wault" | "gap" | "restanse" | "fart" | "ko";
+
+export interface DeskKpi {
+  id: DeskTall;
+  label: string;
+  value: string;
+  hint: string;
+  tone?: "bad" | "warn";
+}
+
+export interface DeskRow {
+  id: string;
+  kind: LeaseKind;
+  lane: string;
+  laneLabel: string;
+  tall: DeskTall[];
+  title: string;
+  place: string;
+  moneyText: string;
+  when: string;
+  actionLabel: string;
+  action: "letter" | "task" | "offer" | "match";
+  dueSoon: boolean;
+  why: string;
+  buildingId: string | null;
+}
+
+export interface DeskHome {
+  today: string;
+  empty: boolean;
+  kpis: DeskKpi[];
+  rows: DeskRow[];
+  /** Leieforhold uten frist. De er ikke i køen, men kan redigeres. */
+  aside: DeskPlace[];
+}
+
+/** Tall og datoer slik de er lagret. Null betyr ikke oppgitt. 0 i leie er heller ikke oppgitt. */
+export interface DeskRecord {
+  leaseId: string | null;
+  unitId: string | null;
+  kind: LeaseKind;
+  unitName: string | null;
+  address: string | null;
+  buildingId: string | null;
+  areaSqm: number | null;
+  rooms: number | null;
+  marketRentYear: number | null;
+  vacantSince: string | null;
+  status: "vacant" | "make_ready" | "occupied" | "reserved" | null;
+  tenantName: string | null;
+  stage: "vedtak" | "offer" | "contract" | "move_in" | "active" | "move_out" | "ended" | null;
+  rentYear: number | null;
+  startOn: string | null;
+  endOn: string | null;
+  breakOn: string | null;
+  indexOn: string | null;
+  arrearsNok: number | null;
+  arrearsDays: number | null;
+  moveOutOn: string | null;
+  keysOn: string | null;
+  vedtakOn: string | null;
+  need: string | null;
+  household: string | null;
+}
+
+export interface DeskEditor {
+  title: string;
+  caseId: string | null;
+  record: DeskRecord;
+}
+
+export interface DeskSaved {
+  item: DeskCase | null;
+  notice: string;
+}
+
+/** En rad i registeret: på bygget, eller under køen når ingenting haster. */
+export interface DeskPlace {
+  unitId: string | null;
+  leaseId: string | null;
+  caseId: string | null;
+  kind: LeaseKind;
+  title: string;
+  place: string;
+  line: string;
+}
+
+export interface DeskLetter {
+  id: string;
+  title: string;
+  body: string;
+  created_at: number;
+}
+
+export interface DeskOffer {
+  unitId: string;
+  name: string;
+  place: string;
+  rentText: string;
+  fit: boolean;
+}
+
+export interface DeskMatch {
+  leaseId: string;
+  name: string;
+  need: string | null;
+  waited: string;
+  fit: boolean;
+}
+
+export interface DeskFact {
+  label: string;
+  value: string;
+}
+
+export interface DeskCase extends DeskRow {
+  facts: DeskFact[];
+  letters: DeskLetter[];
+  offers: DeskOffer[];
+  matches: DeskMatch[];
+  taskId: string | null;
+  record: DeskRecord;
+}
+
+export interface DeskAct {
+  item: DeskCase;
+  notice: string;
+}
+
 // ─── Artifacts ───────────────────────────────────────────────────────────────
+
+/** off = bare i organisasjonen. login = innloggede med lenken. link = alle med lenken. */
+export type ArtifactShareMode = "off" | "login" | "link";
 
 export interface Artifact {
   id: string;
@@ -557,12 +779,26 @@ export interface Artifact {
   pinned: number;
   sidebar_order: number | null;
   sidebar_icon: string | null;
+  share_mode: ArtifactShareMode;
+  /** Bare med når den som ser siden kan endre delingen. Ellers null. */
+  share_token: string | null;
   created_by_user: string | null;
   created_by_agent: string | null;
   conversation_id: string | null;
   created_at: number;
   updated_at: number;
   building_name?: string | null;
+}
+
+/** Det en delingslenke viser. Ingen tilgang til resten av organisasjonen. */
+export interface SharedArtifact {
+  title: string;
+  html: string;
+  orgName: string;
+  artifactId: string;
+  buildingId: string | null;
+  propertyId: string | null;
+  mode: Exclude<ArtifactShareMode, "off">;
 }
 
 export interface ArtifactVersion {
@@ -760,6 +996,29 @@ export interface BmDocument {
   error: string | null;
 }
 
+/**
+ * Status for oppstartsoverføringen. Klienten bare leser. Selve hentingen går i køen,
+ * så nettleseren kan lukkes.
+ */
+export interface TransferStatus {
+  configured: boolean;
+  /** true mens serveren fortsatt jobber, inkludert når den venter på neste forsøk */
+  active: boolean;
+  stage: "off" | "buildings" | "import" | "documents" | "done" | "error";
+  phase: string;
+  buildingCount: number;
+  importedBuildings: number;
+  documentCount: number;
+  importedDocuments: number;
+  remainingDocuments: number;
+  failedDocuments: number;
+  message: string | null;
+  retryInMs: number | null;
+  mailed: boolean;
+  agentsWithTool: number;
+  agentsTotal: number;
+}
+
 /** Ett steg i automatisk henting fra Boligmappa (trakten for nye Næringsmappa-kunder) */
 export interface AutoImportStep {
   stage: "off" | "sync" | "import" | "error" | "done";
@@ -816,12 +1075,41 @@ export interface ActivityItem {
   created_at: number;
 }
 
+/** Det som har skjedd siden brukeren sist så oversikten. */
+export interface SinceLast {
+  /** Starten på vinduet. Null når vi viser siste uke eller de siste hendelsene. */
+  at: number | null;
+  /** visit = siden forrige besøk, week = første besøk, recent = eldre treff når uken er tom */
+  mode: "visit" | "week" | "recent";
+  total: number;
+  documents: number;
+  tasks: number;
+  components: number;
+  pages: number;
+  runs: number;
+  imports: number;
+  items: ActivityItem[];
+}
+
 export interface OrgOverview {
-  counts: { properties: number; buildings: number; documents: number; components: number; open_tasks: number; agents: number; artifacts: number };
+  counts: {
+    properties: number;
+    buildings: number;
+    documents: number;
+    components: number;
+    /** Alle oppgaver, uansett status. Sidemenyen og oversikten bruker dette for å vise Oppgaver. */
+    tasks: number;
+    open_tasks: number;
+    agents: number;
+    artifacts: number;
+  };
   upcoming_tasks: Task[];
   service_due: Component[];
   recent_documents: Document[];
   activity: ActivityItem[];
+  since: SinceLast;
+  /** Slått på via agenten. Leie skjuler drift, kart, dokumenter, komponenter og sider til de står her. */
+  modules: OrgModule[];
 }
 
 export interface MemberPlace {

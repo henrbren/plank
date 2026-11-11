@@ -1,6 +1,6 @@
 /** White-label merkevarer. Hosten avgjør hvilken løsningen later som den er. */
 
-export type BrandId = "plank" | "naeringsmappa" | "sameie";
+export type BrandId = "plank" | "leie" | "naeringsmappa" | "sameie";
 
 export interface Brand {
   id: BrandId;
@@ -51,6 +51,29 @@ export const BRANDS: Record<BrandId, Brand> = {
     darkAccentSoft: "#382819",
     darkAccentInk: "#1b1209",
   },
+  leie: {
+    id: "leie",
+    name: "Leie",
+    tagline: "Bolig og næring i samme kø",
+    loginTitle: "Inn i Leie",
+    loginLead: "Skriv e-posten. Du får en lenke, og pulten er klar.",
+    showcaseKicker: "Utleie",
+    showcaseTitle: "Morgenpulten for bolig og næring.",
+    showcaseLead: "Ledig, utløp, restanse og kø i samme liste. Sortert på frist, så på beløp. Agenten forklarer saken og skriver neste brev.",
+    accountLabel: "Leie-konto",
+    chooserBody: "",
+    logo: null,
+    copyright: "Leie",
+    emailFromName: "Leie",
+    accent: "#1f6b4a",
+    accentHover: "#18553a",
+    accentSoft: "#e5f3eb",
+    accentInk: "#ffffff",
+    darkAccent: "#8dcead",
+    darkAccentHover: "#a5d9be",
+    darkAccentSoft: "#1a3328",
+    darkAccentInk: "#0e241b",
+  },
   naeringsmappa: {
     id: "naeringsmappa",
     name: "Næringsmappa",
@@ -65,14 +88,14 @@ export const BRANDS: Record<BrandId, Brand> = {
     logo: "/brands/naeringsmappa.png",
     copyright: "Næringsmappa · LAFT",
     emailFromName: "Næringsmappa",
-    accent: "#2F4A9F",
-    accentHover: "#243a80",
-    accentSoft: "#e4e8f5",
+    accent: "#466084",
+    accentHover: "#324660",
+    accentSoft: "#e6eaf0",
     accentInk: "#ffffff",
-    darkAccent: "#7B93E0",
-    darkAccentHover: "#93a6e8",
-    darkAccentSoft: "#1c2438",
-    darkAccentInk: "#0f1320",
+    darkAccent: "#8FA6C4",
+    darkAccentHover: "#a3b6ce",
+    darkAccentSoft: "#253242",
+    darkAccentInk: "#141a22",
   },
   sameie: {
     id: "sameie",
@@ -88,32 +111,39 @@ export const BRANDS: Record<BrandId, Brand> = {
     logo: "/brands/laft_sameie.png",
     copyright: "LAFT Sameie",
     emailFromName: "LAFT Sameie",
-    accent: "#1D4ED8",
-    accentHover: "#1a43b8",
-    accentSoft: "#e0e7ff",
+    accent: "#466084",
+    accentHover: "#324660",
+    accentSoft: "#e6eaf0",
     accentInk: "#ffffff",
-    darkAccent: "#60A5FA",
-    darkAccentHover: "#7bb6fb",
-    darkAccentSoft: "#172554",
-    darkAccentInk: "#0b1226",
+    darkAccent: "#8FA6C4",
+    darkAccentHover: "#a3b6ce",
+    darkAccentSoft: "#253242",
+    darkAccentInk: "#141a22",
   },
 };
 
 export function brandFromHost(host: string | null | undefined): Brand {
   const h = (host ?? "").split(":")[0]!.toLowerCase();
+  if (h === "leie.vixon.no" || h === "leie.vixon.workers.dev" || h.startsWith("leie.")) return BRANDS.leie;
   if (h === "sameie.laft.io" || h.startsWith("sameie.")) return BRANDS.sameie;
   if (h === "mappa.laft.io" || h === "mappa2.laft.io" || h.startsWith("mappa.")) return BRANDS.naeringsmappa;
   return BRANDS.plank;
 }
 
-/** På LAFT-domenene velger brukeren selv mellom Næringsmappa og LAFT Sameie. Plank er alltid Plank. */
+/** Sameie og Næringsmappa. Leie er et eget produkt, ikke et LAFT-domene. */
+export function isLaftHost(host: string | null | undefined): boolean {
+  const id = brandFromHost(host).id;
+  return id === "naeringsmappa" || id === "sameie";
+}
+
+/** På LAFT-domenene velger brukeren selv mellom Næringsmappa og LAFT Sameie. Plank og Leie følger vertsnavnet. */
 export function resolveBrand(host: string | null | undefined, chosen?: string | null): Brand {
   const fromHost = brandFromHost(host);
-  if (fromHost.id === "plank") return fromHost;
+  if (fromHost.id === "plank" || fromHost.id === "leie") return fromHost;
   if (chosen === "naeringsmappa" || chosen === "sameie") return BRANDS[chosen];
   return fromHost;
 }
 
 export function isWhiteLabel(brand: Brand): boolean {
-  return brand.id !== "plank";
+  return brand.id === "naeringsmappa" || brand.id === "sameie";
 }

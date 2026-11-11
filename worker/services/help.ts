@@ -16,14 +16,25 @@ const HELP_SCHEDULE = "weekly:1@06:00";
 const EMPTY_PREFIX = "Tom:";
 const STALE_MS = 7 * 24 * 60 * 60 * 1000;
 const CAPTURE_BUDGET = 2;
+/** Knappen i «Kom i gang». Finnes den i teksten, dekket modalen skjermbildet. */
+const GUIDE_MARK = "Vis meg første steg";
+/** Bilder tatt før guiden ble lukket har lavere versjon og tas på nytt. */
+const SHOT_VERSION = 1;
 const AGENT_CAPTURES_PER_HOUR = 16;
 const NO_PROPERTY = "Tom: organisasjonen har ingen eiendommer ennå, så eiendomssiden kan ikke vises.";
 
 /** document/location finnes bare i siden puppeteer åpner, ikke i workeren. */
+interface PageNode {
+  textContent: string | null;
+  innerText?: string;
+  click: () => void;
+  querySelector: (sel: string) => PageNode | null;
+}
 declare const document: {
   title: string;
   body: { innerText: string } | null;
-  querySelectorAll: (sel: string) => Iterable<{ textContent: string | null; innerText?: string }>;
+  querySelector: (sel: string) => PageNode | null;
+  querySelectorAll: (sel: string) => Iterable<PageNode>;
 };
 declare const location: { pathname: string };
 
@@ -452,18 +463,36 @@ interface ShotJob {
 async function collectJobs(env: Env, budget: number): Promise<{ empties: EmptyJob[]; shots: ShotJob[] }> {
   const empties: EmptyJob[] = [];
   const shots: ShotJob[] = [];
-  const missing = await all<{ org_id: string; slug: string; route: string }>(
-    env.DB,
-    `SELECT org_id, slug, route FROM help_articles
-     WHERE shot_key IS NULL AND (seen_text IS NULL OR seen_text NOT LIKE ?)
-     ORDER BY updated_at LIMIT 30`,
-    `${EMPTY_PREFIX}%`,
-  );
-  for (const row of missing) {
+  const seen = new Set<string>();
+  const consider = async (row: { org_id: string; slug: string; route: string }) => {
+    const key = `${row.org_id}\n${row.slug}`;
+    if (seen.has(key) || shots.length >= budget) return;
+    seen.add(key);
     const resolved = await resolveArticlePath(env, row.org_id, row.slug, row.route);
     if ("empty" in resolved) empties.push({ orgId: row.org_id, slug: row.slug, reason: resolved.empty });
-    else if ("path" in resolved && shots.length < budget) shots.push({ orgId: row.org_id, slug: row.slug, path: resolved.path });
-    if (shots.length >= budget) break;
+    else if ("path" in resolved) shots.push({ orgId: row.org_id, slug: row.slug, path: resolved.path });
+  };
+  const covered = await all<{ org_id: string; slug: string; route: string }>(
+    env.DB,
+    `SELECT org_id, slug, route FROM help_articles
+     WHERE shot_key IS NOT NULL AND shot_version < ?
+     ORDER BY updated_at LIMIT ?`,
+    SHOT_VERSION,
+    budget,
+  );
+  for (const row of covered) await consider(row);
+  if (shots.length < budget) {
+    const missing = await all<{ org_id: string; slug: string; route: string }>(
+      env.DB,
+      `SELECT org_id, slug, route FROM help_articles
+       WHERE shot_key IS NULL AND (seen_text IS NULL OR seen_text NOT LIKE ?)
+       ORDER BY updated_at LIMIT 30`,
+      `${EMPTY_PREFIX}%`,
+    );
+    for (const row of missing) {
+      await consider(row);
+      if (shots.length >= budget) break;
+    }
   }
   if (shots.length < budget) {
     const stale = await all<{ org_id: string; slug: string; route: string }>(
@@ -472,11 +501,7 @@ async function collectJobs(env: Env, budget: number): Promise<{ empties: EmptyJo
       now() - STALE_MS,
       budget - shots.length,
     );
-    for (const row of stale) {
-      const resolved = await resolveArticlePath(env, row.org_id, row.slug, row.route);
-      if ("empty" in resolved) empties.push({ orgId: row.org_id, slug: row.slug, reason: resolved.empty });
-      else if ("path" in resolved) shots.push({ orgId: row.org_id, slug: row.slug, path: resolved.path });
-    }
+    for (const row of stale) await consider(row);
   }
   return { empties, shots };
 }
@@ -535,6 +560,27 @@ async function captureOrg(env: Env, origin: URL, orgId: string, shots: ShotJob[]
   return changed;
 }
 
+/** «Kom i gang» åpnes i et tomt vindu og legger seg over siden. Merk den som sett, og lukk den hvis den er oppe. */
+async function closeGuide(page: Page, orgId: string): Promise<void> {
+  await page.evaluate((id: string) => {
+    const store = (globalThis as { localStorage?: { setItem: (key: string, value: string) => void } }).localStorage;
+    try {
+      store?.setItem(`plank-guide-${id}`, "1");
+    } catch {
+      /* ignorer */
+    }
+    const dialog = document.querySelector("[role='dialog']");
+    if (!dialog?.textContent?.includes("Kom i gang")) return;
+    dialog.querySelector("button[aria-label='Lukk']")?.click();
+  }, orgId);
+  await page
+    .waitForFunction(() => {
+      const dialog = document.querySelector("[role='dialog']");
+      return dialog?.textContent?.includes("Kom i gang") !== true;
+    }, { timeout: 1500 })
+    .catch(() => undefined);
+}
+
 interface ScreenRead {
   title: string;
   headings: string[];
@@ -556,7 +602,9 @@ async function shoot(
   try {
     await page.goto(new URL(fullPath, origin).href, { waitUntil: "load", timeout: 20000 });
     await page.waitForSelector("h1, nav", { timeout: 8000 }).catch(() => undefined);
-    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 500)));
+    await closeGuide(page, orgId);
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 700)));
+    await closeGuide(page, orgId);
     const read = await readScreen(page);
     if (isLoginPath(read.path)) {
       return { ...blank, ok: false, loginFailed: true, message: "Fikk ikke åpnet siden innlogget. Skjermbildet ble ikke lagret." };
@@ -603,23 +651,29 @@ async function readScreen(page: Page): Promise<ScreenRead> {
 }
 
 async function storeShot(env: Env, page: Page, orgId: string, slug: string, route: string, text: string): Promise<{ stored: boolean; changed: boolean }> {
-  const row = await first<{ seen_hash: string | null; title: string }>(env.DB, `SELECT seen_hash, title FROM help_articles WHERE org_id = ? AND slug = ?`, orgId, slug);
+  const row = await first<{ seen_hash: string | null; seen_text: string | null; title: string }>(
+    env.DB,
+    `SELECT seen_hash, seen_text, title FROM help_articles WHERE org_id = ? AND slug = ?`,
+    orgId,
+    slug,
+  );
   if (!row) return { stored: false, changed: false };
   const raw: unknown = await page.screenshot({ type: "jpeg", quality: 65 });
   const bytes = toBytes(raw);
   const key = helpShotKey(orgId, slug);
   await env.FILES.put(key, bytes, { httpMetadata: { contentType: "image/jpeg" } });
   const hash = await sha256(text);
-  const changed = Boolean(row.seen_hash) && row.seen_hash !== hash;
+  const guideWasOpen = row.seen_text?.includes(GUIDE_MARK) ?? false;
+  const changed = Boolean(row.seen_hash) && row.seen_hash !== hash && !guideWasOpen;
   await env.DB.prepare(
     `UPDATE help_articles
-     SET shot_key = ?, seen_text = ?, seen_hash = ?,
+     SET shot_key = ?, seen_text = ?, seen_hash = ?, shot_version = ?,
          route = CASE WHEN route = '' THEN ? ELSE route END,
          needs_rewrite = CASE WHEN ? = 1 THEN 1 ELSE needs_rewrite END,
          updated_at = ?
      WHERE org_id = ? AND slug = ?`,
   )
-    .bind(key, text, hash, route, changed ? 1 : 0, now(), orgId, slug)
+    .bind(key, text, hash, SHOT_VERSION, route, changed ? 1 : 0, now(), orgId, slug)
     .run();
   await logActivity(env, {
     orgId,
@@ -646,6 +700,16 @@ async function withBrowser<T>(env: Env, orgId: string, preferUserId: string | nu
     browser = await puppeteer.launch(browserBinding, guard);
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1 });
+    await page
+      .evaluateOnNewDocument((id: string) => {
+        const store = (globalThis as { localStorage?: { setItem: (key: string, value: string) => void } }).localStorage;
+        try {
+          store?.setItem(`plank-guide-${id}`, "1");
+        } catch {
+          /* ignorer */
+        }
+      }, orgId)
+      .catch((err) => console.error("Klarte ikke å skjule oppstartsguiden", err));
     await page.setCookie({
       name: SESSION_COOKIE,
       value: token,

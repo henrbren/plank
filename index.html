@@ -14,13 +14,18 @@
         if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
         var h = location.hostname.toLowerCase().split(":")[0];
         var b = null;
-        if (h === "sameie.laft.io" || h.indexOf("sameie.") === 0) b = "sameie";
+        if (h === "leie.vixon.no" || h === "leie.vixon.workers.dev" || h.indexOf("leie.") === 0) b = "leie";
+        else if (h === "sameie.laft.io" || h.indexOf("sameie.") === 0) b = "sameie";
         else if (h === "mappa.laft.io" || h === "mappa2.laft.io" || h.indexOf("mappa.") === 0) b = "naeringsmappa";
         if (b) {
           var c = localStorage.getItem("plank-brand");
-          if (c === "sameie" || c === "naeringsmappa") b = c;
+          if (b !== "leie" && (c === "sameie" || c === "naeringsmappa")) b = c;
           document.documentElement.dataset.brand = b;
-          document.title = b === "sameie" ? "LAFT Sameie" : "Næringsmappa";
+          document.title = b === "leie" ? "Leie" : b === "sameie" ? "LAFT Sameie" : "Næringsmappa";
+          if (b === "leie") {
+            var icon = document.querySelector('link[rel="icon"]');
+            if (icon) icon.href = "/favicon-leie.svg";
+          }
         }
       } catch (e) {}
     </script>

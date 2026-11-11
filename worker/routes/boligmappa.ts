@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "../env";
 import { requireAdmin } from "../lib/auth";
-import { autoImportStep, boligmappaTree, connectBoligmappa, disconnectBoligmappa, importSelection, listBmDocuments, normalizeOrgNr, syncChunk } from "../lib/boligmappa";
+import { autoImportStep, boligmappaTree, connectBoligmappa, disconnectBoligmappa, importSelection, listBmDocuments, normalizeOrgNr, retryBoligmappaTransfer, reviveFailedDownloads, syncChunk, transferStatus } from "../lib/boligmappa";
 import { grantAgents } from "../services/laft";
 import { body } from "../lib/http";
 
@@ -53,6 +53,15 @@ boligmappa.post("/sync", async (c) => {
   });
 });
 
+boligmappa.get("/transfer", async (c) => c.json(await transferStatus(c.env, c.get("orgId"))));
+
+boligmappa.post("/transfer", async (c) => {
+  requireAdmin(c);
+  const u = c.get("user");
+  await retryBoligmappaTransfer(c.env, c.get("orgId"), { type: "user", id: u.id, name: u.name ?? u.email });
+  return c.json(await transferStatus(c.env, c.get("orgId")));
+});
+
 boligmappa.post("/auto", async (c) => {
   requireAdmin(c);
   const u = c.get("user");
@@ -64,5 +73,6 @@ boligmappa.post("/import", async (c) => {
   requireAdmin(c);
   const input = await body(c, z.object({ bmns: z.array(z.string().min(1).max(80)).min(1).max(200) }));
   const u = c.get("user");
+  await reviveFailedDownloads(c.env, c.get("orgId"), input.bmns);
   return c.json(await importSelection(c.env, c.get("orgId"), { type: "user", id: u.id, name: u.name ?? u.email }, input.bmns, c.executionCtx));
 });

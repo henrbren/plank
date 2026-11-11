@@ -21,12 +21,16 @@ export const HELP_CATALOG: HelpSeed[] = [
     category: "Kom i gang",
     path: "/",
     sort: 10,
-    summary: "Startsiden med bygg, åpne oppgaver, service og dokumenter.",
+    summary: "Startsiden med bygg og dokumenter. Oppgaver og service vises når det finnes innhold.",
     body: `Oversikt er startsiden. Øverst står navnet ditt og organisasjonen. Derfra kan du laste opp filer, og spørre en agent hva som bør prioriteres.
 
-Tallene under viser bygg, åpne oppgaver, service på overtid og dokumenter. Hvert tall åpner listen det kommer fra.
+Tallene under viser bygg og dokumenter. Åpne oppgaver vises når det finnes oppgaver. Service på overtid vises når det finnes komponenter. Hvert tall åpner listen det kommer fra.
 
-Under tallene ligger neste oppgaver og service som forfaller. Eiendommene og byggene står i sidemenyen under Portefølje.
+Siden sist står over tallene når du har vært inne før. Der ser du dokumenter, oppgaver, komponenter og annet som har skjedd siden forrige besøk. Første gang vises den siste uken.
+
+Neste oppgaver og service som forfaller ligger under tallene når det finnes noe å vise. Eiendommene og byggene står i sidemenyen under Portefølje.
+
+Sidemenyen starter med Oversikt. Kart, Dokumenter, Sider, Oppgaver og Komponenter kommer til når det finnes noe der.
 
 Spør en agent nede til høyre åpner panelet. ⌘J gjør det samme.`,
   },
@@ -78,18 +82,18 @@ Dokumenter kan knyttes til bygg og komponenter, så de vises der de hører hjemm
   },
   {
     slug: "fdv-register",
-    title: "FDV-register",
+    title: "Komponenter",
     category: "Portefølje",
     path: "/components",
     sort: 50,
     summary: "Tekniske anlegg med NS 3451, serviceintervall og tilstand.",
-    body: `FDV-registeret er komponentene: tekniske anlegg og utstyr. En komponent kan ha NS 3451-kode, TFM-merking, produsent, modell, serviceintervall, siste og neste service, og tilstandsgrad TG0–TG3.
+    body: `Komponenter er tekniske anlegg og utstyr. En komponent kan ha NS 3451-kode, TFM-merking, produsent, modell, serviceintervall, siste og neste service, og tilstandsgrad TG0–TG3.
 
 Ny komponent legger inn en komponent når du har redigeringstilgang.
 
 Åpne en komponent for detaljene. Hva skal gjøres? spør en agent når neste service er, og hva dokumentasjonen sier.
 
-Service på overtid vises også som et tall på oversikten.`,
+Når det finnes komponenter, ligger Komponenter i sidemenyen, og service på overtid vises som et tall på oversikten.`,
   },
   {
     slug: "oppgaver",
@@ -98,7 +102,7 @@ Service på overtid vises også som et tall på oversikten.`,
     path: "/tasks",
     sort: 60,
     summary: "Vedlikehold, avvik, kontroller og dokumentasjonsmangler.",
-    body: `Oppgaver samler vedlikehold, avvik, kontroller og dokumentasjonsmangler. Både du og agentene kan opprette dem.
+    body: `Oppgaver samler vedlikehold, avvik, kontroller og dokumentasjonsmangler. Både du og agentene kan opprette dem. Oppgaver vises i sidemenyen når det finnes minst én oppgave.
 
 Over listen kan du velge Åpne, Utførte eller Alle, søke, og avgrense på type og bygg.
 
@@ -143,7 +147,9 @@ Sider du fester, vises under Mine sider i sidemenyen. Agenten Sidebygger kan end
 
 Du huker av byggene og trykker Hent. Dokumenter kan hentes for ett bygg eller for flere. Siden viser organisasjonsnummeret når koblingen er på plass.
 
-Hent fra Boligmappa ligger også under pluss-knappen ved Portefølje, og under Datakilder i innstillingene. Integrasjonen gjelder hele porteføljen, så den er ikke med når du bare har tilgang til utvalgte eiendommer.`,
+Hent fra Boligmappa ligger også under pluss-knappen ved Portefølje, og under Datakilder i innstillingene. Integrasjonen gjelder hele porteføljen, så den er ikke med når du bare har tilgang til utvalgte eiendommer.
+
+Under oppstart kan du be om e-post når det senere kommer nye dokumenter. Valget ligger også under Varsler i innstillingene. Vi sjekker omtrent én gang i døgnet. E-posten om at den første overføringen er ferdig, sendes uansett.`,
   },
   {
     slug: "laft",
@@ -169,7 +175,7 @@ Hent fra LAFT ligger under pluss-knappen ved Portefølje, og under Datakilder i 
 
 Din profil er navnet som vises, og e-posten du logger inn med. Organisasjon er navnet på kontoen. Administratorer kan endre det.
 
-Abonnement viser planen og har en lenke til Abonnement og bruk. Datakilder er snarveier til LAFT og Boligmappa. Brukere og tilganger viser hvem som er med, og Systemstatus sier om agentene, e-post og tekstuthenting er klare.`,
+Abonnement viser planen og har en lenke til Abonnement og bruk. Varsler er e-post når Boligmappa senere får nye dokumenter. Datakilder er snarveier til LAFT og Boligmappa. Brukere og tilganger viser hvem som er med, og Systemstatus sier om agentene, e-post og tekstuthenting er klare.`,
   },
   {
     slug: "tilganger",

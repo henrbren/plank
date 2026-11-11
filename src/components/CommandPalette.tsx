@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
-import { Bot, CircleHelp, FileText, House, Search, Sparkles, Wrench } from "lucide-react";
+import { BarChart3, Bot, CircleHelp, FileText, House, KeyRound, Map, Search, Sparkles, Wrench } from "lucide-react";
 import type { SearchHit } from "@shared/types";
 import { api } from "@/lib/api";
 import { useAgentPanel, useOrg } from "@/lib/app";
+import { useNavFlags } from "@/lib/modules";
 import { entityPath } from "@/lib/format";
 import { ENTITY_ICONS, ENTITY_LABELS } from "./domain";
 import { cn, Spinner } from "./ui";
@@ -22,6 +23,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const { orgId } = useOrg();
   const navigate = useNavigate();
   const panel = useAgentPanel();
+  const nav = useNavFlags();
+  const mods = nav.mods;
   const [q, setQ] = useState("");
   const [data, setData] = useState<{ documents: SearchHit[]; entities: { type: string; id: string; label: string; sub: string | null }[] } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -77,10 +80,13 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       });
     }
     for (const e of data?.entities ?? []) {
+      if (e.type === "component" && !mods.komponenter) continue;
+      if (e.type === "document" && !mods.dokumenter) continue;
+      if (e.type === "artifact" && !mods.sider) continue;
       const Icon = ENTITY_ICONS[e.type] ?? FileText;
       out.push({ key: `${e.type}-${e.id}`, icon: <Icon className="size-4" />, label: e.label, sub: `${ENTITY_LABELS[e.type] ?? e.type}${e.sub ? ` · ${e.sub}` : ""}`, run: go(entityPath(orgId, e.type, e.id)) });
     }
-    for (const d of data?.documents ?? []) {
+    for (const d of mods.dokumenter ? (data?.documents ?? []) : []) {
       out.push({
         key: `doc-${d.document_id}`,
         icon: <FileText className="size-4" />,
@@ -91,20 +97,28 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       });
     }
     if (!q.trim()) {
-      out.push(
-        { key: "nav-home", icon: <House className="size-4" />, label: "Oversikt", run: go(`/o/${orgId}`) },
-        { key: "nav-tasks", icon: <ENTITY_ICONS.task className="size-4" />, label: "Oppgaver", run: go(`/o/${orgId}/tasks`) },
-        { key: "nav-docs", icon: <FileText className="size-4" />, label: "Dokumenter", run: go(`/o/${orgId}/documents`) },
-        { key: "nav-components", icon: <Wrench className="size-4" />, label: "FDV-register", run: go(`/o/${orgId}/components`) },
-        { key: "nav-agents", icon: <Bot className="size-4" />, label: "Agenter", run: go(`/o/${orgId}/agents`) },
-        { key: "nav-artifacts", icon: <ENTITY_ICONS.artifact className="size-4" />, label: "Sider", run: go(`/o/${orgId}/artifacts`) },
-        { key: "nav-help", icon: <CircleHelp className="size-4" />, label: "Hjelp", run: go(`/o/${orgId}/hjelp`) },
-        { key: "nav-laft", icon: <ENTITY_ICONS.building className="size-4" />, label: "LAFT", sub: "Datakilde", run: go(`/o/${orgId}/laft`) },
-        { key: "nav-boligmappa", icon: <FileText className="size-4" />, label: "Boligmappa", sub: "Datakilde", run: go(`/o/${orgId}/boligmappa`) },
-      );
+      const items: Result[] = nav.lease
+        ? [{ key: "nav-home", icon: <House className="size-4" />, label: "Pult", run: go(`/o/${orgId}`) }]
+        : [{ key: "nav-home", icon: <House className="size-4" />, label: "Oversikt", run: go(`/o/${orgId}`) }];
+      if (nav.utleie && !nav.lease) items.push({ key: "nav-pult", icon: <KeyRound className="size-4" />, label: "Pult", sub: "Utleie", run: go(`/o/${orgId}/pult`) });
+      if (nav.lease && nav.drift) items.push({ key: "nav-drift", icon: <BarChart3 className="size-4" />, label: "Drift", sub: "FDV-oversikten", run: go(`/o/${orgId}/drift`) });
+      if (nav.kart) items.push({ key: "nav-map", icon: <Map className="size-4" />, label: "Kart", sub: "Hvor eiendommene er", run: go(`/o/${orgId}/kart`) });
+      if (nav.tasks) items.push({ key: "nav-tasks", icon: <ENTITY_ICONS.task className="size-4" />, label: "Oppgaver", run: go(`/o/${orgId}/tasks`) });
+      if (nav.dokumenter) items.push({ key: "nav-docs", icon: <FileText className="size-4" />, label: "Dokumenter", run: go(`/o/${orgId}/documents`) });
+      if (nav.komponenter) items.push({ key: "nav-components", icon: <Wrench className="size-4" />, label: "Komponenter", run: go(`/o/${orgId}/components`) });
+      items.push({ key: "nav-agents", icon: <Bot className="size-4" />, label: "Agenter", run: go(`/o/${orgId}/agents`) });
+      if (nav.sider) items.push({ key: "nav-artifacts", icon: <ENTITY_ICONS.artifact className="size-4" />, label: "Sider", run: go(`/o/${orgId}/artifacts`) });
+      items.push({ key: "nav-help", icon: <CircleHelp className="size-4" />, label: "Hjelp", run: go(`/o/${orgId}/hjelp`) });
+      if (nav.sources) {
+        items.push(
+          { key: "nav-laft", icon: <ENTITY_ICONS.building className="size-4" />, label: "LAFT", sub: "Datakilde", run: go(`/o/${orgId}/laft`) },
+          { key: "nav-boligmappa", icon: <FileText className="size-4" />, label: "Boligmappa", sub: "Datakilde", run: go(`/o/${orgId}/boligmappa`) },
+        );
+      }
+      out.push(...items);
     }
     return out;
-  }, [data, q, orgId, navigate, onClose, panel]);
+  }, [data, q, orgId, navigate, onClose, panel, nav, mods]);
 
   if (!open) return null;
 
@@ -132,7 +146,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKey}
-            placeholder="Søk i bygg, rom, komponenter, oppgaver og dokumenter …"
+            placeholder={nav.lease && !mods.dokumenter && !mods.komponenter ? "Søk i bygg, rom og saker …" : "Søk i bygg, rom, komponenter, oppgaver og dokumenter …"}
             className="h-12 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted"
           />
           {loading && <Spinner />}

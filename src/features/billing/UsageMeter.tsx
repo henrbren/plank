@@ -67,13 +67,13 @@ export function UsageMeter() {
             setOpen(true);
           }
         }}
-        className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left hover:bg-panel-2"
+        className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-nav-ink hover:bg-nav-hover"
       >
-        <span className="text-[12px] font-medium text-ink-2">AI-bruk</span>
+        <span className="text-[12px] font-medium text-nav-ink-2">AI-bruk</span>
         {usage.paused ? (
           <span className="ml-auto rounded-full bg-bad-soft px-1.5 text-[11.5px] font-medium text-bad">På pause</span>
         ) : (
-          <span className={cn("ml-auto text-[12px] tabular-nums", tone === "warn" ? "text-warn" : "text-muted")}>{pct} %</span>
+          <span className={cn("ml-auto text-[12px] tabular-nums", tone === "warn" ? "text-warn" : "text-nav-muted")}>{pct} %</span>
         )}
       </button>
       {open && (
@@ -102,7 +102,9 @@ export function UsageMeter() {
               {usage.creditExpiresAt ? `, til ${formatDate(usage.creditExpiresAt)}` : ""}.
             </p>
           )}
-          {!paying && !b.managed && <p className="mt-1 text-[12.5px] text-muted">Prøvebruk faktureres ikke.</p>}
+          {!paying && !b.managed && (
+            <p className="mt-1 text-[12.5px] leading-relaxed text-muted">Prøvebruk faktureres ikke. Et abonnement inkluderer AI-bruk hver måned.</p>
+          )}
           {b.managed && <p className="mt-1 text-[12.5px] text-muted">AI-bruk på denne kontoen faktureres ikke.</p>}
           <Link to={`/o/${orgId}/abonnement`} className="mt-2 inline-block text-[12.5px] text-ink underline">
             {usage.paused ? "Hev grensen" : "Abonnement og bruk"}

@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router";
+import { useMemo, useState, type MouseEvent } from "react";
+import { Link, useNavigate, useParams } from "react-router";
 import { ArrowUpRight, CircleHelp, Search, Sparkles } from "lucide-react";
 import type { HelpDetail, HelpIndex } from "@shared/types";
 import { useAgentPanel, useOrg, useOrgQuery } from "@/lib/app";
+import { resolvePlankHref } from "@/lib/format";
 import { renderMarkdown } from "@/lib/markdown";
 import { Button, ButtonLink, EmptyState, Input, Loading, PageHeader } from "@/components/ui";
 
@@ -92,6 +93,7 @@ export function HelpPage() {
 
 export function HelpArticlePage() {
   const { orgId } = useOrg();
+  const navigate = useNavigate();
   const { slug } = useParams();
   const panel = useAgentPanel();
   const detail = useOrgQuery<HelpDetail>(slug ? `/help/${slug}` : null, {
@@ -155,7 +157,18 @@ export function HelpArticlePage() {
         />
       )}
       {canViewShots && !article.has_shot && <p className="mb-6 text-[13px] text-muted">Skjermbildet kommer automatisk.</p>}
-      <div className="prose-plank text-[14.5px]" dangerouslySetInnerHTML={{ __html: renderMarkdown(article.body) }} />
+      <div
+        className="prose-plank text-[14.5px]"
+        onClick={(e: MouseEvent<HTMLDivElement>) => {
+          const a = (e.target as HTMLElement).closest("a");
+          if (!a) return;
+          const internal = resolvePlankHref(orgId, a.getAttribute("href") ?? "");
+          if (!internal) return;
+          e.preventDefault();
+          navigate(internal);
+        }}
+        dangerouslySetInnerHTML={{ __html: renderMarkdown(article.body) }}
+      />
     </div>
   );
 }

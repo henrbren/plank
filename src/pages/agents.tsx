@@ -3,9 +3,11 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { CalendarClock, MessageSquare, Play, Plus, Trash2 } from "lucide-react";
 import { MODELS, TOOL_GROUPS, type Agent, type AgentRun, type AgentTemplate, type Effort, type ToolGroup, type TreeProperty } from "@shared/types";
 import { useAgentPanel, useOrg, useOrgApi, useOrgQuery, useSetFocus } from "@/lib/app";
+import { useBrand } from "@/lib/brand";
 import { formatDateTime, timeAgo } from "@/lib/format";
 import { AGENT_COLORS, AGENT_SHAPES, AgentAvatar, agentShape } from "@/components/domain";
 import { Badge, Button, Card, Checkbox, ErrorState, Field, Input, Loading, Modal, PageHeader, Select, Textarea, cn, useConfirm, useToast } from "@/components/ui";
+import { PlanLink, TrialNote } from "@/features/billing/TrialNote";
 
 type AgentWithLabel = Agent & { schedule_label: string };
 
@@ -31,6 +33,9 @@ export function AgentsPage() {
           )
         }
       />
+      <TrialNote>
+        En planlagt agent kjører uten at noen sitter her. Abonnementet gir den AI-bruk å jobbe for hver måned. <PlanLink>Se planene</PlanLink>
+      </TrialNote>
       {agents.isLoading ? (
         <Loading />
       ) : (
@@ -156,6 +161,7 @@ export function AgentEditPage() {
   const isNew = !id;
   const [params] = useSearchParams();
   const { orgId } = useOrg();
+  const brand = useBrand();
   const navigate = useNavigate();
   const call = useOrgApi();
   const toast = useToast();
@@ -327,7 +333,7 @@ export function AgentEditPage() {
 
         <section className={section}>
           <h2 className={h}>Instrukser</h2>
-          <p className={sub}>Beskriv rollen, arbeidsmåten og hva agenten skal prioritere. Plank legger selv til kunnskap om FDV, NS 3451 og verktøyene.</p>
+          <p className={sub}>Beskriv rollen, arbeidsmåten og hva agenten skal prioritere. {brand.name} legger selv til kunnskap om verktøyene.</p>
           <Textarea rows={12} className="font-mono text-[13px] leading-relaxed" value={form.instructions} onChange={(e) => set("instructions", e.target.value)} placeholder="Du er …" />
         </section>
 
@@ -356,7 +362,7 @@ export function AgentEditPage() {
 
         <section className={section}>
           <h2 className={h}>Verktøy</h2>
-          <p className={sub}>Hva agenten har lov til å lese og endre i Plank.</p>
+          <p className={sub}>Hva agenten har lov til å lese og endre i {brand.name}.</p>
           <div className="grid gap-1 @xl:grid-cols-2">
             {(Object.entries(TOOL_GROUPS) as [ToolGroup, (typeof TOOL_GROUPS)[ToolGroup]][]).map(([key, g]) => (
               <Checkbox

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useEffectiveTheme, useOrg } from "@/lib/app";
+import { useEffectiveTheme } from "@/lib/app";
 import { entityPath } from "@/lib/format";
 import { TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES, type TaskPriority, type TaskStatus, type TaskType } from "@shared/types";
 import { Button, Modal } from "@/components/ui";
@@ -178,6 +178,9 @@ export function ArtifactFrame({
   artifactId,
   buildingId,
   propertyId,
+  orgName,
+  orgId,
+  shareToken,
   onRuntimeError,
   className,
 }: {
@@ -185,10 +188,14 @@ export function ArtifactFrame({
   artifactId: string;
   buildingId?: string | null;
   propertyId?: string | null;
+  orgName: string;
+  /** Satt i organisasjonen. Uten denne er siden skrivebeskyttet. */
+  orgId?: string;
+  /** Delingslenke. Spørringer går mot den, og handlinger er av. */
+  shareToken?: string;
   onRuntimeError?: (msg: string) => void;
   className?: string;
 }) {
-  const { orgId, org } = useOrg();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const theme = useEffectiveTheme();
@@ -212,7 +219,10 @@ export function ArtifactFrame({
     } else setBlocked(true);
   };
 
-  const context = useMemo(() => ({ orgName: org.name, artifactId, buildingId: buildingId ?? null, propertyId: propertyId ?? null, theme }), [org.name, artifactId, buildingId, propertyId, theme]);
+  const context = useMemo(
+    () => ({ orgName, artifactId, buildingId: buildingId ?? null, propertyId: propertyId ?? null, theme, ...(shareToken ? { shared: true } : {}) }),
+    [orgName, artifactId, buildingId, propertyId, theme, shareToken],
+  );
   // srcdoc bygges bare når HTML endres (ikke ved temabytte – det sendes som melding)
   const srcDoc = useMemo(() => buildSrcDoc(html, window.location.origin, context), [html]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -221,8 +231,9 @@ export function ArtifactFrame({
   }, [context]);
 
   useEffect(() => {
-    const base = `/orgs/${orgId}`;
+    const base = `/orgs/${orgId ?? ""}`;
     const query = async (name: string, p: Record<string, unknown>): Promise<unknown> => {
+      if (shareToken) return api(`/share/${encodeURIComponent(shareToken)}/query`, { body: { name, params: p } });
       switch (name) {
         case "portfolio.tree":
           return api(`${base}/portfolio/tree`);
@@ -238,6 +249,8 @@ export function ArtifactFrame({
           return api(`${base}/documents?${pick(p, ["building_id", "property_id", "kind", "component_id", "q"])}`);
         case "documents.search":
           return api(`${base}/documents/search?${pick(p, ["q", "building_id"])}`);
+        case "documents.texts":
+          return api(`${base}/documents/texts`);
         case "ifc.models":
           return api(`${base}/ifc/models?${pick(p, ["building_id"])}`);
         case "ifc.elements":
@@ -265,6 +278,7 @@ export function ArtifactFrame({
       }
     };
     const action = async (name: string, p: Record<string, unknown>): Promise<unknown> => {
+      if (shareToken || !orgId) throw new Error("Siden er skrivebeskyttet");
       if (pendingAction.current) throw new Error("En annen handling venter allerede på bekreftelse");
       pendingAction.current = true;
       let ok = false;
@@ -290,7 +304,7 @@ export function ArtifactFrame({
       const d = e.data as { __plank?: boolean; kind?: string; id?: number; name?: string; params?: Record<string, unknown>; type?: string; message?: string };
       if (!d?.__plank) return;
       if (d.kind === "open" && d.type && typeof (d as { id?: unknown }).id === "string") {
-        navigate(entityPath(orgId, d.type, String((d as { id?: unknown }).id)));
+        if (orgId && !shareToken) navigate(entityPath(orgId, d.type, String((d as { id?: unknown }).id)));
         return;
       }
       if (d.kind === "error") {
@@ -307,7 +321,7 @@ export function ArtifactFrame({
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [orgId, navigate, qc, onRuntimeError]);
+  }, [orgId, shareToken, navigate, qc, onRuntimeError]);
 
   return (
     <>

@@ -28,8 +28,8 @@ export function ComponentsPage() {
     <div className="mx-auto max-w-6xl px-5 py-7 sm:px-8">
       <PageHeader
         icon={<Wrench className="size-5" />}
-        title="FDV-register"
-        subtitle="Tekniske anlegg og utstyr med NS 3451, TFM, serviceintervaller og tilstand."
+        title="Komponenter"
+        subtitle="Tekniske anlegg og utstyr, med leverandør, NS 3451, serviceintervaller og tilstand."
         actions={
           canEdit && (
             <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setCreate(true)}>
@@ -41,7 +41,7 @@ export function ComponentsPage() {
       <div className="mb-4 flex flex-wrap gap-2">
         <div className="relative min-w-60 flex-1">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
-          <Input className="pl-9" placeholder="Søk på navn, produsent, modell eller TFM …" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input className="pl-9" placeholder="Søk på navn, leverandør, produsent eller TFM …" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <Select className="w-auto min-w-44" value={building} onChange={(e) => setBuilding(e.target.value)}>
           <option value="">Alle bygg</option>
@@ -99,7 +99,7 @@ export function ComponentPage() {
     toast("Service registrert i dag – neste service er beregnet", "ok");
   };
   const remove = async () => {
-    if (!(await confirm({ title: "Slette komponenten?", message: `«${c.name}» fjernes fra FDV-registeret.`, confirm: "Slett", danger: true }))) return;
+    if (!(await confirm({ title: "Slette komponenten?", message: `«${c.name}» fjernes.`, confirm: "Slett", danger: true }))) return;
     await call(`/components/${c.id}`, { method: "DELETE" });
     navigate(`/o/${orgId}/components`);
   };
@@ -108,7 +108,7 @@ export function ComponentPage() {
   return (
     <div className="mx-auto max-w-6xl px-5 py-7 sm:px-8">
       <PageHeader
-        crumbs={[{ label: "FDV-register", to: `/o/${orgId}/components` }, ...(c.building_id ? [{ label: c.building_name ?? "Bygg", to: `/o/${orgId}/buildings/${c.building_id}` }] : [])]}
+        crumbs={[{ label: "Komponenter", to: `/o/${orgId}/components` }, ...(c.building_id ? [{ label: c.building_name ?? "Bygg", to: `/o/${orgId}/buildings/${c.building_id}` }] : [])]}
         icon={<Wrench className="size-5" />}
         title={c.name}
         subtitle={[c.manufacturer, c.model, c.tfm].filter(Boolean).join(" · ") || c.category || "Komponent"}

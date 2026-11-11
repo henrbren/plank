@@ -65,6 +65,7 @@ export const ENTITY_PATHS: Record<string, string> = {
   artifact: "artifacts",
   conversation: "conversations",
   model: "models",
+  desk: "pult",
 };
 
 export function entityPath(orgId: string, type: string, id: string): string {
@@ -75,9 +76,89 @@ export function formatOrgNr(nr: string) {
   return nr.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
 }
 
-/** Gjør plank://type/id om til interne stier */
+/** Faste skjermer. Nøkkelen er det agenten skriver, verdien er stien under /o/:orgId. Tom streng er oversikten. */
+const APP_PAGES: Record<string, string> = {
+  oversikt: "",
+  home: "",
+  start: "",
+  pult: "pult",
+  drift: "drift",
+  kart: "kart",
+  map: "kart",
+  oppgaver: "tasks",
+  oppgave: "tasks",
+  tasks: "tasks",
+  task: "tasks",
+  dokumenter: "documents",
+  dokument: "documents",
+  documents: "documents",
+  document: "documents",
+  komponenter: "components",
+  komponent: "components",
+  components: "components",
+  component: "components",
+  "fdv-register": "components",
+  sider: "artifacts",
+  pages: "artifacts",
+  artifacts: "artifacts",
+  agenter: "agents",
+  agents: "agents",
+  hjelp: "hjelp",
+  help: "hjelp",
+  boligmappa: "boligmappa",
+  laft: "laft",
+  innstillinger: "settings",
+  settings: "settings",
+  tilganger: "tilganger",
+  access: "tilganger",
+  abonnement: "abonnement",
+  subscription: "abonnement",
+};
+
+function appHref(orgId: string, key: string): string | null {
+  const route = APP_PAGES[key.trim().toLowerCase()];
+  if (route === undefined) return null;
+  return route ? `/o/${orgId}/${route}` : `/o/${orgId}`;
+}
+
+/** art_…, tsk_… og tilsvarende. Et vanlig navn som «Oppgaver» er ikke en id. */
+function looksLikeId(id: string): boolean {
+  return /^[a-z]{2,5}_[a-z0-9]+$/i.test(id);
+}
+
+function namedOrEntity(orgId: string, type: string, id: string): string {
+  if (!looksLikeId(id)) {
+    const named = appHref(orgId, id);
+    if (named) return named;
+  }
+  return entityPath(orgId, type, id);
+}
+
+/** Gjør plank://-lenker og kjente stier om til sider i denne organisasjonen. */
 export function resolvePlankHref(orgId: string, href: string): string | null {
-  const m = /^plank:\/\/(\w+)\/([\w-]+)/.exec(href);
-  if (!m) return null;
-  return entityPath(orgId, m[1]!, m[2]!);
+  const raw = href.trim();
+  if (/^plank:/i.test(raw)) {
+    const named = /^plank:\/\/(?:nav|page|side)\/([^/?#]+)/i.exec(raw);
+    if (named) return appHref(orgId, decodeURIComponent(named[1]!));
+    const bare = /^plank:\/\/([^/?#]+)$/i.exec(raw);
+    if (bare) return appHref(orgId, decodeURIComponent(bare[1]!));
+    const entity = /^plank:\/\/(\w+)\/([^/?#]+)/.exec(raw);
+    if (!entity) return null;
+    return namedOrEntity(orgId, entity[1]!, decodeURIComponent(entity[2]!));
+  }
+  if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return null;
+  let path = raw.replace(/^\.\//, "");
+  if (!path.startsWith("/") && !/^[A-Za-z0-9_-]+$/.test(path)) return null;
+  if (!path.startsWith("/")) path = `/${path}`;
+  const cut = path.search(/[?#]/);
+  if (cut >= 0) path = path.slice(0, cut);
+  path = path.replace(/\/+$/, "") || "/";
+  const inOrg = /^\/o\/[^/]+(\/.*)?$/.exec(path);
+  const rest = inOrg ? inOrg[1] || "/" : path;
+  if (rest === "/") return `/o/${orgId}`;
+  const helpArticle = /^\/hjelp\/([a-z0-9-]+)$/i.exec(rest);
+  if (helpArticle) return `/o/${orgId}/hjelp/${helpArticle[1]}`;
+  const nested = /^\/(tasks|documents|components|artifacts|agents|buildings|properties|floors|rooms|models|conversations)\/([^/]+)$/.exec(rest);
+  if (nested) return namedOrEntity(orgId, nested[1]!, decodeURIComponent(nested[2]!));
+  return appHref(orgId, rest.slice(1));
 }

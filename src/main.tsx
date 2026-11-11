@@ -5,6 +5,7 @@ import { RouterProvider } from "react-router/dom";
 import { router } from "./App";
 import { ToastProvider } from "./components/ui";
 import { ApiError } from "./lib/api";
+import { clearChunkReload } from "./lib/chunk";
 import { BrandProvider } from "./lib/brand";
 import "./styles.css";
 
@@ -17,6 +18,9 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Flagget settes når en utdatert fane laster på nytt. Fjern det når appen har kommet opp, så neste deploy kan gjøre det én gang til.
+window.setTimeout(clearChunkReload, 8000);
 
 // Ved utløpt sesjon: send brukeren til innlogging
 window.addEventListener("plank:unauthorized", () => {

@@ -1,9 +1,9 @@
 import type { Env } from "../env";
-import { assertCanEdit, assertFullScope, scopeSql, sees } from "../lib/access";
+import { assertCanEdit, assertFullScope, canShareArtifact, scopeSql, sees } from "../lib/access";
 import { all, first, insert } from "../lib/db";
 import { badRequest, notFound } from "../lib/http";
-import { newId, now } from "../lib/util";
-import { SIDEBAR_ICONS, type Artifact, type ArtifactVersion, type SidebarIcon, type SidebarPage } from "../../shared/types";
+import { newId, now, randomToken } from "../lib/util";
+import { SIDEBAR_ICONS, type Artifact, type ArtifactShareMode, type ArtifactVersion, type SidebarIcon, type SidebarPage } from "../../shared/types";
 
 const MAX_HTML = 600_000;
 const MAX_SIDEBAR = 12;
@@ -58,6 +58,15 @@ export async function moveSidebar(env: Env, orgId: string, id: string, dir: -1 |
 
 const SELECT = `SELECT a.*, b.name AS building_name FROM artifacts a LEFT JOIN buildings b ON b.id = a.building_id`;
 
+export function shareModeOf(raw: unknown): ArtifactShareMode {
+  return raw === "login" || raw === "link" ? raw : "off";
+}
+
+/** Listen skal ikke bære med seg delingslenken. Detaljen gjør det, for den som kan dele. */
+function presentArtifact(row: Artifact, token: boolean): Artifact {
+  return { ...row, share_mode: shareModeOf(row.share_mode), share_token: token ? (row.share_token ?? null) : null };
+}
+
 export async function listArtifacts(env: Env, orgId: string, f: { building_id?: string | null; property_id?: string | null } = {}) {
   const where = ["a.org_id = ?"];
   const params: unknown[] = [orgId];
@@ -65,13 +74,35 @@ export async function listArtifacts(env: Env, orgId: string, f: { building_id?: 
   if (f.property_id) where.push("a.property_id = ?"), params.push(f.property_id);
   const scope = scopeSql({ building: "a.building_id", property: "a.property_id" });
   where.push(scope.sql), params.push(...scope.params);
-  return all<Artifact>(env.DB, `${SELECT} WHERE ${where.join(" AND ")} ORDER BY a.pinned DESC, a.updated_at DESC LIMIT 300`, ...params);
+  const rows = await all<Artifact>(env.DB, `${SELECT} WHERE ${where.join(" AND ")} ORDER BY a.pinned DESC, a.updated_at DESC LIMIT 300`, ...params);
+  return rows.map((row) => presentArtifact(row, false));
 }
 
 export async function getArtifact(env: Env, orgId: string, id: string): Promise<Artifact> {
   const a = await first<Artifact>(env.DB, `${SELECT} WHERE a.id = ? AND a.org_id = ?`, id, orgId);
   if (!a || !sees(a)) throw notFound("Siden");
-  return a;
+  return presentArtifact(a, canShareArtifact());
+}
+
+/** Skrur deling av eller på. Av slår av lenken. Bytte mellom innloggede og alle beholder samme lenke. */
+export async function setArtifactShare(env: Env, orgId: string, id: string, input: { mode?: ArtifactShareMode; rotate?: boolean }): Promise<Artifact> {
+  assertCanEdit();
+  assertFullScope("Deling");
+  const current = await first<{ share_mode: string | null; share_token: string | null }>(
+    env.DB,
+    `SELECT share_mode, share_token FROM artifacts WHERE id = ? AND org_id = ?`,
+    id,
+    orgId,
+  );
+  if (!current) throw notFound("Siden");
+  const mode = input.mode ?? shareModeOf(current.share_mode);
+  let token = current.share_token;
+  if (mode === "off") token = null;
+  else if (!token || input.rotate) token = randomToken(24);
+  await env.DB.prepare(`UPDATE artifacts SET share_mode = ?, share_token = ?, updated_at = ? WHERE id = ? AND org_id = ?`)
+    .bind(mode, token, now(), id, orgId)
+    .run();
+  return getArtifact(env, orgId, id);
 }
 
 export async function getArtifactHtml(env: Env, orgId: string, id: string, version?: number) {

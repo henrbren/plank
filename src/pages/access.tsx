@@ -426,6 +426,11 @@ function PlacePicker({
   );
 }
 
+/** Samme invitasjon som «Inviter» på Brukere og tilganger. */
+export function InviteModal({ onClose }: { onClose: () => void }) {
+  return <AccessModal member={null} onClose={onClose} />;
+}
+
 function AccessModal({ member, onClose }: { member: Member | null; onClose: () => void }) {
   const { org } = useOrg();
   const call = useOrgApi();

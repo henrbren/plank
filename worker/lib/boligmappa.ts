@@ -1,11 +1,15 @@
 import type { Env } from "../env";
-import type { AutoImportStep, BmBuilding, BmDocument, BmEstate, BmTree, DocumentKind } from "../../shared/types";
+import { BRANDS, type BrandId } from "../../shared/brand";
+import type { AutoImportStep, BmBuilding, BmDocument, BmEstate, BmTree, TransferStatus } from "../../shared/types";
 import { activityStatement, logActivity } from "./activity";
 import { assertCanAddBuilding, buildingLimit } from "./billing";
+import { emailFrom } from "./brand";
 import { all, first, insert } from "./db";
-import { guessMime, processDocument } from "./documents";
+import { guessMime, kindOf, magicMime, processDocument } from "./documents";
+import { boligmappaNewDocumentsEmail, boligmappaReadyEmail, emailConfigured, sendEmail } from "./email";
 import { ApiError } from "./http";
-import { fetchRetry, isTransient, sleep, TransientError } from "./retry";
+import { fetchWebhookDocuments, type MsWebhookDocument } from "./boligmappaMs";
+import { fetchRetry, isTimeout, isTransient, sleep, TransientError } from "./retry";
 import { newId, now, parseJson } from "./util";
 
 const PAGE_SIZE = 100;
@@ -14,8 +18,24 @@ const TOKEN_MS = 15_000;
 const CALL_MS = 45_000;
 const STEP_MS = 55_000;
 const MAX_DOC_BYTES = 95 * 1024 * 1024;
-/** Dokumenter som lastes ned samtidig i ett importsteg */
-const DOCS_PER_STEP = 3;
+/**
+ * Boligmappa har ingen felles dokumentliste, så vi spør flere bygg i samme steg.
+ * Seks samtidige ut-tilkoblinger gjelder også på betalt plan. 10 000 eksterne kall gir rom for mange runder.
+ */
+const LIST_CONCURRENCY = 4;
+/** Én fil av gangen. Boligmappa kutter ofte strømmen, og parallelle kopier dør sammen. */
+const DOWNLOAD_CONCURRENCY = 1;
+/** Tid til første byte, og deretter tid til selve fila. En kort frist på hele kallet kutter store tegninger. */
+const HEADER_MS = 25_000;
+const BODY_MS = 90_000;
+/** Øvre tak per importsteg. Nye filer startes ikke etter QUEUE_WALL_MS. */
+const DOCS_PER_STEP = 12;
+/** Ikke start mer arbeid etter dette, så én organisasjon ikke holder køen. Et kall som alt er i gang får gjøre seg ferdig. */
+const QUEUE_WALL_MS = 120_000;
+/** Tak på steg i samme kø-kjøring. Veggtiden stopper vanligvis først. */
+const QUEUE_ROUNDS = 16;
+/** Kort pause når et steg ikke fikk inn noe, så vi ikke hamrer et API som allerede feiler. */
+const IDLE_DELAY_MS = 4_000;
 /** Nedlastinger som feiler forbigående, prøves så mange ganger før dokumentet merkes med feil */
 const MAX_DOC_ATTEMPTS = 5;
 /**
@@ -52,6 +72,8 @@ interface TokenCache {
   exp: number;
 }
 let tokenCache: TokenCache | null = null;
+/** Én token-forespørsel selv om flere listekall starter samtidig. */
+let tokenFlight: Promise<string> | null = null;
 
 export function boligmappaConfigured(env: Env): boolean {
   return Boolean(env.BOLIGMAPPA_CLIENT_ID && env.BOLIGMAPPA_CLIENT_SECRET && env.BOLIGMAPPA_TOKEN_HOST && env.BOLIGMAPPA_API_BASE_URL);
@@ -70,6 +92,13 @@ export function normalizeOrgNr(raw: string): string {
 async function accessToken(env: Env): Promise<string> {
   const key = env.BOLIGMAPPA_CLIENT_ID ?? "";
   if (tokenCache && tokenCache.key === key && tokenCache.exp > Date.now()) return tokenCache.token;
+  tokenFlight ??= readAccessToken(env, key).finally(() => {
+    tokenFlight = null;
+  });
+  return tokenFlight;
+}
+
+async function readAccessToken(env: Env, key: string): Promise<string> {
   const body = new URLSearchParams({
     grant_type: "client_credentials",
     client_id: env.BOLIGMAPPA_CLIENT_ID ?? "",
@@ -120,9 +149,13 @@ function pageOf(json: { meta?: Json; metadata?: Json; pagination?: Json }): { pa
   return { pageCount, total };
 }
 
-async function apiGet(env: Env, path: string): Promise<Page> {
+async function apiGet(env: Env, path: string, opts?: { failFast?: readonly number[]; tries?: number }): Promise<Page> {
   const call = async () =>
-    fetchRetry(`${baseUrl(env)}${path}`, { headers: { Authorization: `Bearer ${await accessToken(env)}`, Accept: "application/json" } }, { ...BM, timeoutMs: CALL_MS, budgetMs: STEP_MS });
+    fetchRetry(
+      `${baseUrl(env)}${path}`,
+      { headers: { Authorization: `Bearer ${await accessToken(env)}`, Accept: "application/json" } },
+      { ...BM, timeoutMs: CALL_MS, budgetMs: STEP_MS, failFast: opts?.failFast, tries: opts?.tries },
+    );
   let res = await call();
   if (res.status === 401) {
     tokenCache = null;
@@ -181,7 +214,8 @@ function labelOf(value: unknown): string | null {
 function addressOf(raw: Json): { street: string | null; postal: string | null; city: string | null; municipality: string | null; knr: string | null } {
   const list = Array.isArray(raw.addresses) ? raw.addresses : [];
   const a = asObj(list[0]) ?? asObj(raw.address) ?? {};
-  const street = [text(a.streetName), text(a.houseNumber), text(a.houseSubNumber)].filter(Boolean).join(" ") || null;
+  const number = [text(a.houseNumber), text(a.houseLetter) ?? text(a.houseSubNumber)].filter(Boolean).join("");
+  const street = [text(a.streetName), number].filter(Boolean).join(" ") || null;
   return {
     street,
     postal: text(a.postalCode),
@@ -217,21 +251,6 @@ function areaM2(raw: Json): number | null {
   if (utilized != null && utilized > 0) return utilized;
   if (space != null && space > 0) return Math.round(space);
   return null;
-}
-
-export function kindOf(category: string | null, filename: string | null): DocumentKind {
-  const hay = `${category ?? ""} ${filename ?? ""}`.toLowerCase();
-  if (hay.includes("ifc")) return "ifc";
-  if (hay.includes("fdv")) return "fdv";
-  if (hay.includes("datablad")) return "produktdatablad";
-  if (hay.includes("manual") || hay.includes("bruksanvis") || hay.includes("vedlikehold")) return "brukermanual";
-  if (hay.includes("tegning") || hay.includes("plan")) return "tegning";
-  if (hay.includes("sertifikat") || hay.includes("samsvar")) return "sertifikat";
-  if (hay.includes("tilstand") || hay.includes("rapport")) return "rapport";
-  if (hay.includes("kontroll") || hay.includes("service")) return "kontroll";
-  if (hay.includes("kontrakt") || hay.includes("avtale")) return "avtale";
-  if (hay.includes("bilde") || hay.includes("foto") || /\.(jpe?g|png|webp)$/.test(hay)) return "bilde";
-  return "annet";
 }
 
 interface SourceRow {
@@ -403,14 +422,76 @@ async function storeUnits(env: Env, rows: NonNullable<ReturnType<typeof unitRow>
   }
 }
 
+/** Filnavn fra lista og fra webhooken skal treffe hverandre selv om den ene mangler .pdf. */
+function canonName(name: string | null | undefined): string | null {
+  if (!name) return null;
+  const base = name.trim().toLowerCase().replace(/\.pdf$/i, "").replace(/\s+/g, " ");
+  return base.length >= 3 ? base : null;
+}
+
+function canonNames(...values: (string | null | undefined)[]): string[] {
+  return [...new Set(values.map((value) => canonName(value)).filter((name): name is string => name != null))];
+}
+
+function documentIdFromUrl(url: string | null | undefined): string | null {
+  return url?.match(/\/documents\/(\d+)\//)?.[1] ?? null;
+}
+
+/** Presigned lenker bytter signatur. Stien er den samme fila. */
+function stableUrlId(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    const path = decodeURIComponent(parsed.pathname);
+    if (!path || path === "/") return null;
+    return `url:${parsed.origin}${path}`;
+  } catch {
+    return null;
+  }
+}
+
+/** Rader vi la inn fra mellomlageret, ikke fra Boligmappas egen liste. */
+function isStashId(remoteId: string): boolean {
+  return remoteId.startsWith("url:") || remoteId.startsWith("name:") || remoteId.startsWith("wh:");
+}
+
 function docRemoteId(raw: Json, ownerKind: string, ownerBmn: string): string | null {
-  const id = text(raw.id) ?? text(raw.documentId);
+  const url = text(asObj(raw.url)?.link) ?? text(raw.downloadUrl) ?? text(raw.pdfConversion);
+  const id = text(raw.id) ?? text(raw.documentId) ?? documentIdFromUrl(url);
   if (id) return id;
-  const url = text(asObj(raw.url)?.link) ?? text(raw.downloadUrl);
   return url ? `${ownerKind}:${ownerBmn}:${url.split("?")[0]!.slice(-80)}` : null;
 }
 
+interface HeldFile {
+  remote_id: string;
+  imported_document_id: string | null;
+}
+
+async function filesOnOwner(env: Env, orgId: string, ownerKind: string, ownerBmn: string): Promise<Map<string, HeldFile>> {
+  const rows = await all<{ remote_id: string; filename: string | null; title: string | null; imported_document_id: string | null }>(
+    env.DB,
+    `SELECT remote_id, filename, title, imported_document_id FROM bm_documents WHERE org_id = ? AND owner_kind = ? AND owner_bmn = ?`,
+    orgId,
+    ownerKind,
+    ownerBmn,
+  );
+  const byName = new Map<string, HeldFile>();
+  for (const row of rows) {
+    for (const name of [canonName(row.filename), canonName(row.title)]) {
+      if (!name || byName.has(name)) continue;
+      byName.set(name, { remote_id: row.remote_id, imported_document_id: row.imported_document_id });
+    }
+  }
+  return byName;
+}
+
 async function storeDocuments(env: Env, orgId: string, ownerKind: "building" | "unit", ownerBmn: string, items: Json[]): Promise<number> {
+  const byName = await filesOnOwner(env, orgId, ownerKind, ownerBmn);
+  const dropHeld = (remoteId: string) => {
+    for (const key of [...byName.keys()]) {
+      if (byName.get(key)?.remote_id === remoteId) byName.delete(key);
+    }
+  };
   let n = 0;
   for (const raw of items) {
     const remoteId = docRemoteId(raw, ownerKind, ownerBmn);
@@ -418,24 +499,303 @@ async function storeDocuments(env: Env, orgId: string, ownerKind: "building" | "
     const filename = text(raw.fileName) ?? text(raw.filename) ?? text(raw.name);
     const title = (text(raw.title) ?? filename ?? "Dokument").slice(0, 200);
     const url = text(asObj(raw.url)?.link) ?? text(raw.downloadUrl) ?? text(raw.pdfConversion);
+    const names = canonNames(filename, title);
+    // Mellomlageret har ofte den samme fila som lista. Behold lista. Et annet dokument-id med samme navn er en annen fil.
+    const stash = names.map((key) => byName.get(key)).find((hit) => hit && hit.remote_id !== remoteId && isStashId(hit.remote_id));
+    if (stash?.imported_document_id) {
+      await env.DB.prepare(
+        `INSERT INTO bm_documents (org_id, remote_id, owner_kind, owner_bmn, title, filename, category, download_url, error, imported_document_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+         ON CONFLICT(org_id, remote_id) DO UPDATE SET imported_document_id = excluded.imported_document_id, error = NULL
+         WHERE imported_document_id IS NULL`,
+      )
+        .bind(orgId, remoteId, ownerKind, ownerBmn, title, filename, labelOf(raw.documentType) ?? labelOf(raw.category), url, stash.imported_document_id)
+        .run();
+      dropHeld(stash.remote_id);
+      for (const key of names) byName.set(key, { remote_id: remoteId, imported_document_id: stash.imported_document_id });
+      n++;
+      continue;
+    }
+    if (stash) {
+      await env.DB.prepare(`DELETE FROM bm_documents WHERE org_id = ? AND remote_id = ? AND imported_document_id IS NULL`).bind(orgId, stash.remote_id).run();
+      dropHeld(stash.remote_id);
+    }
     await env.DB.prepare(
       `INSERT INTO bm_documents (org_id, remote_id, owner_kind, owner_bmn, title, filename, category, download_url, error, imported_document_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)
        ON CONFLICT(org_id, remote_id) DO UPDATE SET
-         title = excluded.title, filename = excluded.filename, category = excluded.category, download_url = excluded.download_url
+         title = excluded.title, filename = excluded.filename, category = excluded.category, download_url = excluded.download_url,
+         error = CASE WHEN error = 'Nedlastingen fra Boligmappa ble avbrutt' THEN NULL ELSE error END,
+         attempts = CASE WHEN error = 'Nedlastingen fra Boligmappa ble avbrutt' THEN 0 ELSE attempts END
          WHERE imported_document_id IS NULL`,
     )
       .bind(orgId, remoteId, ownerKind, ownerBmn, title, filename, labelOf(raw.documentType) ?? labelOf(raw.category), url)
       .run();
+    for (const key of names) {
+      if (!byName.has(key)) byName.set(key, { remote_id: remoteId, imported_document_id: null });
+    }
     n++;
   }
   return n;
 }
 
+interface DocOwner {
+  kind: "building" | "unit";
+  table: "bm_buildings" | "bm_units";
+  bmn: string;
+  docs_page: number;
+}
+
+function isRateLimited(err: unknown): err is TransientError {
+  return err instanceof TransientError && err.message.includes("svarte 429");
+}
+
+/** Bygg som allerede er i porteføljen først, så siden viser filer før resten av listene er ferdige. */
+async function nextDocOwners(env: Env, orgId: string, limit: number): Promise<DocOwner[]> {
+  const buildings = await all<{ bmn: string; docs_page: number }>(
+    env.DB,
+    `SELECT bmn, docs_page FROM bm_buildings WHERE org_id = ? AND docs_fetched_at IS NULL
+     ORDER BY CASE WHEN EXISTS (
+       SELECT 1 FROM buildings x WHERE x.org_id = bm_buildings.org_id AND x.boligmappa_number = bm_buildings.bmn
+     ) THEN 0 ELSE 1 END, docs_page, docs_attempts, bmn LIMIT ?`,
+    orgId,
+    limit,
+  );
+  const owners: DocOwner[] = buildings.map((row) => ({ kind: "building", table: "bm_buildings", bmn: row.bmn, docs_page: row.docs_page }));
+  if (owners.length >= limit) return owners;
+  const units = await all<{ bmn: string; docs_page: number }>(
+    env.DB,
+    `SELECT bmn, docs_page FROM bm_units WHERE org_id = ? AND docs_fetched_at IS NULL ORDER BY docs_page, docs_attempts, bmn LIMIT ?`,
+    orgId,
+    limit - owners.length,
+  );
+  for (const row of units) owners.push({ kind: "unit", table: "bm_units", bmn: row.bmn, docs_page: row.docs_page });
+  return owners;
+}
+
+async function storeDocPage(env: Env, orgId: string, owner: DocOwner, page: number, items: Json[], pageCount: number | null, total: number | null): Promise<void> {
+  const before = await countWhere(env, `SELECT COUNT(*) AS n FROM bm_documents WHERE org_id = ? AND owner_kind = ? AND owner_bmn = ?`, orgId, owner.kind, owner.bmn);
+  await storeDocuments(env, orgId, owner.kind, owner.bmn, items);
+  const have = await countWhere(env, `SELECT COUNT(*) AS n FROM bm_documents WHERE org_id = ? AND owner_kind = ? AND owner_bmn = ?`, orgId, owner.kind, owner.bmn);
+  const last = pageDone({ itemCount: items.length, page, pageCount, total, have, added: have - before });
+  await env.DB.prepare(`UPDATE ${owner.table} SET docs_page = ?, docs_fetched_at = ?, docs_error = NULL, docs_attempts = 0 WHERE org_id = ? AND bmn = ?`)
+    .bind(page, last ? now() : null, orgId, owner.bmn)
+    .run();
+}
+
+/** Ett bygg som feilet. 429 telles ikke her: da venter hele steget, og bygget beholder forsøkene sine. */
+async function noteListFailure(env: Env, orgId: string, owner: DocOwner, err: unknown): Promise<void> {
+  const transient = isTransient(err);
+  if (!transient && !(err instanceof ApiError)) throw err instanceof Error ? err : new Error("Kunne ikke hente fra Boligmappa");
+  const message = err instanceof Error ? err.message : "Kunne ikke hente fra Boligmappa";
+  const row = await first<{ docs_attempts: number }>(
+    env.DB,
+    `UPDATE ${owner.table} SET docs_attempts = docs_attempts + 1, docs_error = ? WHERE org_id = ? AND bmn = ? RETURNING docs_attempts`,
+    message,
+    orgId,
+    owner.bmn,
+  );
+  if (!transient || (row?.docs_attempts ?? 0) >= MAX_LIST_ATTEMPTS[owner.table]) {
+    await env.DB.prepare(`UPDATE ${owner.table} SET docs_fetched_at = ? WHERE org_id = ? AND bmn = ?`).bind(now(), orgId, owner.bmn).run();
+    console.warn("Gir opp dokumentlisten", orgId, owner.bmn, message);
+  }
+}
+
+interface ArchiveHit {
+  byId: Map<string, string>;
+  byName: Map<string, string>;
+}
+
+/** Filer som allerede ligger på bygget. Brukes så mellomlageret ikke lastes ned en gang til. */
+async function archiveOnBuilding(env: Env, orgId: string, bmn: string): Promise<ArchiveHit> {
+  const rows = await all<{ id: string; boligmappa_id: string | null; filename: string; title: string }>(
+    env.DB,
+    `SELECT d.id, d.boligmappa_id, d.filename, d.title
+     FROM documents d
+     JOIN buildings b ON b.id = d.building_id AND b.org_id = d.org_id
+     WHERE d.org_id = ? AND b.boligmappa_number = ?`,
+    orgId,
+    bmn,
+  );
+  const byId = new Map<string, string>();
+  const byName = new Map<string, string>();
+  for (const row of rows) {
+    if (row.boligmappa_id && !byId.has(row.boligmappa_id)) byId.set(row.boligmappa_id, row.id);
+    for (const name of canonNames(row.filename, row.title)) {
+      if (!byName.has(name)) byName.set(name, row.id);
+    }
+  }
+  return { byId, byName };
+}
+
+/** Dokument-id, ellers stien uten signatur, ellers navnet på eieren. Siste utvei er webhook-radens id. */
+function webhookRemoteId(doc: MsWebhookDocument, ownerKind: string, bmn: string, name: string | null): string | null {
+  const url = doc.documentUrl?.trim();
+  if (!url) return null;
+  return documentIdFromUrl(url) ?? stableUrlId(url) ?? (name ? `name:${ownerKind}:${bmn}:${name}` : `wh:${doc.id}`);
+}
+
+/**
+ * Legg inn webhook-dokumenter fra boligmappa-ms. Mellomlageret overlapper ofte lista.
+ * Samme fil hoppes over. Én side per steg. Når siden er tom, venter vi til listene åpnes på nytt.
+ */
+async function pullWebhookDocuments(env: Env, orgId: string, orgNr: string): Promise<void> {
+  const state = await first<{ webhook_after: number; webhook_at: number | null }>(
+    env.DB,
+    `SELECT webhook_after, webhook_at FROM bm_sources WHERE org_id = ?`,
+    orgId,
+  );
+  if (!state || state.webhook_at) return;
+  if (!env.BOLIGMAPPA_MS_KEY) {
+    await env.DB.prepare(`UPDATE bm_sources SET webhook_at = ? WHERE org_id = ?`).bind(now(), orgId).run();
+    return;
+  }
+  let page: { documents: MsWebhookDocument[]; nextCursor: number | null };
+  try {
+    page = await fetchWebhookDocuments(env, orgNr, state.webhook_after ?? 0);
+  } catch (err) {
+    console.warn("Fikk ikke hentet webhook-dokumenter", orgId, err instanceof Error ? err.message : err);
+    await env.DB.prepare(`UPDATE bm_sources SET webhook_at = ? WHERE org_id = ?`).bind(now(), orgId).run();
+    return;
+  }
+
+  const [buildings, units] = await Promise.all([
+    all<{ bmn: string }>(env.DB, `SELECT bmn FROM bm_buildings WHERE org_id = ?`, orgId),
+    all<{ bmn: string }>(env.DB, `SELECT bmn FROM bm_units WHERE org_id = ?`, orgId),
+  ]);
+  const buildingBmns = new Set(buildings.map((row) => row.bmn));
+  const unitBmns = new Set(units.map((row) => row.bmn));
+  const heldCache = new Map<string, Map<string, HeldFile>>();
+  const archiveCache = new Map<string, ArchiveHit>();
+  const heldFor = async (kind: string, ownerBmn: string) => {
+    const key = `${kind}\n${ownerBmn}`;
+    const cached = heldCache.get(key);
+    if (cached) return cached;
+    const loaded = await filesOnOwner(env, orgId, kind, ownerBmn);
+    heldCache.set(key, loaded);
+    return loaded;
+  };
+  const archiveFor = async (ownerBmn: string) => {
+    const cached = archiveCache.get(ownerBmn);
+    if (cached) return cached;
+    const loaded = await archiveOnBuilding(env, orgId, ownerBmn);
+    archiveCache.set(ownerBmn, loaded);
+    return loaded;
+  };
+
+  for (const doc of page.documents) {
+    const bmn = doc.boligmappaNumber?.trim();
+    const filename = doc.fileName?.trim().slice(0, 200) || null;
+    const title = (filename || "Dokument fra Boligmappa").slice(0, 200);
+    const names = canonNames(filename, title);
+    if (!bmn) continue;
+    const ownerKind = unitBmns.has(bmn) && !buildingBmns.has(bmn) ? "unit" : "building";
+    const remoteId = webhookRemoteId(doc, ownerKind, bmn, names[0] ?? null);
+    if (!remoteId) continue;
+    const known = await first<{ remote_id: string }>(env.DB, `SELECT remote_id FROM bm_documents WHERE org_id = ? AND remote_id = ?`, orgId, remoteId);
+    if (known) continue;
+    const held = await heldFor(ownerKind, bmn);
+    if (names.some((name) => held.has(name))) continue;
+    let importedId: string | null = null;
+    if (ownerKind === "building") {
+      const archive = await archiveFor(bmn);
+      importedId = archive.byId.get(remoteId) ?? names.map((name) => archive.byName.get(name)).find((id) => id != null) ?? null;
+    }
+    await env.DB.prepare(
+      `INSERT INTO bm_documents (org_id, remote_id, owner_kind, owner_bmn, title, filename, category, download_url, error, imported_document_id)
+       VALUES (?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?)
+       ON CONFLICT(org_id, remote_id) DO UPDATE SET imported_document_id = excluded.imported_document_id
+       WHERE imported_document_id IS NULL AND excluded.imported_document_id IS NOT NULL`,
+    )
+      .bind(orgId, remoteId, ownerKind, bmn, title, filename, doc.documentUrl, importedId)
+      .run();
+    for (const name of names) {
+      if (!held.has(name)) held.set(name, { remote_id: remoteId, imported_document_id: importedId });
+    }
+  }
+
+  await env.DB.prepare(
+    `UPDATE bm_documents SET owner_kind = 'unit'
+     WHERE org_id = ? AND imported_document_id IS NULL AND owner_kind = 'building'
+       AND EXISTS (SELECT 1 FROM bm_units u WHERE u.org_id = bm_documents.org_id AND u.bmn = bm_documents.owner_bmn)
+       AND NOT EXISTS (SELECT 1 FROM bm_buildings b WHERE b.org_id = bm_documents.org_id AND b.bmn = bm_documents.owner_bmn)`,
+  )
+    .bind(orgId)
+    .run();
+
+  const tail = page.documents[page.documents.length - 1];
+  const last = tail ? Number(tail.id) || state.webhook_after || 0 : state.webhook_after ?? 0;
+  const caughtUp = page.nextCursor == null;
+  await env.DB.prepare(`UPDATE bm_sources SET webhook_after = ?, webhook_at = ? WHERE org_id = ?`)
+    .bind(last, caughtUp ? now() : null, orgId)
+    .run();
+}
+
+type ListOutcome = { kind: "done" } | { kind: "ok" } | { kind: "pause"; retryAfterMs: number | null };
+
+/** Flere dokumentlister samtidig. Svarene skrives etterpå, ett bygg av gangen. */
+async function listDocumentPages(env: Env, orgId: string): Promise<ListOutcome> {
+  const owners = await nextDocOwners(env, orgId, LIST_CONCURRENCY);
+  if (owners.length === 0) return { kind: "done" };
+  const fetched = await Promise.all(
+    owners.map(async (owner) => {
+      const page = owner.docs_page + 1;
+      const entity = owner.kind === "building" ? "buildings" : "properties";
+      try {
+        const data = await apiGet(env, `${entity}/${encodeURIComponent(owner.bmn)}/documents?page=${page}&pageSize=${PAGE_SIZE}`, { failFast: [429], tries: 2 });
+        return { owner, page, data, error: null as unknown };
+      } catch (error) {
+        return { owner, page, data: null, error };
+      }
+    }),
+  );
+  let anyOk = false;
+  let anyTransient = false;
+  let rateLimited = false;
+  let retryAfterMs: number | null = null;
+  for (const row of fetched) {
+    if (row.data && !row.error) {
+      await storeDocPage(env, orgId, row.owner, row.page, row.data.items, row.data.pageCount, row.data.total);
+      anyOk = true;
+      continue;
+    }
+    if (isRateLimited(row.error)) {
+      rateLimited = true;
+      if (row.error.retryAfterMs != null) retryAfterMs = Math.max(retryAfterMs ?? 0, row.error.retryAfterMs);
+      continue;
+    }
+    if (isTransient(row.error)) anyTransient = true;
+    await noteListFailure(env, orgId, row.owner, row.error);
+  }
+  if (rateLimited || (!anyOk && anyTransient)) return { kind: "pause", retryAfterMs };
+  return { kind: "ok" };
+}
+
+async function eachLimited<T>(items: T[], concurrency: number, run: (item: T) => Promise<void>, keepGoing: () => boolean): Promise<void> {
+  if (items.length === 0) return;
+  let next = 0;
+  const lanes = Math.min(concurrency, items.length);
+  await Promise.all(
+    Array.from({ length: lanes }, async () => {
+      while (keepGoing()) {
+        const current = next;
+        if (current >= items.length) return;
+        next = current + 1;
+        await run(items[current]!);
+      }
+    }),
+  );
+}
+
+function followDelay(imported: number, retryInMs: number | null, moved: boolean): number {
+  if (retryInMs != null && retryInMs > 0) return retryInMs;
+  return imported > 0 || moved ? 0 : IDLE_DELAY_MS;
+}
+
 export type SyncResult = SourceRow & { waited: boolean; retryInMs: number | null };
 
 /**
- * Ett kall mot Boligmappa. Kalles igjen til status er ready. Lesing skjer alltid fra cachen.
+ * Ett steg mot Boligmappa. Dokumentlister for flere bygg hentes samtidig. Kalles igjen til status er ready.
  * Feil teller opp fail_count og setter retry_at. Bakgrunnskall venter til retry_at, mens force (brukeren trykket selv) prøver med en gang.
  */
 export async function syncChunk(env: Env, orgId: string, restart: boolean, opts: { force?: boolean } = {}): Promise<SyncResult> {
@@ -484,7 +844,7 @@ export async function syncChunk(env: Env, orgId: string, restart: boolean, opts:
   }
 
   let waited = false;
-  let current: { table: "bm_buildings" | "bm_units"; bmn: string } | null = null;
+  let paused = false;
   try {
     do {
       if (source.phase === "buildings" || source.phase === "properties") {
@@ -510,21 +870,9 @@ export async function syncChunk(env: Env, orgId: string, restart: boolean, opts:
           source.page += 1;
         }
       } else if (source.phase === "documents") {
-        // De som har feilet, kommer sist, så én treg boenhet ikke holder igjen resten
-        const building = await first<{ bmn: string; docs_page: number }>(
-          env.DB,
-          `SELECT bmn, docs_page FROM bm_buildings WHERE org_id = ? AND docs_fetched_at IS NULL ORDER BY docs_attempts, bmn LIMIT 1`,
-          orgId,
-        );
-        const unit = building
-          ? null
-          : await first<{ bmn: string; docs_page: number }>(
-              env.DB,
-              `SELECT bmn, docs_page FROM bm_units WHERE org_id = ? AND docs_fetched_at IS NULL ORDER BY docs_attempts, bmn LIMIT 1`,
-              orgId,
-            );
-        const owner = building ? { kind: "building" as const, ...building } : unit ? { kind: "unit" as const, ...unit } : null;
-        if (!owner) {
+        await pullWebhookDocuments(env, orgId, source.org_nr);
+        const outcome = await listDocumentPages(env, orgId);
+        if (outcome.kind === "done") {
           const docs = await first<{ n: number }>(env.DB, `SELECT COUNT(*) AS n FROM bm_documents WHERE org_id = ?`, orgId);
           source.document_count = docs?.n ?? 0;
           source.status = "ready";
@@ -532,18 +880,16 @@ export async function syncChunk(env: Env, orgId: string, restart: boolean, opts:
           source.error = null;
           break;
         }
-        const entity = owner.kind === "building" ? "buildings" : "properties";
-        const table = owner.kind === "building" ? "bm_buildings" : "bm_units";
-        current = { table, bmn: owner.bmn };
-        const page = owner.docs_page + 1;
-        const { items, pageCount, total } = await apiGet(env, `${entity}/${encodeURIComponent(owner.bmn)}/documents?page=${page}&pageSize=${PAGE_SIZE}`);
-        const before = await countWhere(env, `SELECT COUNT(*) AS n FROM bm_documents WHERE org_id = ? AND owner_kind = ? AND owner_bmn = ?`, orgId, owner.kind, owner.bmn);
-        await storeDocuments(env, orgId, owner.kind, owner.bmn, items);
-        const have = await countWhere(env, `SELECT COUNT(*) AS n FROM bm_documents WHERE org_id = ? AND owner_kind = ? AND owner_bmn = ?`, orgId, owner.kind, owner.bmn);
-        const last = pageDone({ itemCount: items.length, page, pageCount, total, have, added: have - before });
-        await env.DB.prepare(`UPDATE ${table} SET docs_page = ?, docs_fetched_at = ?, docs_error = NULL, docs_attempts = 0 WHERE org_id = ? AND bmn = ?`)
-          .bind(page, last ? now() : null, orgId, owner.bmn)
-          .run();
+        if (outcome.kind === "pause") {
+          paused = true;
+          waited = true;
+          source.updated_at = now();
+          source.status = "syncing";
+          source.fail_count = (source.fail_count ?? 0) + 1;
+          source.error = "Boligmappa svarer tregt. Vi prøver igjen automatisk.";
+          source.retry_at = now() + retryDelay(Math.min(source.fail_count, 5), outcome.retryAfterMs);
+          break;
+        }
       } else {
         source.status = "ready";
         break;
@@ -551,47 +897,24 @@ export async function syncChunk(env: Env, orgId: string, restart: boolean, opts:
       source.updated_at = now();
       source.error = null;
     } while (false);
-    source.fail_count = 0;
-    source.retry_at = null;
+    if (!paused) {
+      source.fail_count = 0;
+      source.retry_at = null;
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Kunne ikke hente fra Boligmappa";
     const transient = isTransient(err);
     source.updated_at = now();
-    if (current && (transient || err instanceof ApiError)) {
-      // Dokumentlisten til ett bygg eller én boenhet feilet. Den legges bakerst, og resten av synken går videre.
-      const row = await first<{ docs_attempts: number }>(
-        env.DB,
-        `UPDATE ${current.table} SET docs_attempts = docs_attempts + 1, docs_error = ? WHERE org_id = ? AND bmn = ? RETURNING docs_attempts`,
-        message,
-        orgId,
-        current.bmn,
-      );
-      if (!transient || (row?.docs_attempts ?? 0) >= MAX_LIST_ATTEMPTS[current.table]) {
-        await env.DB.prepare(`UPDATE ${current.table} SET docs_fetched_at = ? WHERE org_id = ? AND bmn = ?`).bind(now(), orgId, current.bmn).run();
-        console.warn("Gir opp dokumentlisten", orgId, current.bmn, message);
-      }
+    source.fail_count = (source.fail_count ?? 0) + 1;
+    if (transient && source.fail_count < GIVE_UP_AFTER) {
+      waited = true;
       source.status = "syncing";
-      if (transient) {
-        waited = true;
-        source.fail_count = (source.fail_count ?? 0) + 1;
-        source.error = "Boligmappa svarer tregt. Vi prøver igjen automatisk.";
-        // Køen roterer forbi det som feiler, så pausen holdes kort her
-        source.retry_at = now() + retryDelay(Math.min(source.fail_count, 5), err instanceof TransientError ? err.retryAfterMs : null);
-      } else {
-        source.error = null;
-      }
+      source.error = "Boligmappa svarer tregt. Vi prøver igjen automatisk.";
     } else {
-      source.fail_count = (source.fail_count ?? 0) + 1;
-      if (transient && source.fail_count < GIVE_UP_AFTER) {
-        waited = true;
-        source.status = "syncing";
-        source.error = "Boligmappa svarer tregt. Vi prøver igjen automatisk.";
-      } else {
-        source.status = "error";
-        source.error = transient ? `Boligmappa har ikke svart på lenge (${message}). Trykk Oppdater for å prøve igjen.` : message;
-      }
-      source.retry_at = now() + retryDelay(source.fail_count, err instanceof TransientError ? err.retryAfterMs : null);
+      source.status = "error";
+      source.error = transient ? `Boligmappa har ikke svart på lenge (${message}). Trykk Oppdater for å prøve igjen.` : message;
     }
+    source.retry_at = now() + retryDelay(source.fail_count, err instanceof TransientError ? err.retryAfterMs : null);
   }
   const docs = await first<{ n: number }>(env.DB, `SELECT COUNT(*) AS n FROM bm_documents WHERE org_id = ?`, orgId);
   source.document_count = docs?.n ?? source.document_count;
@@ -868,32 +1191,157 @@ async function ensureBuilding(env: Env, orgId: string, propertyId: string, build
   return { id, created: true, skipped: null };
 }
 
+/**
+ * Hent fila uten å avbryte kroppen etter noen sekunder. Første byte har en kort frist.
+ * Når svaret er i gang, får kopien resten av steget så den kan lande i R2.
+ */
+async function fetchFile(url: string, headers?: HeadersInit): Promise<Response> {
+  const controller = new AbortController();
+  let timer = setTimeout(() => controller.abort(), HEADER_MS);
+  const arm = (ms: number) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => controller.abort(), ms);
+  };
+  try {
+    const res = await fetch(url, { headers, redirect: "follow", signal: controller.signal });
+    if (res.status === 429) {
+      clearTimeout(timer);
+      await res.body?.cancel().catch(() => undefined);
+      const retryAfter = Number(res.headers.get("retry-after"));
+      throw new TransientError("Boligmappa svarte 429", Number.isFinite(retryAfter) ? retryAfter * 1000 : null);
+    }
+    if (!res.ok || !res.body) {
+      clearTimeout(timer);
+      return res;
+    }
+    arm(BODY_MS);
+    const wrapped = res.body.pipeThrough(
+      new TransformStream<Uint8Array, Uint8Array>({
+        transform(chunk, out) {
+          out.enqueue(chunk);
+        },
+        flush() {
+          clearTimeout(timer);
+        },
+        cancel() {
+          clearTimeout(timer);
+        },
+      }),
+    );
+    return new Response(wrapped, { status: res.status, headers: res.headers });
+  } catch (err) {
+    clearTimeout(timer);
+    if (err instanceof TransientError) throw err;
+    throw new TransientError(isTimeout(err) ? "Nedlastingen fra Boligmappa ble avbrutt" : "Fikk ikke kontakt med Boligmappa");
+  }
+}
+
+/** Brukeren ba om filene på nytt. Avbrutte kopier får et nytt forsøk. Varige feil blir stående. */
+export async function reviveFailedDownloads(env: Env, orgId: string, bmns: string[]): Promise<void> {
+  const wanted = [...new Set(bmns.map((b) => b.trim()).filter(Boolean))].slice(0, 200);
+  if (wanted.length === 0) return;
+  const owners = new Set(wanted.map((b) => (b.startsWith("unit:") ? b.slice(5) : b)));
+  const buildings = wanted.filter((b) => !b.startsWith("unit:"));
+  for (let i = 0; i < buildings.length; i += 40) {
+    const slice = buildings.slice(i, i + 40);
+    const rows = await all<{ bmn: string }>(
+      env.DB,
+      `SELECT bmn FROM bm_units WHERE org_id = ? AND building_bmn IN (${slice.map(() => "?").join(", ")})`,
+      orgId,
+      ...slice,
+    );
+    for (const row of rows) owners.add(row.bmn);
+  }
+  const list = [...owners];
+  for (let i = 0; i < list.length; i += 40) {
+    const slice = list.slice(i, i + 40);
+    await env.DB.prepare(
+      `UPDATE bm_documents SET error = NULL, attempts = 0
+       WHERE org_id = ? AND imported_document_id IS NULL AND error = 'Nedlastingen fra Boligmappa ble avbrutt'
+         AND owner_bmn IN (${slice.map(() => "?").join(", ")})`,
+    )
+      .bind(orgId, ...slice)
+      .run();
+  }
+}
+
+async function rememberImported(env: Env, orgId: string, remoteId: string, documentId: string): Promise<void> {
+  await env.DB.prepare(
+    `UPDATE bm_documents SET imported_document_id = ?, error = NULL WHERE org_id = ? AND remote_id = ? AND imported_document_id IS NULL`,
+  )
+    .bind(documentId, orgId, remoteId)
+    .run();
+}
+
 async function downloadToPlank(
   env: Env,
   orgId: string,
   actor: BmActor,
   doc: { remote_id: string; title: string; filename: string | null; category: string | null; download_url: string | null },
   loc: { property_id: string; building_id: string | null },
-): Promise<void> {
+): Promise<boolean> {
   if (!doc.download_url) throw new Error("Dokumentet har ingen nedlastingslenke");
   const already = await first<{ imported_document_id: string | null }>(env.DB, `SELECT imported_document_id FROM bm_documents WHERE org_id = ? AND remote_id = ?`, orgId, doc.remote_id);
-  if (already?.imported_document_id) return;
+  if (already?.imported_document_id) return false;
+  const held = await first<{ id: string }>(env.DB, `SELECT id FROM documents WHERE org_id = ? AND boligmappa_id = ? LIMIT 1`, orgId, doc.remote_id);
+  if (held) {
+    await rememberImported(env, orgId, doc.remote_id, held.id);
+    return false;
+  }
+  // Bare mellomlager-rader. To ekte dokument-id med samme navn skal begge lastes ned.
+  if (isStashId(doc.remote_id) && loc.building_id) {
+    const names = canonNames(doc.filename, doc.title);
+    if (names.length > 0) {
+      const rows = await all<{ id: string; filename: string; title: string }>(
+        env.DB,
+        `SELECT id, filename, title FROM documents WHERE org_id = ? AND building_id = ?`,
+        orgId,
+        loc.building_id,
+      );
+      const match = rows.find((row) => canonNames(row.filename, row.title).some((name) => names.includes(name)));
+      if (match) {
+        await rememberImported(env, orgId, doc.remote_id, match.id);
+        return false;
+      }
+    }
+  }
   const url = doc.download_url;
-  const opts = { ...BM, timeoutMs: CALL_MS, budgetMs: STEP_MS };
-  let res = await fetchRetry(url, { redirect: "follow" }, opts);
+  let res = await fetchFile(url);
   if (res.status === 401 || res.status === 403) {
     await res.body?.cancel().catch(() => undefined);
-    res = await fetchRetry(url, { headers: { Authorization: `Bearer ${await accessToken(env)}` }, redirect: "follow" }, opts);
+    res = await fetchFile(url, { Authorization: `Bearer ${await accessToken(env)}` });
   }
   if (!res.ok) throw new Error(`Klarte ikke å laste ned dokumentet (${res.status})`);
   const filename = (doc.filename || doc.title || "dokument").replace(/[\\/\u0000-\u001f]/g, "_").slice(0, 180);
   const id = newId("doc");
   const key = `orgs/${orgId}/documents/${id}/${filename}`;
-  const mime = res.headers.get("content-type")?.split(";")[0]?.trim() || guessMime(filename);
   const length = Number(res.headers.get("content-length") ?? NaN);
   if (Number.isFinite(length) && length === 0) throw new Error("Dokumentet var tomt");
   if (Number.isFinite(length) && length > MAX_DOC_BYTES) throw new Error("Dokumentet er for stort");
   if (!res.body) throw new Error("Dokumentet var tomt");
+  const reader = res.body.getReader();
+  const opened = await reader.read();
+  const firstChunk = opened.value ?? new Uint8Array();
+  const declared = res.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() ?? "";
+  const sniffed = magicMime(firstChunk.subarray(0, 16));
+  const mime = sniffed || (declared && declared !== "text/plain" && declared !== "application/octet-stream" && declared !== "binary/octet-stream" ? declared : guessMime(filename));
+  let sentFirst = false;
+  const source = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      if (!sentFirst) {
+        sentFirst = true;
+        if (firstChunk.byteLength) controller.enqueue(firstChunk);
+        if (opened.done) controller.close();
+        return;
+      }
+      const next = await reader.read();
+      if (next.done) controller.close();
+      else controller.enqueue(next.value);
+    },
+    cancel(reason) {
+      return reader.cancel(reason);
+    },
+  });
   // Strøm til R2 med tak. Hele filen i minnet (særlig flere samtidig) gjør at workeren dør med Feil 503.
   let size = 0;
   const capped = new TransformStream<Uint8Array, Uint8Array>({
@@ -904,7 +1352,7 @@ async function downloadToPlank(
     },
   });
   try {
-    const piping = res.body.pipeTo(capped.writable);
+    const piping = source.pipeTo(capped.writable);
     await env.FILES.put(key, capped.readable, { httpMetadata: { contentType: mime } });
     await piping;
     if (size === 0) throw new Error("Dokumentet var tomt");
@@ -936,6 +1384,7 @@ async function downloadToPlank(
     updated_at: t,
   }).run();
   await env.DB.prepare(`UPDATE bm_documents SET imported_document_id = ?, error = NULL WHERE org_id = ? AND remote_id = ?`).bind(id, orgId, doc.remote_id).run();
+  return true;
 }
 
 async function byIds<T>(env: Env, orgId: string, ids: string[], sqlPrefix: string): Promise<T[]> {
@@ -1000,6 +1449,8 @@ export interface ImportProgress {
   remainingDocuments: number;
   message: string | null;
   done: boolean;
+  /** Satt når Boligmappa svarte 429. Neste steg bør vente så lenge. */
+  retryInMs: number | null;
 }
 
 interface ImportCtx {
@@ -1068,24 +1519,39 @@ export async function importSelection(env: Env, orgId: string, actor: BmActor, b
   const owners = placed.flatMap((p) => p.owners);
   const pending = await pendingDocuments(env, orgId, owners, DOCS_PER_STEP);
   const importedIds: string[] = [];
-  // Ett dokument av gangen, så tre store filer ikke ligger i minnet samtidig.
-  for (const doc of pending) {
-    const home = placed.find((p) => p.owners.some((o) => o.kind === doc.owner_kind && o.bmn === doc.owner_bmn));
-    if (!home) continue;
-    try {
-      await downloadToPlank(env, orgId, actor, doc, { property_id: home.propertyId, building_id: home.buildingId });
-      const id = await first<{ imported_document_id: string }>(env.DB, `SELECT imported_document_id FROM bm_documents WHERE org_id = ? AND remote_id = ?`, orgId, doc.remote_id);
-      if (id?.imported_document_id) importedIds.push(id.imported_document_id);
-    } catch (err) {
-      // Forbigående feil gir nye forsøk senere. Først etter MAX_DOC_ATTEMPTS (eller ved varig feil) merkes dokumentet.
-      const permanent = !isTransient(err);
-      await env.DB.prepare(
-        `UPDATE bm_documents SET attempts = attempts + 1, error = CASE WHEN ? OR attempts + 1 >= ? THEN ? ELSE NULL END WHERE org_id = ? AND remote_id = ?`,
-      )
-        .bind(permanent ? 1 : 0, MAX_DOC_ATTEMPTS, err instanceof Error ? err.message : "Nedlasting feilet", orgId, doc.remote_id)
-        .run();
-    }
-  }
+  let rateLimited = false;
+  let rateAfter: number | null = null;
+  const started = Date.now();
+  // Noen filer i parallell. Strømmen går rett til R2, og vi starter ikke en ny bølge hvis den første brukte opp tiden eller fikk 429.
+  await eachLimited(
+    pending,
+    DOWNLOAD_CONCURRENCY,
+    async (doc) => {
+      const home = placed.find((p) => p.owners.some((o) => o.kind === doc.owner_kind && o.bmn === doc.owner_bmn));
+      if (!home) return;
+      try {
+        const stored = await downloadToPlank(env, orgId, actor, doc, { property_id: home.propertyId, building_id: home.buildingId });
+        if (!stored) return;
+        const id = await first<{ imported_document_id: string }>(env.DB, `SELECT imported_document_id FROM bm_documents WHERE org_id = ? AND remote_id = ?`, orgId, doc.remote_id);
+        if (id?.imported_document_id) importedIds.push(id.imported_document_id);
+      } catch (err) {
+        if (isRateLimited(err)) {
+          rateLimited = true;
+          if (err.retryAfterMs != null) rateAfter = Math.max(rateAfter ?? 0, err.retryAfterMs);
+          return;
+        }
+        // Forbigående feil gir nye forsøk senere. Først etter MAX_DOC_ATTEMPTS (eller ved varig feil) merkes dokumentet.
+        const permanent = !isTransient(err);
+        await env.DB.prepare(
+          `UPDATE bm_documents SET attempts = attempts + 1, error = CASE WHEN ? OR attempts + 1 >= ? THEN ? ELSE NULL END WHERE org_id = ? AND remote_id = ?`,
+        )
+          .bind(permanent ? 1 : 0, MAX_DOC_ATTEMPTS, err instanceof Error ? err.message : "Nedlasting feilet", orgId, doc.remote_id)
+          .run();
+      }
+    },
+    () => !rateLimited && Date.now() - started < QUEUE_WALL_MS,
+  );
+  const retryInMs = rateLimited ? Math.max(2_000, rateAfter ?? 0) : null;
   if (!ctx.deferProcessing) await scheduleProcessing(env, ctx, orgId, importedIds);
   const importedDocuments = importedIds.length;
   const remaining = await countPending(env, orgId, owners);
@@ -1106,6 +1572,7 @@ export async function importSelection(env: Env, orgId: string, actor: BmActor, b
     remainingDocuments: remaining,
     message,
     done: remaining === 0,
+    retryInMs,
   };
 }
 
@@ -1228,34 +1695,472 @@ async function importStep(
   };
 }
 
-/** Cron-kjøringen holder seg godt under grensen på 15 minutter */
+/** Cron-kjøringen holder seg under grensen på 15 minutter. Køen tar normalt jobben før dette. */
 const CRON_BUDGET_MS = 9 * 60_000;
-const CRON_STEPS_PER_ORG = 40;
+const CRON_STEPS_PER_ORG = 24;
 
-/** Cron: fortsetter automatisk henting for organisasjoner som har forlatt trakten før den var ferdig */
+/** Køen oppdaterer updated_at på hvert steg. Eldre enn dette betyr at kjeden har dødd, og cron tar over. */
+const TRANSFER_STALE_MS = 20 * 60_000;
+/** Nye dokumenter etter den første overføringen sjekkes omtrent én gang i døgnet. */
+const WATCH_INTERVAL_MS = 24 * 60 * 60_000;
+/** Leie mens en sjekk pågår, så cron ikke starter en ny oppå den som går. */
+const WATCH_LEASE_MS = 3 * 60 * 60_000;
+/** Neste forsøk når Boligmappa ikke svarte, uten å vise hentingen som stoppet. */
+const WATCH_RETRY_MS = 6 * 60 * 60_000;
+/** Tak på steg i én kjede, så en organisasjon ikke løper i det uendelige. */
+const MAX_CHAIN = 500;
+
+interface TransferSource extends SourceRow {
+  auto_import: number;
+  transfer_mail_at: number | null;
+}
+
+function transferActor(row: { user_id: string | null; name: string | null; email: string | null }): BmActor {
+  return row.user_id
+    ? { type: "user", id: row.user_id, name: row.name ?? row.email ?? "Bruker" }
+    : { type: "agent", id: "boligmappa", name: "Boligmappa-henting" };
+}
+
+async function transferSourceOf(env: Env, orgId: string): Promise<TransferSource | null> {
+  return first<TransferSource>(env.DB, `SELECT * FROM bm_sources WHERE org_id = ?`, orgId);
+}
+
+async function touchSource(env: Env, orgId: string): Promise<void> {
+  await env.DB.prepare(`UPDATE bm_sources SET updated_at = ? WHERE org_id = ?`).bind(now(), orgId).run();
+}
+
+/** Starter hele overføringen i køen. Uten kø kjøres de første stegene her, og cron tar resten. */
+export async function startBoligmappaTransfer(
+  env: Env,
+  orgId: string,
+  actor: BmActor,
+  ctx?: { waitUntil(promise: Promise<unknown>): void },
+): Promise<void> {
+  await enableAutoImport(env, orgId);
+  const job: Extract<BoligmappaJob, { kind: "transfer" }> = { kind: "transfer", orgId, actor, steps: 0, refresh: true };
+  const queued = await enqueue(env, job);
+  if (queued || !ctx) return;
+  ctx.waitUntil(
+    (async () => {
+      const deadline = Date.now() + 20_000;
+      let current = job;
+      for (let i = 0; i < 6 && Date.now() < deadline; i++) {
+        const follow = await runTransferStep(env, current, ctx);
+        if (!follow) return;
+        if (follow.delayMs > 2_000) return;
+        current = follow.job;
+      }
+    })().catch((err) => console.error("Oppstart av Boligmappa feilet", orgId, err)),
+  );
+}
+
+/** Brukeren trykket prøv igjen. Feilede dokumenter får nye forsøk, og listene gås gjennom på nytt. */
+export async function retryBoligmappaTransfer(env: Env, orgId: string, actor: BmActor): Promise<void> {
+  const t = now();
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE bm_sources SET auto_import = 1, status = 'syncing', error = NULL, fail_count = 0, retry_at = NULL, transfer_mail_at = NULL, notify_watermark = NULL, watch_at = NULL, updated_at = ? WHERE org_id = ?`,
+    ).bind(t, orgId),
+    env.DB.prepare(`UPDATE bm_documents SET error = NULL, attempts = 0 WHERE org_id = ? AND imported_document_id IS NULL`).bind(orgId),
+  ]);
+  await enqueue(env, { kind: "transfer", orgId, actor, steps: 0, refresh: true });
+}
+
+/** Leser status. Gjør ingen arbeid, så siden kan spørre ofte. */
+export async function transferStatus(env: Env, orgId: string): Promise<TransferStatus> {
+  const source = await transferSourceOf(env, orgId);
+  const [counts, pending, failed, agents] = await Promise.all([
+    importedCounts(env, orgId),
+    first<{ n: number }>(env.DB, `SELECT COUNT(*) AS n FROM bm_documents WHERE org_id = ? AND imported_document_id IS NULL AND error IS NULL`, orgId),
+    first<{ n: number }>(env.DB, `SELECT COUNT(*) AS n FROM bm_documents WHERE org_id = ? AND imported_document_id IS NULL AND error IS NOT NULL`, orgId),
+    agentCounts(env, orgId),
+  ]);
+  const base = {
+    configured: boligmappaConfigured(env),
+    buildingCount: source?.building_count ?? 0,
+    importedBuildings: counts.buildings,
+    documentCount: source?.document_count ?? 0,
+    importedDocuments: counts.documents,
+    remainingDocuments: pending?.n ?? 0,
+    failedDocuments: failed?.n ?? 0,
+    message: source?.error ?? null,
+    retryInMs: source?.retry_at && source.retry_at > now() ? source.retry_at - now() : null,
+    mailed: Boolean(source?.transfer_mail_at),
+    agentsWithTool: agents.withTool,
+    agentsTotal: agents.total,
+    phase: source?.phase ?? "buildings",
+  };
+  if (!source || !boligmappaConfigured(env)) return { ...base, active: false, stage: "off" };
+  const active = source.auto_import === 1;
+  const settled = !active && source.status === "ready" && source.phase === "done" && (pending?.n ?? 0) === 0;
+  if ((source.transfer_mail_at || settled) && source.status !== "error") return { ...base, active, stage: "done" };
+  if (source.status === "error") return { ...base, active, stage: "error" };
+  if (counts.buildings === 0) return { ...base, active, stage: "buildings" };
+  if (counts.buildings < source.building_count) return { ...base, active, stage: "import" };
+  return { ...base, active, stage: "documents" };
+}
+
+function brandFromId(id: string | null): (typeof BRANDS)[BrandId] {
+  if (id === "naeringsmappa" || id === "sameie") return BRANDS[id];
+  return BRANDS.plank;
+}
+
+/** Én e-post når overføringen er i mål, eller når den gir opp. Kolonnen hindrer flere utsendelser. */
+async function notifyTransfer(env: Env, orgId: string, actor: BmActor, stopped: boolean): Promise<void> {
+  const org = await first<{ name: string; brand: string | null }>(env.DB, `SELECT name, brand FROM orgs WHERE id = ?`, orgId);
+  const owners = await all<{ email: string }>(
+    env.DB,
+    `SELECT u.email FROM memberships m JOIN users u ON u.id = m.user_id WHERE m.org_id = ? AND m.role = 'owner' AND u.email IS NOT NULL`,
+    orgId,
+  );
+  const counts = await importedCounts(env, orgId);
+  const failed = await first<{ n: number }>(env.DB, `SELECT COUNT(*) AS n FROM bm_documents WHERE org_id = ? AND imported_document_id IS NULL AND error IS NOT NULL`, orgId);
+  const { overQuota, limit } = await importableBmns(env, orgId);
+  const quotaNote = overQuota > 0 ? `${overQuota} bygg venter fordi abonnementet dekker ${limit} bygg.` : null;
+  const empty = counts.buildings === 0 && !stopped;
+  const summary = stopped ? "Hentingen fra Boligmappa stoppet" : empty ? "Boligmappa hadde ingen bygg" : `Overførte ${counts.documents} dokumenter fra Boligmappa`;
+  if (!emailConfigured(env) || owners.length === 0 || !org) {
+    await logActivity(env, { orgId, actor, action: stopped ? "boligmappa.stopped" : "boligmappa.transferred", summary });
+    return;
+  }
+  const claimed = await env.DB.prepare(`UPDATE bm_sources SET transfer_mail_at = ? WHERE org_id = ? AND transfer_mail_at IS NULL`).bind(now(), orgId).run();
+  if (!claimed.meta.changes) return;
+  try {
+    const brand = brandFromId(org.brand);
+    const url = `${env.APP_URL.replace(/\/$/, "")}/o/${orgId}`;
+    const mail = boligmappaReadyEmail({
+      brand: brand.name,
+      orgName: org.name,
+      buildings: counts.buildings,
+      documents: counts.documents,
+      failed: failed?.n ?? 0,
+      empty,
+      stopped,
+      quotaNote,
+      url,
+    });
+    await sendEmail(env, {
+      to: owners.map((o) => o.email),
+      from: emailFrom(env, brand),
+      ...mail,
+      idempotencyKey: stopped ? `bm-transfer-stopped-${orgId}` : `bm-transfer-${orgId}`,
+    });
+    await logActivity(env, { orgId, actor, action: stopped ? "boligmappa.stopped" : "boligmappa.transferred", summary });
+  } catch (err) {
+    await env.DB.prepare(`UPDATE bm_sources SET transfer_mail_at = NULL WHERE org_id = ?`).bind(orgId).run();
+    throw err;
+  }
+}
+
+async function turnOffTransfer(env: Env, orgId: string): Promise<void> {
+  await env.DB.prepare(`UPDATE bm_sources SET auto_import = 0, updated_at = ? WHERE org_id = ?`).bind(now(), orgId).run();
+}
+
+interface TransferFollow {
+  job: Extract<BoligmappaJob, { kind: "transfer" }>;
+  delayMs: number;
+}
+
+/** Ett steg: bygg inn først, deretter alle dokumentene, med samme retry som resten av Boligmappa. */
+async function runTransferStep(env: Env, job: Extract<BoligmappaJob, { kind: "transfer" }>, ctx: { waitUntil(promise: Promise<unknown>): void }): Promise<TransferFollow | null> {
+  if (job.steps >= MAX_CHAIN) {
+    console.warn("Boligmappa-overføringen tar en pause etter mange steg", job.orgId);
+    return null;
+  }
+  const source = await transferSourceOf(env, job.orgId);
+  if (!source) return null;
+  if (source.transfer_mail_at) {
+    if (source.auto_import) await turnOffTransfer(env, job.orgId);
+    return null;
+  }
+  const next = (delayMs: number, patch: Partial<Pick<typeof job, "refresh">> = {}): TransferFollow => ({
+    job: { ...job, ...patch, steps: job.steps + 1 },
+    delayMs,
+  });
+  const counts = await importedCounts(env, job.orgId);
+  const importing = { waitUntil: (p: Promise<unknown>) => ctx.waitUntil(p), deferProcessing: true as const };
+
+  if (source.building_count > counts.buildings) {
+    const { picks } = await importableBmns(env, job.orgId);
+    if (picks.length > 0) {
+      const res = await importSelection(env, job.orgId, job.actor, picks, importing);
+      const after = await importedCounts(env, job.orgId);
+      const progressed = after.buildings > counts.buildings || res.importedDocuments > 0 || res.remainingDocuments > 0;
+      if (progressed && !res.message) {
+        await touchSource(env, job.orgId);
+        return next(followDelay(res.importedDocuments, res.retryInMs, after.buildings > counts.buildings));
+      }
+      if (progressed && res.message && res.remainingDocuments > 0) {
+        await touchSource(env, job.orgId);
+        return next(0);
+      }
+      if (source.status === "ready" && res.remainingDocuments === 0 && !job.refresh) {
+        await finishTransfer(env, job);
+        return null;
+      }
+    } else if (source.status === "ready" && !job.refresh) {
+      await finishTransfer(env, job);
+      return null;
+    }
+  }
+
+  if (source.status !== "ready") {
+    if (source.phase === "documents" && counts.buildings > 0 && (await hasImportableNow(env, job.orgId))) {
+      const { picks } = await importableBmns(env, job.orgId);
+      if (picks.length > 0) {
+        const res = await importSelection(env, job.orgId, job.actor, picks, importing);
+        if (!res.message || res.remainingDocuments > 0 || res.importedDocuments > 0) {
+          await touchSource(env, job.orgId);
+          return next(followDelay(res.importedDocuments, res.retryInMs, false));
+        }
+      }
+    }
+    const step = await syncChunk(env, job.orgId, false);
+    if (step.status === "error" && !step.waited) {
+      await turnOffTransfer(env, job.orgId);
+      await notifyTransfer(env, job.orgId, job.actor, true);
+      return null;
+    }
+    return next(step.waited ? (step.retryInMs ?? 0) : 0);
+  }
+
+  const { picks } = await importableBmns(env, job.orgId);
+  if (picks.length > 0) {
+    const res = await importSelection(env, job.orgId, job.actor, picks, importing);
+    if (res.remainingDocuments > 0) {
+      await touchSource(env, job.orgId);
+      return next(followDelay(res.importedDocuments, res.retryInMs, false));
+    }
+    if (res.message && !job.refresh) {
+      await finishTransfer(env, job);
+      return null;
+    }
+  }
+
+  if (job.refresh) {
+    await reopenDocumentLists(env, job.orgId);
+    return next(0, { refresh: false });
+  }
+
+  await finishTransfer(env, job);
+  return null;
+}
+
+async function finishTransfer(env: Env, job: Extract<BoligmappaJob, { kind: "transfer" }>): Promise<void> {
+  await notifyTransfer(env, job.orgId, job.actor, false);
+  const t = now();
+  const listen = await hasBmListener(env, job.orgId);
+  await env.DB.prepare(
+    `UPDATE bm_sources SET auto_import = 0, notify_watermark = COALESCE(notify_watermark, ?), watch_at = ?, updated_at = ? WHERE org_id = ?`,
+  )
+    .bind(t, listen ? t + WATCH_INTERVAL_MS : null, t, job.orgId)
+    .run();
+  await enqueue(env, { kind: "drain", orgId: job.orgId, steps: 0 });
+}
+
+async function runTransferJob(env: Env, job: Extract<BoligmappaJob, { kind: "transfer" }>, ctx: { waitUntil(promise: Promise<unknown>): void }): Promise<void> {
+  const wall = Date.now() + QUEUE_WALL_MS;
+  let follow = await runTransferStep(env, job, ctx);
+  for (let round = 1; round < QUEUE_ROUNDS && follow && follow.delayMs === 0 && Date.now() < wall; round++) {
+    follow = await runTransferStep(env, follow.job, ctx);
+  }
+  if (!follow) return;
+  const queued = await enqueue(env, follow.job, follow.delayMs);
+  if (!queued) await enableAutoImport(env, job.orgId);
+}
+
+async function hasBmListener(env: Env, orgId: string): Promise<boolean> {
+  const row = await first<{ x: number }>(env.DB, `SELECT 1 AS x FROM memberships WHERE org_id = ? AND bm_notify = 1 LIMIT 1`, orgId);
+  return Boolean(row);
+}
+
+/** Neste sjekk etter nye dokumenter. Uten noen som har sagt ja, blir den ikke stående. */
+async function armWatch(env: Env, orgId: string, when: number): Promise<void> {
+  const listen = await hasBmListener(env, orgId);
+  await env.DB.prepare(`UPDATE bm_sources SET watch_at = ? WHERE org_id = ?`).bind(listen ? when : null, orgId).run();
+}
+
+/** Holder leien mens sjekken går. Er valget skrudd av, lar vi være. */
+async function holdWatch(env: Env, orgId: string): Promise<void> {
+  const until = now() + WATCH_LEASE_MS;
+  await env.DB.prepare(`UPDATE bm_sources SET watch_at = ?, updated_at = ? WHERE org_id = ? AND watch_at IS NOT NULL`).bind(until, now(), orgId).run();
+}
+
+/** En feilet sjekk skal ikke se ut som den første hentingen stoppet. */
+async function restoreSettledWatch(env: Env, orgId: string): Promise<boolean> {
+  const res = await env.DB.prepare(
+    `UPDATE bm_sources SET status = 'ready', phase = 'done', error = NULL, fail_count = 0, retry_at = NULL, updated_at = ?
+     WHERE org_id = ? AND transfer_mail_at IS NOT NULL AND auto_import = 0`,
+  )
+    .bind(now(), orgId)
+    .run();
+  return Boolean(res.meta.changes);
+}
+
+/** Lagrer valget, og setter i gang en sjekk når den første overføringen allerede er ferdig. */
+export async function setBoligmappaNotify(env: Env, orgId: string, userId: string, on: boolean): Promise<void> {
+  await env.DB.prepare(`UPDATE memberships SET bm_notify = ? WHERE org_id = ? AND user_id = ?`).bind(on ? 1 : 0, orgId, userId).run();
+  if (!on) {
+    if (!(await hasBmListener(env, orgId))) await env.DB.prepare(`UPDATE bm_sources SET watch_at = NULL WHERE org_id = ?`).bind(orgId).run();
+    return;
+  }
+  const t = now();
+  // Ferdig overføring, også der den gamle e-posten aldri ble stemplet. Vannmerket
+  // settes nå, så dokumentene som allerede ligger inne ikke blir et varsel.
+  await env.DB.prepare(
+    `UPDATE bm_sources SET notify_watermark = COALESCE(notify_watermark, ?), watch_at = COALESCE(watch_at, ?)
+     WHERE org_id = ? AND auto_import = 0 AND status = 'ready' AND phase = 'done'`,
+  )
+    .bind(t, t, orgId)
+    .run();
+}
+
+/** E-post om dokumenter som kom inn etter vannmerket. Den første overføringen har sin egen e-post. */
+async function notifyNewDocuments(env: Env, orgId: string, actor: BmActor): Promise<void> {
+  const source = await first<{ notify_watermark: number | null }>(env.DB, `SELECT notify_watermark FROM bm_sources WHERE org_id = ?`, orgId);
+  if (!source) return;
+  const watermark = source.notify_watermark ?? 0;
+  const fresh = await first<{ n: number }>(
+    env.DB,
+    `SELECT COUNT(*) AS n FROM documents WHERE org_id = ? AND boligmappa_id IS NOT NULL AND created_at > ?`,
+    orgId,
+    watermark,
+  );
+  const count = Number(fresh?.n ?? 0);
+  if (count === 0) {
+    await env.DB.prepare(`UPDATE bm_sources SET notify_watermark = ? WHERE org_id = ? AND COALESCE(notify_watermark, 0) = ?`).bind(now(), orgId, watermark).run();
+    return;
+  }
+  const org = await first<{ name: string; brand: string | null }>(env.DB, `SELECT name, brand FROM orgs WHERE id = ?`, orgId);
+  const people = await all<{ email: string }>(
+    env.DB,
+    `SELECT u.email FROM memberships m JOIN users u ON u.id = m.user_id
+     WHERE m.org_id = ? AND m.bm_notify = 1 AND u.email IS NOT NULL
+       AND (m.role != 'member' OR m.expires_at IS NULL OR m.expires_at > ?)`,
+    orgId,
+    now(),
+  );
+  if (!org || people.length === 0 || !emailConfigured(env)) return;
+  const titles = await all<{ title: string }>(
+    env.DB,
+    `SELECT title FROM documents WHERE org_id = ? AND boligmappa_id IS NOT NULL AND created_at > ? ORDER BY created_at DESC LIMIT 8`,
+    orgId,
+    watermark,
+  );
+  const stamp = now();
+  const claimed = await env.DB.prepare(`UPDATE bm_sources SET notify_watermark = ? WHERE org_id = ? AND COALESCE(notify_watermark, 0) = ?`)
+    .bind(stamp, orgId, watermark)
+    .run();
+  if (!claimed.meta.changes) return;
+  try {
+    const brand = brandFromId(org.brand);
+    const url = `${env.APP_URL.replace(/\/$/, "")}/o/${orgId}/documents`;
+    const mail = boligmappaNewDocumentsEmail({
+      brand: brand.name,
+      orgName: org.name,
+      documents: count,
+      titles: titles.map((row) => row.title),
+      url,
+    });
+    await sendEmail(env, {
+      to: people.map((person) => person.email),
+      from: emailFrom(env, brand),
+      ...mail,
+      idempotencyKey: `bm-new-docs-${orgId}-${watermark}`,
+    });
+    await logActivity(env, {
+      orgId,
+      actor,
+      action: "boligmappa.documents_arrived",
+      summary: count === 1 ? "Varslet om ett nytt dokument fra Boligmappa" : `Varslet om ${count} nye dokumenter fra Boligmappa`,
+    });
+  } catch (err) {
+    await env.DB.prepare(`UPDATE bm_sources SET notify_watermark = ? WHERE org_id = ? AND notify_watermark = ?`).bind(source.notify_watermark, orgId, stamp).run();
+    throw err;
+  }
+}
+
+interface WatchFollow {
+  job: Extract<BoligmappaJob, { kind: "watch" }>;
+  delayMs: number;
+}
+
+/** Ett steg i den stille sjekken. Sender ikke e-posten om at den første overføringen er ferdig. */
+async function runWatchStep(env: Env, job: Extract<BoligmappaJob, { kind: "watch" }>, ctx: { waitUntil(promise: Promise<unknown>): void }): Promise<WatchFollow | null> {
+  if (job.steps >= MAX_CHAIN) {
+    await armWatch(env, job.orgId, now() + WATCH_RETRY_MS);
+    return null;
+  }
+  const source = await transferSourceOf(env, job.orgId);
+  if (!source?.transfer_mail_at || source.auto_import) return null;
+  await holdWatch(env, job.orgId);
+
+  const next = (delayMs: number): WatchFollow => ({ job: { ...job, refresh: false, steps: job.steps + 1 }, delayMs });
+  const importing = { waitUntil: (promise: Promise<unknown>) => ctx.waitUntil(promise), deferProcessing: true as const };
+
+  if (source.status !== "ready" || job.refresh) {
+    const step = await syncChunk(env, job.orgId, false, { force: job.refresh && source.status === "ready" });
+    if (step.status === "error") {
+      if (await restoreSettledWatch(env, job.orgId)) await armWatch(env, job.orgId, now() + WATCH_RETRY_MS);
+      return null;
+    }
+    if (step.status !== "ready") return next(step.waited ? (step.retryInMs ?? 0) : 0);
+  }
+
+  const { picks } = await importableBmns(env, job.orgId);
+  if (picks.length > 0) {
+    const res = await importSelection(env, job.orgId, job.actor, picks, importing);
+    const blocked = Boolean(res.message) && res.importedDocuments === 0;
+    if (res.remainingDocuments > 0 && !blocked) {
+      await touchSource(env, job.orgId);
+      return next(followDelay(res.importedDocuments, res.retryInMs, false));
+    }
+  }
+
+  await notifyNewDocuments(env, job.orgId, job.actor);
+  await armWatch(env, job.orgId, now() + WATCH_INTERVAL_MS);
+  return null;
+}
+
+async function runWatchJob(env: Env, job: Extract<BoligmappaJob, { kind: "watch" }>, ctx: { waitUntil(promise: Promise<unknown>): void }): Promise<void> {
+  const wall = Date.now() + QUEUE_WALL_MS;
+  let follow = await runWatchStep(env, job, ctx);
+  for (let round = 1; round < QUEUE_ROUNDS && follow && follow.delayMs === 0 && Date.now() < wall; round++) {
+    follow = await runWatchStep(env, follow.job, ctx);
+  }
+  if (!follow) return;
+  const queued = await enqueue(env, follow.job, follow.delayMs);
+  if (!queued) await env.DB.prepare(`UPDATE bm_sources SET watch_at = ? WHERE org_id = ? AND watch_at IS NOT NULL`).bind(now(), job.orgId).run();
+}
+
+/** Cron: tar over hvis køen har stilnet, og kjører selv når køen ikke finnes. */
 export async function runAutoImports(env: Env, ctx: { waitUntil(promise: Promise<unknown>): void }): Promise<void> {
   if (!boligmappaConfigured(env)) return;
-  const deadline = Date.now() + CRON_BUDGET_MS;
   const rows = await all<{ org_id: string; user_id: string | null; name: string | null; email: string | null }>(
     env.DB,
     `SELECT s.org_id, u.id AS user_id, u.name, u.email FROM bm_sources s
      LEFT JOIN memberships m ON m.org_id = s.org_id AND m.role = 'owner'
      LEFT JOIN users u ON u.id = m.user_id
-     WHERE s.auto_import = 1 AND (s.retry_at IS NULL OR s.retry_at <= ?) GROUP BY s.org_id ORDER BY s.updated_at LIMIT 5`,
+     WHERE s.auto_import = 1 AND (s.retry_at IS NULL OR s.retry_at <= ?) AND s.updated_at <= ? GROUP BY s.org_id ORDER BY s.updated_at LIMIT 5`,
     now(),
+    now() - TRANSFER_STALE_MS,
   );
   for (const row of rows) {
-    const actor: BmActor = row.user_id ? { type: "user", id: row.user_id, name: row.name ?? row.email ?? "Bruker" } : { type: "agent", id: "boligmappa", name: "Boligmappa-henting" };
+    const actor = transferActor(row);
+    if (env.BOLIGMAPPA_QUEUE) {
+      const queued = await enqueue(env, { kind: "transfer", orgId: row.org_id, actor, steps: 0, refresh: true });
+      if (queued) await touchSource(env, row.org_id);
+      continue;
+    }
+    const deadline = Date.now() + CRON_BUDGET_MS;
+    let job: Extract<BoligmappaJob, { kind: "transfer" }> = { kind: "transfer", orgId: row.org_id, actor, steps: 0, refresh: true };
     for (let i = 0; i < CRON_STEPS_PER_ORG && Date.now() < deadline; i++) {
       try {
-        const step = await autoImportStep(env, row.org_id, actor, ctx);
-        if (step.stage === "done" || step.stage === "off" || step.stage === "error") break;
-        if (step.waited) {
-          // Lange pauser tar neste cron-kjøring. Korte venter vi ut her.
-          const wait = step.retryInMs ?? 2_000;
-          if (wait > 60_000 || Date.now() + wait > deadline) break;
-          await sleep(wait);
-        }
+        const follow = await runTransferStep(env, job, ctx);
+        if (!follow) break;
+        if (follow.delayMs > 60_000 || Date.now() + follow.delayMs > deadline) break;
+        if (follow.delayMs > 0) await sleep(follow.delayMs);
+        job = follow.job;
       } catch (err) {
         console.error("Automatisk Boligmappa-henting feilet", row.org_id, err);
         break;
@@ -1264,19 +2169,78 @@ export async function runAutoImports(env: Env, ctx: { waitUntil(promise: Promise
   }
 }
 
-const MAX_CHAIN = 500;
+/** Cron: én organisasjon av gangen, bare der noen har bedt om varsel og den første overføringen er ferdig. */
+export async function runBoligmappaWatches(env: Env, ctx: { waitUntil(promise: Promise<unknown>): void }): Promise<void> {
+  if (!boligmappaConfigured(env)) return;
+  const due = now();
+  const rows = await all<{ org_id: string; user_id: string | null; name: string | null; email: string | null }>(
+    env.DB,
+    `SELECT s.org_id, u.id AS user_id, u.name, u.email FROM bm_sources s
+     LEFT JOIN memberships m ON m.org_id = s.org_id AND m.role = 'owner'
+     LEFT JOIN users u ON u.id = m.user_id
+     WHERE s.watch_at IS NOT NULL AND s.watch_at <= ?
+       AND s.auto_import = 0
+       AND s.transfer_mail_at IS NOT NULL
+       AND s.status != 'error'
+       AND (s.status = 'ready' OR s.updated_at <= ?)
+       AND EXISTS (SELECT 1 FROM memberships n WHERE n.org_id = s.org_id AND n.bm_notify = 1)
+     GROUP BY s.org_id ORDER BY s.watch_at LIMIT 1`,
+    due,
+    due - TRANSFER_STALE_MS,
+  );
+  for (const row of rows) {
+    const lease = now() + WATCH_LEASE_MS;
+    const claimed = await env.DB.prepare(`UPDATE bm_sources SET watch_at = ? WHERE org_id = ? AND watch_at <= ?`).bind(lease, row.org_id, due).run();
+    if (!claimed.meta.changes) continue;
+    const source = await transferSourceOf(env, row.org_id);
+    if (!source) continue;
+    const pending = await first<{ x: number }>(
+      env.DB,
+      `SELECT 1 AS x FROM bm_documents WHERE org_id = ? AND imported_document_id IS NULL AND error IS NULL LIMIT 1`,
+      row.org_id,
+    );
+    const job: Extract<BoligmappaJob, { kind: "watch" }> = {
+      kind: "watch",
+      orgId: row.org_id,
+      actor: transferActor(row),
+      steps: 0,
+      refresh: source.status === "ready" && source.phase === "done" && !pending,
+    };
+    if (env.BOLIGMAPPA_QUEUE) {
+      const queued = await enqueue(env, job);
+      if (!queued) await env.DB.prepare(`UPDATE bm_sources SET watch_at = ? WHERE org_id = ?`).bind(now(), row.org_id).run();
+      continue;
+    }
+    const deadline = Date.now() + CRON_BUDGET_MS;
+    let current = job;
+    for (let i = 0; i < CRON_STEPS_PER_ORG && Date.now() < deadline; i++) {
+      try {
+        const follow = await runWatchStep(env, current, ctx);
+        if (!follow) break;
+        if (follow.delayMs > 60_000 || Date.now() + follow.delayMs > deadline) break;
+        if (follow.delayMs > 0) await sleep(follow.delayMs);
+        current = follow.job;
+      } catch (err) {
+        console.error("Sjekk etter nye Boligmappa-dokumenter feilet", row.org_id, err);
+        break;
+      }
+    }
+  }
+}
 
 export type BoligmappaJob =
   | { kind: "sync"; orgId: string; steps: number }
   | { kind: "import"; orgId: string; actor: BmActor; bmns: string[]; steps: number; refresh: boolean }
-  | { kind: "drain"; orgId: string; steps: number };
+  | { kind: "drain"; orgId: string; steps: number }
+  | { kind: "transfer"; orgId: string; actor: BmActor; steps: number; refresh: boolean }
+  | { kind: "watch"; orgId: string; actor: BmActor; steps: number; refresh: boolean };
 
 /** Dokumentlistene merkes ferdige selv om en kort side skjulte resten. Gå gjennom dem på nytt uten å slette det som er lagret. */
 async function reopenDocumentLists(env: Env, orgId: string): Promise<void> {
   await env.DB.batch([
     env.DB.prepare(`UPDATE bm_buildings SET docs_fetched_at = NULL, docs_page = 0, docs_attempts = 0, docs_error = NULL WHERE org_id = ?`).bind(orgId),
     env.DB.prepare(`UPDATE bm_units SET docs_fetched_at = NULL, docs_page = 0, docs_attempts = 0, docs_error = NULL WHERE org_id = ?`).bind(orgId),
-    env.DB.prepare(`UPDATE bm_sources SET status = 'syncing', phase = 'documents', page = 1, error = NULL, fail_count = 0, retry_at = NULL, updated_at = ? WHERE org_id = ?`).bind(now(), orgId),
+    env.DB.prepare(`UPDATE bm_sources SET status = 'syncing', phase = 'documents', page = 1, error = NULL, fail_count = 0, retry_at = NULL, webhook_at = NULL, updated_at = ? WHERE org_id = ?`).bind(now(), orgId),
   ]);
 }
 
@@ -1324,7 +2288,7 @@ export async function continueBoligmappaImport(env: Env, orgId: string, actor: B
   if (res.message) return false;
   const needsDocs = res.remainingDocuments > 0;
   // refresh går gjennom dokumentlistene på nytt. En kort side kan ha blitt lagret som om den var den siste.
-  const queued = await enqueue(env, { kind: "import", orgId, actor, bmns: bmns.slice(0, 200), steps: 0, refresh: true });
+  const queued = await enqueue(env, { kind: "import", orgId, actor, bmns: bmns.slice(0, 200), steps: 0, refresh: true }, res.retryInMs ?? 0);
   if (!queued) {
     if (needsDocs) await enableAutoImport(env, orgId);
     return needsDocs;
@@ -1337,46 +2301,82 @@ export async function continueBoligmappaImport(env: Env, orgId: string, actor: B
 }
 
 async function runSyncJob(env: Env, job: Extract<BoligmappaJob, { kind: "sync" }>): Promise<void> {
-  if (job.steps >= MAX_CHAIN) return;
-  const source = await sourceOf(env, job.orgId);
-  if (!source || source.status === "ready") return;
-  const step = await syncChunk(env, job.orgId, false);
-  if (step.status === "ready" || (step.status === "error" && !step.waited)) return;
-  await enqueue(env, { ...job, steps: job.steps + 1 }, step.waited ? (step.retryInMs ?? 0) : 0);
+  const wall = Date.now() + QUEUE_WALL_MS;
+  let current = job;
+  for (let round = 0; round < QUEUE_ROUNDS; round++) {
+    if (current.steps >= MAX_CHAIN) return;
+    if (round > 0 && Date.now() >= wall) {
+      await enqueue(env, current);
+      return;
+    }
+    const source = await sourceOf(env, current.orgId);
+    if (!source || source.status === "ready") return;
+    const step = await syncChunk(env, current.orgId, false);
+    if (step.status === "ready" || (step.status === "error" && !step.waited)) return;
+    const delay = step.waited ? (step.retryInMs ?? 0) : 0;
+    current = { ...current, steps: current.steps + 1 };
+    if (delay > 0 || Date.now() >= wall || round === QUEUE_ROUNDS - 1) {
+      await enqueue(env, current, delay);
+      return;
+    }
+  }
 }
 
 async function runImportJob(env: Env, job: Extract<BoligmappaJob, { kind: "import" }>, ctx: ExecutionContext): Promise<void> {
-  if (job.steps >= MAX_CHAIN) {
-    console.warn("Stopper Boligmappa-import, for mange steg", job.orgId);
+  const wall = Date.now() + QUEUE_WALL_MS;
+  let current = job;
+  for (let round = 0; round < QUEUE_ROUNDS; round++) {
+    if (current.steps >= MAX_CHAIN) {
+      console.warn("Stopper Boligmappa-import, for mange steg", current.orgId);
+      return;
+    }
+    if (round > 0 && Date.now() >= wall) {
+      await enqueue(env, current);
+      return;
+    }
+    const source = await sourceOf(env, current.orgId);
+    if (!source) return;
+    if (source.status !== "ready") {
+      const step = await syncChunk(env, current.orgId, false);
+      if (step.status === "error" && !step.waited) return;
+      const delay = step.waited ? (step.retryInMs ?? 0) : 0;
+      current = { ...current, steps: current.steps + 1 };
+      if (delay > 0 || Date.now() >= wall || round === QUEUE_ROUNDS - 1) {
+        await enqueue(env, current, delay);
+        return;
+      }
+      continue;
+    }
+    let bmns = current.bmns;
+    if (bmns.length === 0) bmns = (await importableBmns(env, current.orgId)).picks;
+    if (bmns.length === 0) {
+      await enqueue(env, { kind: "drain", orgId: current.orgId, steps: 0 });
+      return;
+    }
+    const res = await importSelection(env, current.orgId, current.actor, bmns, { waitUntil: (p) => ctx.waitUntil(p), deferProcessing: true });
+    if (res.message) return;
+    if (res.remainingDocuments > 0) {
+      const delay = followDelay(res.importedDocuments, res.retryInMs, false);
+      current = { ...current, bmns, steps: current.steps + 1 };
+      if (delay > 0 || Date.now() >= wall || round === QUEUE_ROUNDS - 1) {
+        await enqueue(env, current, delay);
+        return;
+      }
+      continue;
+    }
+    // Alt som var listet er inne. Gå gjennom listene én gang til, i tilfelle en kort side skjulte resten.
+    if (current.refresh) {
+      await reopenDocumentLists(env, current.orgId);
+      current = { ...current, bmns, refresh: false, steps: current.steps + 1 };
+      if (Date.now() >= wall || round === QUEUE_ROUNDS - 1) {
+        await enqueue(env, current);
+        return;
+      }
+      continue;
+    }
+    await enqueue(env, { kind: "drain", orgId: current.orgId, steps: 0 });
     return;
   }
-  const source = await sourceOf(env, job.orgId);
-  if (!source) return;
-  if (source.status !== "ready") {
-    const step = await syncChunk(env, job.orgId, false);
-    if (step.status === "error" && !step.waited) return;
-    await enqueue(env, { ...job, steps: job.steps + 1 }, step.waited ? (step.retryInMs ?? 0) : 0);
-    return;
-  }
-  let bmns = job.bmns;
-  if (bmns.length === 0) bmns = (await importableBmns(env, job.orgId)).picks;
-  if (bmns.length === 0) {
-    await enqueue(env, { kind: "drain", orgId: job.orgId, steps: 0 });
-    return;
-  }
-  const res = await importSelection(env, job.orgId, job.actor, bmns, { waitUntil: (p) => ctx.waitUntil(p), deferProcessing: true });
-  if (res.message) return;
-  if (res.remainingDocuments > 0) {
-    await enqueue(env, { ...job, bmns, steps: job.steps + 1 }, res.importedDocuments > 0 ? 0 : 20_000);
-    return;
-  }
-  // Alt som var listet er inne. Gå gjennom listene én gang til, i tilfelle en kort side skjulte resten.
-  if (job.refresh) {
-    await reopenDocumentLists(env, job.orgId);
-    await enqueue(env, { ...job, bmns, refresh: false, steps: job.steps + 1 });
-    return;
-  }
-  await enqueue(env, { kind: "drain", orgId: job.orgId, steps: 0 });
 }
 
 async function runDrainJob(env: Env, job: Extract<BoligmappaJob, { kind: "drain" }>): Promise<void> {
@@ -1391,17 +2391,24 @@ async function runDrainJob(env: Env, job: Extract<BoligmappaJob, { kind: "drain"
   await enqueue(env, { ...job, steps: job.steps + 1 });
 }
 
+function isActor(actor: BmActor | undefined): actor is BmActor {
+  return Boolean(actor && (actor.type === "user" || actor.type === "agent") && typeof actor.id === "string" && typeof actor.name === "string");
+}
+
 function asJob(value: unknown): BoligmappaJob | null {
   if (!value || typeof value !== "object") return null;
   const row = value as { kind?: string; orgId?: string; steps?: number; actor?: BmActor; bmns?: unknown; refresh?: boolean };
   if (typeof row.orgId !== "string" || typeof row.steps !== "number") return null;
   if (row.kind === "sync" || row.kind === "drain") return { kind: row.kind, orgId: row.orgId, steps: row.steps };
+  if (row.kind === "transfer" && isActor(row.actor)) {
+    return { kind: "transfer", orgId: row.orgId, steps: row.steps, actor: { type: row.actor.type, id: row.actor.id, name: row.actor.name }, refresh: row.refresh !== false };
+  }
+  if (row.kind === "watch" && isActor(row.actor)) {
+    return { kind: "watch", orgId: row.orgId, steps: row.steps, actor: { type: row.actor.type, id: row.actor.id, name: row.actor.name }, refresh: row.refresh === true };
+  }
   if (
     row.kind === "import" &&
-    row.actor &&
-    (row.actor.type === "user" || row.actor.type === "agent") &&
-    typeof row.actor.id === "string" &&
-    typeof row.actor.name === "string" &&
+    isActor(row.actor) &&
     Array.isArray(row.bmns)
   ) {
     return {
@@ -1426,7 +2433,9 @@ export async function handleBoligmappaQueue(batch: MessageBatch, env: Env, ctx: 
     try {
       if (job.kind === "sync") await runSyncJob(env, job);
       else if (job.kind === "import") await runImportJob(env, job, ctx);
-      else await runDrainJob(env, job);
+      else if (job.kind === "drain") await runDrainJob(env, job);
+      else if (job.kind === "watch") await runWatchJob(env, job, ctx);
+      else await runTransferJob(env, job, ctx);
       msg.ack();
     } catch (err) {
       console.error("Boligmappa-kø feilet", job.orgId, err);

@@ -1,0 +1,49 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "leie",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "rules": [{ "type": "Text", "globs": ["**/*.html"], "fallthrough": true }],
+  "observability": { "enabled": true, "traces": { "enabled": true } },
+  "limits": { "cpu_ms": 120000 },
+
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/assets/*"]
+  },
+
+  // Samme database og filer som Plank, så kontoer og dokumenter følger med.
+  // Cron og kø-konsument ligger igjen på workeren «plank», ellers kjører jobbene dobbelt.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "plank",
+      "database_id": "3f7f4d1d-cc80-4359-a041-896ac4f5700f",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "plank-files" }],
+  "ai": { "binding": "AI" },
+  "browser": { "binding": "BROWSER" },
+  "queues": {
+    "producers": [{ "binding": "BOLIGMAPPA_QUEUE", "queue": "plank-boligmappa" }]
+  },
+
+  "workers_dev": true,
+  // Eget vertsnavn. Ikke en */*-rute: den ville tatt over resten av vixon.no.
+  "routes": [{ "pattern": "leie.vixon.no", "custom_domain": true }],
+
+  "vars": {
+    "APP_URL": "https://leie.vixon.no",
+    "EMAIL_FROM": "Plank <hei@plank.vixon.no>",
+    "DEFAULT_MODEL": "claude-sonnet-5-5",
+    "ALLOWED_EMAIL_DOMAINS": "",
+    "ADMIN_EMAILS": "henrik@vixon.no",
+    "DEV_MODE": "false",
+    "STRIPE_PRICE_ID": "price_1UOdezInpBZEU4w8iIQ0xlnC",
+    "STRIPE_PRICE_ID_PRO": "price_1UTjzVInpBZEU4w8tTdPT0mT"
+  }
+}

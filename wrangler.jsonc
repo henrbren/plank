@@ -4,14 +4,18 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
+  "rules": [{ "type": "Text", "globs": ["**/*.html"], "fallthrough": true }],
   "observability": { "enabled": true, "traces": { "enabled": true } },
+
+  // Standard på 30 sekunder gir 503 når agenten jobber lenge. Venting på Boligmappa og Claude teller ikke som CPU.
+  "limits": { "cpu_ms": 120000 },
 
   // React-appen (bygget av Vite) serveres som statiske filer. Alt under /api og /files går til Workeren.
   "assets": {
     "directory": "./dist/client",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/assets/*"]
   },
 
   "d1_databases": [
@@ -36,10 +40,7 @@
   // Planlagte agenter sjekkes hvert 15. minutt.
   "triggers": { "crons": ["*/15 * * * *"] },
 
-  // Standardgrensen er 30 s CPU. En agentsamtale med flere verktøysteg passerer den og blir til Feil 503.
-  "limits": { "cpu_ms": 120000 },
-
-  // Henting fra Boligmappa fortsetter her, ett steg av gangen, så samtalen ikke gjør hele jobben selv.
+  // Henting fra Boligmappa fortsetter her. Hvert kall spør flere bygg og laster ned noen filer, så samtalen ikke gjør jobben selv.
   "queues": {
     "producers": [{ "binding": "BOLIGMAPPA_QUEUE", "queue": "plank-boligmappa" }],
     "consumers": [{ "queue": "plank-boligmappa", "max_batch_size": 1, "max_retries": 5, "max_concurrency": 1 }]
@@ -50,6 +51,7 @@
   // LAFT-domener (mappa2.laft.io) er Cloudflare for SaaS-hostnavn på vixon.no med plank.vixon.no som fallback origin.
   // Hvert hostnavn trenger egen rute, og ruten kan først lages når hostnavnet er aktivt (ellers feiler deploy med 10022).
   // Ikke legg til */*-rute: da tar Plank over alle andre sider på vixon.no.
+  // leie.vixon.no er en egen worker (wrangler.leie.jsonc), ikke en rute her.
   "routes": [
     { "pattern": "plank.vixon.no", "custom_domain": true },
     { "pattern": "mappa.vixon.no", "custom_domain": true },

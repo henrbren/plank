@@ -1,139 +1,58 @@
-import { useEffect, useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
-import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { ArrowRight, Building2, Check, FileText, TriangleAlert } from "lucide-react";
-import type { AutoImportStep, BmTree } from "@shared/types";
-import { Logo } from "@/components/domain";
-import { Button, cn, Loading, Spinner } from "@/components/ui";
-import { api, ApiError } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowRight, Building2, Check, Clock, FileText, TriangleAlert } from "lucide-react";
+import type { BmTree, TransferStatus } from "@shared/types";
+import { Button, Loading, Spinner } from "@/components/ui";
+import { api } from "@/lib/api";
 import { useMe } from "@/lib/app";
-import { useBrand } from "@/lib/brand";
 import { formatOrgNr } from "@/lib/format";
+import { BmNotifyChoice } from "./BmNotify";
+import { WizardShell } from "./Wizard";
 
-const flagKey = (orgId: string) => `plank-auto:${orgId}`;
-
-function setFlag(orgId: string, on: boolean) {
-  try {
-    if (on) sessionStorage.setItem(flagKey(orgId), "1");
-    else sessionStorage.removeItem(flagKey(orgId));
-  } catch {
-    /* ignorer */
-  }
-}
-
-function hasFlag(orgId: string): boolean {
-  try {
-    return sessionStorage.getItem(flagKey(orgId)) === "1";
-  } catch {
-    return false;
-  }
-}
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-const REFRESH = /^\/(portfolio|overview|documents|boligmappa|activation)/;
-
-function refreshOrg(qc: QueryClient, orgId: string) {
-  void qc.invalidateQueries({
-    predicate: (q) => q.queryKey[0] === "org" && q.queryKey[1] === orgId && typeof q.queryKey[2] === "string" && REFRESH.test(q.queryKey[2]),
+function useTransfer(orgId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["org", orgId, "/boligmappa/transfer"],
+    queryFn: () => api<TransferStatus>(`/orgs/${orgId}/boligmappa/transfer`),
+    enabled,
+    refetchInterval: (q) => {
+      const s = q.state.data;
+      if (!s || s.stage === "off") return false;
+      if (s.stage === "done") return false;
+      if (s.stage === "error" && !s.active) return false;
+      return 2_500;
+    },
   });
 }
 
-const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
-
-/** Kjører automatisk henting fra Boligmappa steg for steg så lenge komponenten er montert */
-function useAutoImport(orgId: string, enabled: boolean, refreshEvery: number) {
-  const qc = useQueryClient();
-  const [step, setStep] = useState<AutoImportStep | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [attempt, setAttempt] = useState(0);
-
-  useEffect(() => {
-    if (!enabled) return;
-    let cancelled = false;
-    let lastRefresh = 0;
-    let force = attempt > 0;
-    void (async () => {
-      let failures = 0;
-      while (!cancelled) {
-        try {
-          const s = await api<AutoImportStep>(`/orgs/${orgId}/boligmappa/auto${force ? "?force=1" : ""}`, { method: "POST" });
-          force = false;
-          if (cancelled) return;
-          failures = 0;
-          setStep(s);
-          setError(null);
-          const finished = s.stage === "done" || s.stage === "off" || s.stage === "error";
-          if (finished || Date.now() - lastRefresh > refreshEvery) {
-            lastRefresh = Date.now();
-            refreshOrg(qc, orgId);
-          }
-          if (finished) {
-            if (s.stage !== "error") setFlag(orgId, false);
-            return;
-          }
-          await sleep(s.waited ? clamp(s.retryInMs ?? 2_000, 1_500, 15_000) : 250);
-        } catch (err) {
-          if (cancelled) return;
-          if (err instanceof ApiError && (err.status === 403 || err.status === 404)) {
-            setFlag(orgId, false);
-            setError(err.message);
-            return;
-          }
-          failures++;
-          if (failures >= 6) {
-            setError(err instanceof Error ? err.message : "Hentingen stoppet");
-            return;
-          }
-          await sleep(clamp(2_000 * 2 ** (failures - 1), 2_000, 20_000));
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [orgId, enabled, attempt, refreshEvery, qc]);
-
-  return {
-    step,
-    error,
-    retry: () => {
-      setError(null);
-      setAttempt((n) => n + 1);
-    },
-  };
-}
-
-function level(step: AutoImportStep | null): number {
-  if (!step) return 0;
-  if (step.stage === "done") return 3;
-  if (step.stage === "import" || step.importedDocuments > 0) return 2;
-  if (step.phase === "buildings") return 0;
-  return step.phase === "done" ? 2 : 1;
-}
-
-function StepRow({ index, current, title, detail }: { index: number; current: number; title: string; detail?: string | null }) {
-  const done = current > index;
-  const active = current === index;
+/** Liten status i sidepanelet. Den driver ingen henting. Serveren gjør jobben. */
+export function BackgroundImport({ orgId }: { orgId: string }) {
+  const transfer = useTransfer(orgId, true);
+  const step = transfer.data;
+  if (!step || step.stage === "off" || step.stage === "done") return null;
+  if (step.stage === "error" && !step.active) {
+    return (
+      <Link to={`/velkommen/${orgId}`} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] text-warn hover:bg-nav-hover">
+        <TriangleAlert className="size-3.5" />
+        Boligmappa-hentingen stoppet
+      </Link>
+    );
+  }
+  const label = step.stage === "buildings" ? "Finner bygg" : step.stage === "import" ? "Legger inn bygg" : "Henter dokumenter";
   return (
-    <li className="flex items-start gap-3">
-      <span
-        className={cn(
-          "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border text-[12px] font-semibold",
-          done ? "border-accent bg-accent text-white" : active ? "border-accent text-accent" : "border-line text-muted",
-        )}
-      >
-        {done ? <Check className="size-3.5" /> : active ? <Spinner className="size-3.5" /> : index + 1}
-      </span>
-      <span className="min-w-0">
-        <span className={cn("block text-[14.5px]", done || active ? "font-medium text-ink" : "text-muted")}>{title}</span>
-        {detail && <span className="block text-[13px] text-muted">{detail}</span>}
-      </span>
-    </li>
+    <Link to={`/velkommen/${orgId}`} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] text-nav-ink-2 hover:bg-nav-hover">
+      <Spinner className="size-3.5 text-nav-ink" />
+      <span className="flex-1">{label}</span>
+      <span className="text-nav-muted tabular-nums">{step.importedDocuments.toLocaleString("nb-NO")}</span>
+    </Link>
   );
 }
 
-function Count({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+function antall(n: number, en: string, flere: string): string {
+  return `${n.toLocaleString("nb-NO")} ${n === 1 ? en : flere}`;
+}
+
+function Count({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
   return (
     <div className="rounded-xl border border-line bg-panel px-4 py-3">
       <div className="flex items-center gap-1.5 text-[12.5px] text-muted [&>svg]:size-3.5">
@@ -145,162 +64,195 @@ function Count({ icon, label, value }: { icon: React.ReactNode; label: string; v
   );
 }
 
-/** Trakten etter første innlogging på LAFT-domenene: henter bygg og dokumenter fra Boligmappa mens kunden ser på. */
+/** Fremdrift etter at organisasjonen er opprettet. Hentingen er allerede i gang på serveren. */
 export function FunnelPage() {
   const { orgId = "" } = useParams();
   const me = useMe();
-  const brand = useBrand();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const org = me.data?.orgs.find((o) => o.id === orgId);
-  const { step, error, retry } = useAutoImport(orgId, Boolean(org), 3000);
+  const transfer = useTransfer(orgId, Boolean(org));
+  const running = transfer.data && transfer.data.stage !== "off" && transfer.data.stage !== "done" && !(transfer.data.stage === "error" && !transfer.data.active);
   const tree = useQuery({
     queryKey: ["org", orgId, "/boligmappa"],
     queryFn: () => api<BmTree>(`/orgs/${orgId}/boligmappa`),
-    enabled: Boolean(org),
+    enabled: Boolean(org) && Boolean(transfer.data && transfer.data.stage !== "off"),
+    refetchInterval: running ? 5_000 : false,
   });
+  const [retrying, setRetrying] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [notifyOverride, setNotifyOverride] = useState<boolean | null>(null);
+  const [savingNotify, setSavingNotify] = useState(false);
 
-  useEffect(() => {
-    if (org) setFlag(org.id, true);
-  }, [org]);
-
-  if (me.isLoading) return <Loading />;
+  if (me.isLoading || (org && transfer.isLoading)) return <Loading />;
   if (me.error || !me.data) return <Navigate to="/login" replace />;
   if (!org) return <Navigate to="/" replace />;
 
-  const workspace = `/o/${org.id}?welcome=1`;
-  if (step?.stage === "off") return <Navigate to={workspace} replace />;
-
-  const current = level(step);
-  const done = step?.stage === "done";
-  const failed = step?.stage === "error" || Boolean(error);
-  const imported = step?.importedDocuments ?? 0;
-  const remaining = step?.remainingDocuments ?? null;
-  const progress = done ? 1 : remaining != null && imported + remaining > 0 ? imported / (imported + remaining) : 0;
+  const status = transfer.data;
   const estates = tree.data?.estates ?? [];
-  const empty = done && (step?.buildingCount ?? 0) === 0 && estates.length === 0;
+  const buildingsIn = (status?.importedBuildings ?? 0) > 0;
+  const done = status?.stage === "done";
+  const failed = status?.stage === "error" && !status.active;
+  const empty = done && (status?.buildingCount ?? 0) === 0 && (status?.importedBuildings ?? 0) === 0;
+  const imported = status?.importedDocuments ?? 0;
+  const remaining = status?.remainingDocuments ?? 0;
+  const listed = imported + remaining;
+  const progress = done ? 1 : listed > 0 ? imported / listed : status?.stage === "documents" ? 0.08 : 0;
+  const canAdmin = org.role === "owner" || org.role === "admin";
   const orgNr = tree.data?.orgNr;
 
+  const off = status?.stage === "off";
+  const title = off
+    ? "Organisasjonen er klar"
+    : empty
+      ? "Ingen bygg i Boligmappa"
+      : done
+        ? "Dokumentene er overført"
+        : failed
+          ? "Hentingen stoppet"
+          : buildingsIn
+            ? "Byggene er inne"
+            : "Vi henter byggene fra Boligmappa";
+
+  const lead = off
+    ? status?.configured
+      ? "Det er ikke startet noen henting fra Boligmappa. Du kan legge inn eiendommer selv, eller koble til senere."
+      : "Boligmappa er ikke koblet til på denne serveren. Du kan legge inn bygg selv."
+    : empty
+      ? `Boligmappa har ingen bygg på ${org.name}${orgNr ? ` (${formatOrgNr(orgNr)})` : ""}. Du kan legge inn eiendommer selv.`
+      : done
+        ? `${antall(imported, "dokument", "dokumenter")} i ${antall(status?.importedBuildings ?? 0, "bygg", "bygg")} ligger i arkivet. ${status?.mailed ? "Vi har sendt deg en e-post." : ""}`
+        : failed
+          ? "Det som allerede er inne, blir liggende. Trykk Prøv igjen når du vil fortsette."
+          : buildingsIn
+            ? "Dokumentene kommer inn etterpå. Du kan se porteføljen mens det pågår."
+            : `Vi slår opp ${org.name} og legger byggene inn med en gang vi finner dem.`;
+
+  const notifyOn = notifyOverride ?? Boolean(org.bm_notify);
+  const setNotify = async (on: boolean) => {
+    setNotifyOverride(on);
+    setSavingNotify(true);
+    setActionError(null);
+    try {
+      await api(`/orgs/${orgId}/bm-notify`, { method: "PATCH", body: { on } });
+      await qc.invalidateQueries({ queryKey: ["me"] });
+    } catch (err) {
+      setNotifyOverride(Boolean(org.bm_notify));
+      setActionError(err instanceof Error ? err.message : "Kunne ikke lagre valget");
+    } finally {
+      setSavingNotify(false);
+    }
+  };
+
+  const retry = async () => {
+    setRetrying(true);
+    setActionError(null);
+    try {
+      await api(`/orgs/${orgId}/boligmappa/transfer`, { method: "POST" });
+      await qc.invalidateQueries({ queryKey: ["org", orgId, "/boligmappa/transfer"] });
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Kunne ikke starte på nytt");
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   return (
-    <div className="min-h-full bg-bg">
-      <div className="mx-auto flex max-w-2xl flex-col px-6 py-8">
-        <Logo />
-        <div className="mt-14">
-          <div className="text-[12.5px] font-semibold tracking-wide text-accent uppercase">Velkommen til {brand.name}</div>
-          <h1 className="mt-2 text-[28px] leading-tight font-semibold tracking-tight">
-            {empty ? "Ingen bygg i Boligmappa ennå" : done ? "Arkivet er klart" : "Vi henter dokumentene fra Boligmappa"}
-          </h1>
-          <p className="mt-3 text-[14.5px] leading-relaxed text-ink-2">
-            {empty
-              ? `Boligmappa har ingen bygg registrert på ${org.name}${orgNr ? ` (${formatOrgNr(orgNr)})` : ""}. Du kan legge inn eiendommer selv, eller hente dem fra LAFT.`
-              : done
-                ? `${imported.toLocaleString("nb-NO")} dokumenter i ${(step?.importedBuildings ?? 0).toLocaleString("nb-NO")} bygg ligger nå i arkivet til ${org.name}.`
-                : `Alt som er registrert på ${org.name} hos Boligmappa kommer inn av seg selv. Du kan gå inn i arkivet når som helst. Hentingen fortsetter mens du jobber.`}
-          </p>
+    <WizardShell>
+      <p className="text-[12.5px] font-semibold tracking-wide text-accent uppercase">{org.name}</p>
+      <h1 className="mt-2 text-[34px] leading-[1.15] font-semibold tracking-tight">{title}</h1>
+      <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-ink-2">{lead}</p>
+      {status && status.stage !== "off" && status.stage !== "done" && !failed && (
+        <p className="mt-3 text-[13.5px] text-muted">Du kan lukke nettleseren. Vi sender en e-post når dokumentene er overført.</p>
+      )}
+      {status && (
+        <div className="mt-6 rounded-2xl border border-line bg-panel">
+          <BmNotifyChoice checked={notifyOn} onChange={(on) => void setNotify(on)} disabled={savingNotify} />
         </div>
+      )}
 
-        <ol className="mt-8 space-y-4">
-          <StepRow index={0} current={current} title="Finner bygg" detail={current > 0 ? `${(step?.buildingCount ?? 0).toLocaleString("nb-NO")} bygg` : null} />
-          <StepRow
-            index={1}
-            current={current}
-            title="Teller leiligheter og dokumenter"
-            detail={current > 1 || step?.phase === "documents" ? `${(step?.documentCount ?? 0).toLocaleString("nb-NO")} dokumenter` : null}
-          />
-          <StepRow index={2} current={current} title="Legger dokumentene inn i arkivet" detail={current >= 2 ? `${imported.toLocaleString("nb-NO")} hentet` : null} />
-        </ol>
-
-        <div className="mt-8 grid grid-cols-3 gap-2.5">
-          <Count icon={<Building2 />} label="Bygg i Boligmappa" value={step?.buildingCount ?? 0} />
-          <Count icon={<FileText />} label="Dokumenter" value={step?.documentCount ?? 0} />
-          <Count icon={<Check />} label="I arkivet" value={imported} />
-        </div>
-        {current >= 2 && (
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-panel-3">
-            <div className="h-full rounded-full bg-accent transition-[width] duration-500" style={{ width: `${Math.round(progress * 100)}%` }} />
+      {status && status.stage !== "off" && (
+        <>
+          <div className="mt-8 grid grid-cols-3 gap-2.5">
+            <Count icon={<Building2 />} label="Bygg" value={status.importedBuildings || status.buildingCount} />
+            <Count icon={<FileText />} label="I arkivet" value={imported} />
+            <Count icon={<Clock />} label="Igjen" value={done ? 0 : remaining} />
           </div>
-        )}
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-panel-3">
+            <div className="h-full rounded-full bg-accent transition-[width] duration-700" style={{ width: `${Math.round(progress * 100)}%` }} />
+          </div>
+          {status.failedDocuments > 0 && !failed && (
+            <p className="mt-2 text-[12.5px] text-muted">{antall(status.failedDocuments, "dokument", "dokumenter")} prøves på nytt, eller er lagt til side etter flere forsøk.</p>
+          )}
+        </>
+      )}
 
-        {step?.message && !failed && <p className="mt-4 rounded-xl border border-line bg-panel-2 px-3.5 py-2.5 text-[13.5px] text-ink-2">{step.message}</p>}
-        {failed && (
-          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-warn bg-warn-soft px-3.5 py-3 text-[13.5px]">
-            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" />
-            <div className="flex-1">
-              <div className="font-medium">Hentingen stoppet</div>
-              <div className="text-ink-2">{error || step?.message || "Boligmappa svarte ikke som ventet."}</div>
-            </div>
-            <Button size="sm" onClick={retry}>
+      {(failed || actionError) && (
+        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-warn bg-warn-soft px-3.5 py-3 text-[13.5px]">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" />
+          <div className="min-w-0 flex-1">
+            <div className="font-medium">{failed ? "Hentingen stoppet" : "Noe gikk galt"}</div>
+            <div className="text-ink-2">{actionError || status?.message || "Prøv igjen. Det som er inne, blir liggende."}</div>
+          </div>
+          {canAdmin && failed && (
+            <Button size="sm" onClick={() => void retry()} loading={retrying}>
               Prøv igjen
             </Button>
-          </div>
-        )}
-
-        {estates.length > 0 && (
-          <div className="mt-8 overflow-hidden rounded-2xl border border-line bg-panel">
-            <div className="border-b border-line px-4 py-2.5 text-[12.5px] font-semibold tracking-wide text-muted uppercase">Fra Boligmappa</div>
-            <ul className="divide-y divide-line">
-              {estates.slice(0, 8).map((e) => {
-                const inArchive = e.buildings.length > 0 && e.buildings.every((b) => b.importedBuildingId);
-                return (
-                  <li key={e.key} className="flex items-center gap-3 px-4 py-3">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-panel-2 text-muted">
-                      <Building2 className="size-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[14px] font-medium">{e.name}</span>
-                      <span className="block truncate text-[12.5px] text-muted">
-                        {[e.address, e.city].filter(Boolean).join(", ") || "Uten adresse"} · {e.buildings.length} bygg · {e.documents.toLocaleString("nb-NO")} dokumenter
-                      </span>
-                    </span>
-                    {inArchive ? (
-                      <span className="flex items-center gap-1 text-[12.5px] font-medium text-accent">
-                        <Check className="size-3.5" />I arkivet
-                      </span>
-                    ) : current >= 2 ? (
-                      <Spinner className="size-3.5 text-muted" />
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-            {estates.length > 8 && <div className="border-t border-line px-4 py-2.5 text-[13px] text-muted">og {estates.length - 8} eiendommer til</div>}
-          </div>
-        )}
-
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          <Button variant="primary" size="lg" onClick={() => navigate(workspace)}>
-            {done ? "Åpne arkivet" : "Gå til arkivet"}
-            <ArrowRight className="size-4" />
-          </Button>
-          {empty && (
-            <Link to={`/o/${org.id}/laft`} className="text-[13.5px] text-muted hover:text-ink">
-              Hent fra LAFT i stedet
-            </Link>
           )}
-          {!done && !failed && <span className="text-[13px] text-muted">Hentingen fortsetter i bakgrunnen.</span>}
         </div>
-      </div>
-    </div>
-  );
-}
+      )}
 
-/** Liten statuslinje i sidepanelet som fortsetter hentingen etter at kunden har gått ut av trakten */
-export function BackgroundImport({ orgId }: { orgId: string }) {
-  const [enabled] = useState(() => hasFlag(orgId));
-  const { step, error } = useAutoImport(orgId, enabled, 8000);
-  if (!enabled || !step || step.stage === "done" || step.stage === "off") return null;
-  if (error || step.stage === "error") {
-    return (
-      <Link to={`/o/${orgId}/boligmappa`} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] text-warn hover:bg-panel-2">
-        <TriangleAlert className="size-3.5" />
-        Boligmappa-hentingen stoppet
-      </Link>
-    );
-  }
-  return (
-    <Link to={`/o/${orgId}/boligmappa`} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] text-ink-2 hover:bg-panel-2">
-      <Spinner className="size-3.5 text-accent" />
-      <span className="flex-1">Henter fra Boligmappa</span>
-      <span className="text-muted tabular-nums">{step.importedDocuments.toLocaleString("nb-NO")} dok.</span>
-    </Link>
+      {status?.message && status.active && status.stage !== "error" && <p className="mt-4 text-[13.5px] text-ink-2">{status.message}</p>}
+
+      {estates.length > 0 && (
+        <div className="mt-8 overflow-hidden rounded-2xl border border-line bg-panel">
+          <div className="border-b border-line px-4 py-2.5 text-[12.5px] font-semibold tracking-wide text-muted uppercase">Fra Boligmappa</div>
+          <ul className="divide-y divide-line">
+            {estates.slice(0, 6).map((e) => {
+              const inArchive = e.buildings.length > 0 && e.buildings.every((b) => b.importedBuildingId);
+              return (
+                <li key={e.key} className="flex items-center gap-3 px-4 py-3">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-panel-2 text-muted">
+                    <Building2 className="size-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[14px] font-medium">{e.name}</span>
+                    <span className="block truncate text-[12.5px] text-muted">
+                      {[e.address, e.city].filter(Boolean).join(", ") || "Uten adresse"} · {e.buildings.length} bygg · {e.documents.toLocaleString("nb-NO")} dokumenter
+                    </span>
+                  </span>
+                  {inArchive ? (
+                    <span className="flex items-center gap-1 text-[12.5px] font-medium text-accent">
+                      <Check className="size-3.5" />
+                      Inne
+                    </span>
+                  ) : (
+                    <Spinner className="size-3.5 text-muted" />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          {estates.length > 6 && <div className="border-t border-line px-4 py-2.5 text-[13px] text-muted">og {estates.length - 6} eiendommer til</div>}
+        </div>
+      )}
+
+      {(buildingsIn || done || empty || status?.stage === "off") && (
+        <Button variant="primary" size="lg" className="mt-8" onClick={() => navigate(`/o/${org.id}`)}>
+          {empty || status?.stage === "off" ? "Legg inn selv" : "Se porteføljen"}
+          <ArrowRight className="size-4" />
+        </Button>
+      )}
+      {!buildingsIn && !done && !empty && status?.stage !== "off" && (
+        <Link to={`/o/${org.id}`} className="mt-8 inline-block text-[13.5px] text-muted hover:text-ink">
+          Se det som er inne
+        </Link>
+      )}
+      {empty && (
+        <Link to={`/o/${org.id}/laft`} className="mt-4 block text-[13.5px] text-muted hover:text-ink">
+          Hent fra LAFT i stedet
+        </Link>
+      )}
+    </WizardShell>
   );
 }

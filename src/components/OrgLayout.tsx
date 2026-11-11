@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Navigate, NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Navigate, NavLink, Outlet, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   BarChart3,
@@ -41,16 +41,19 @@ import {
   Sun,
   Table,
   Thermometer,
+  UserPlus,
   Users,
   Wrench,
+  X,
   Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { SidebarPage, TreeProperty } from "@shared/types";
+import type { Member, SidebarPage, TreeProperty } from "@shared/types";
 import { placeImageUrl } from "@/features/places/PlacePhoto";
 import { UsageMeter } from "@/features/billing/UsageMeter";
 import { BackgroundImport } from "@/features/onboarding/Funnel";
 import { useBrand } from "@/lib/brand";
+import { useNavFlags } from "@/lib/modules";
 import { AgentPanelProvider, FocusProvider, OrgProvider, useAgentPanel, useMe, useOrg, useOrgQuery, useTheme } from "@/lib/app";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
@@ -61,6 +64,7 @@ import { NextStepBar } from "@/features/onboarding/NextStep";
 import { StartGuideProvider, useOpenGuide } from "@/features/onboarding/StartGuide";
 import { CommandPalette } from "./CommandPalette";
 import { PropertyFormModal } from "./forms";
+import { InviteModal } from "@/pages/access";
 
 export function OrgLayout() {
   const { orgId } = useParams();
@@ -89,10 +93,18 @@ function Shell() {
   const panel = useAgentPanel();
   const [navOpen, setNavOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [params, setParams] = useSearchParams();
   const location = useLocation();
   const onArtifact = /\/artifacts\/[^/]+$/.test(location.pathname);
 
   useEffect(() => setNavOpen(false), [location.pathname]);
+
+  useEffect(() => {
+    if (params.get("oppsett") !== "1") return;
+    const next = new URLSearchParams(params);
+    next.delete("oppsett");
+    setParams(next, { replace: true });
+  }, [params, setParams]);
 
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
@@ -116,7 +128,7 @@ function Shell() {
       {/* Sidepanel */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-[264px] shrink-0 border-r border-line bg-panel transition-transform lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 w-[264px] shrink-0 border-r border-nav-line bg-nav text-nav-ink transition-transform lg:static lg:translate-x-0",
           navOpen ? "translate-x-0 shadow-pop" : "-translate-x-full",
         )}
       >
@@ -163,7 +175,7 @@ function Shell() {
   );
 }
 
-function NavItem({ to, icon, label, end }: { to: string; icon: React.ReactNode; label: string; end?: boolean }) {
+function NavItem({ to, icon, label, end, className, forceActive }: { to: string; icon: React.ReactNode; label: string; end?: boolean; className?: string; forceActive?: boolean }) {
   return (
     <NavLink
       to={to}
@@ -171,13 +183,16 @@ function NavItem({ to, icon, label, end }: { to: string; icon: React.ReactNode; 
       title={label}
       className={({ isActive }) =>
         cn(
-          "flex h-8 min-w-0 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] transition-colors",
-          isActive ? "bg-panel-2 font-medium text-ink" : "text-ink-2 hover:bg-panel-2/70 hover:text-ink",
+          "flex h-7.5 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-lg px-2.5 text-[13.5px] transition-colors",
+          className,
+          isActive || forceActive
+            ? "bg-nav-active font-medium text-nav-ink"
+            : "text-nav-ink-2 hover:bg-nav-hover hover:text-nav-ink",
         )
       }
     >
-      <span className="shrink-0 text-muted [&>svg]:size-4">{icon}</span>
-      <span className="min-w-0 truncate">{label}</span>
+      <span className="shrink-0 text-nav-muted [&>svg]:size-4">{icon}</span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
     </NavLink>
   );
 }
@@ -185,13 +200,18 @@ function NavItem({ to, icon, label, end }: { to: string; icon: React.ReactNode; 
 function Sidebar({ onSearch }: { onSearch: () => void }) {
   const { orgId, org, me, isAdmin, canEdit, limited } = useOrg();
   const navigate = useNavigate();
+  const location = useLocation();
   const qc = useQueryClient();
   const [theme, setTheme] = useTheme();
   const panel = useAgentPanel();
   const openGuide = useOpenGuide();
   const tree = useOrgQuery<TreeProperty[]>("/portfolio/tree");
+  const nav = useNavFlags();
   const brand = useBrand();
   const [newProperty, setNewProperty] = useState(false);
+  const [invite, setInvite] = useState(false);
+  const members = useOrgQuery<Member[]>(isAdmin ? "/members" : null);
+  const solo = isAdmin && members.data?.length === 1;
   const base = `/o/${orgId}`;
 
   const logout = async () => {
@@ -208,13 +228,13 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
           align="start"
           className="w-full"
           trigger={() => (
-            <button className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-panel-2">
-              <Logo withText={false} />
+            <button className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-nav-hover">
+              <Logo withText={false} className={brand.logo ? "[&_img]:rounded-md [&_img]:bg-white [&_img]:p-0.5" : undefined} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13.5px] font-semibold">{org.name}</span>
-                <span className="block text-[11.5px] text-muted">{brand.name}</span>
+                <span className="block text-[11.5px] text-nav-muted">{brand.name}</span>
               </span>
-              <ChevronsUpDown className="size-4 text-muted" />
+              <ChevronsUpDown className="size-4 text-nav-muted" />
             </button>
           )}
         >
@@ -249,10 +269,10 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
       </div>
 
       <div className="px-2.5">
-        <button onClick={onSearch} className="flex h-8 w-full items-center gap-2 rounded-lg border border-line bg-bg px-2.5 text-[13px] text-muted hover:border-line-strong">
+        <button onClick={onSearch} className="flex h-8 w-full items-center gap-2 rounded-lg border border-nav-line bg-nav-field px-2.5 text-[13px] text-nav-muted hover:bg-nav-hover">
           <Search className="size-3.5" />
           <span className="flex-1 text-left">Søk …</span>
-          <kbd className="rounded border border-line px-1 text-[10.5px]">⌘K</kbd>
+          <kbd className="rounded border border-nav-line px-1 text-[10.5px]">⌘K</kbd>
         </button>
       </div>
       {(!canEdit || limited || org.expires_on) && (
@@ -266,83 +286,51 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
         </div>
       )}
 
-      <nav className="mt-3 flex flex-col gap-0.5 px-2.5">
-        <NavItem to={base} end icon={<House />} label="Oversikt" />
-        <NavItem to={`${base}/tasks`} icon={<SquareCheck />} label="Oppgaver" />
-        <NavItem to={`${base}/documents`} icon={<FileText />} label="Dokumenter" />
-        <NavItem to={`${base}/components`} icon={<Wrench />} label="FDV-register" />
-        <NavItem to={`${base}/agents`} icon={<Bot />} label="Agenter" />
-        <NavItem to={`${base}/artifacts`} icon={<LayoutDashboard />} label="Sider" />
-        <NavItem to={`${base}/hjelp`} icon={<CircleHelp />} label="Hjelp" />
-        <SidebarPages />
+      <nav className="mt-3 flex min-w-0 flex-col gap-0.5 overflow-x-hidden px-2.5">
+        {nav.lease ? (
+          <NavItem to={base} end icon={<House />} label="Pult" forceActive={location.pathname.startsWith(`${base}/pult/`)} />
+        ) : (
+          <NavItem to={base} end icon={<House />} label="Oversikt" />
+        )}
+        {nav.utleie && !nav.lease && <NavItem to={`${base}/pult`} icon={<KeyRound />} label="Pult" forceActive={location.pathname.startsWith(`${base}/pult/`)} />}
+        {nav.lease && nav.drift && <NavItem to={`${base}/drift`} icon={<BarChart3 />} label="Drift" />}
+        {nav.kart && <NavItem to={`${base}/kart`} icon={<Map />} label="Kart" />}
+        {nav.tasks && <NavItem to={`${base}/tasks`} icon={<SquareCheck />} label="Oppgaver" />}
+        {nav.dokumenter && <NavItem to={`${base}/documents`} icon={<FileText />} label="Dokumenter" />}
+        {nav.komponenter && <NavItem to={`${base}/components`} icon={<Wrench />} label="Komponenter" />}
+        {nav.sider && <NavItem to={`${base}/artifacts`} icon={<LayoutDashboard />} label="Sider" />}
+        {nav.pinned && <SidebarPages />}
       </nav>
 
-      <div className="mt-5 flex items-center justify-between px-5 pb-1">
-        <span className="text-[11.5px] font-semibold tracking-wide text-muted uppercase">Portefølje</span>
-        {canEdit && !limited && (
-        <Menu
-          align="end"
-          trigger={() => (
-            <IconButton label="Legg til">
-              <Plus className="size-3.5" />
-            </IconButton>
-          )}
-        >
-          {(close) => (
-            <>
-              <MenuItem
-                icon={<MapPin className="size-4" />}
-                onClick={() => {
-                  close();
-                  setNewProperty(true);
-                }}
-              >
-                Ny eiendom
-              </MenuItem>
-              <MenuItem
-                icon={<FolderTree className="size-4" />}
-                onClick={() => {
-                  close();
-                  navigate(`${base}/boligmappa`);
-                }}
-              >
-                Hent fra Boligmappa
-              </MenuItem>
-              <MenuItem
-                icon={<KeyRound className="size-4" />}
-                onClick={() => {
-                  close();
-                  navigate(`${base}/laft`);
-                }}
-              >
-                Hent fra LAFT
-              </MenuItem>
-            </>
-          )}
-        </Menu>
-        )}
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-3">
-        {tree.data && tree.data.length === 0 && (
-          <div className="px-2.5 py-2 text-[12.5px] text-muted">
-            {limited ? "Du har ikke fått tilgang til noen eiendommer ennå." : "Ingen eiendommer ennå. Hent fra Boligmappa eller LAFT, eller opprett selv."}
-          </div>
-        )}
-        {tree.data?.map((p) => <PropertyNode key={p.id} property={p} />)}
-      </div>
+      <Portfolio tree={tree.data} canAdd={canEdit && !limited} limited={limited} onNewProperty={() => setNewProperty(true)} base={base} />
 
-      <div className="border-t border-line px-2.5 pt-1.5">
+      <div className="border-t border-nav-line px-2.5 pt-1.5">
         <BackgroundImport orgId={orgId} />
         <UsageMeter />
       </div>
       {/* Bruker */}
       <div className="p-2.5">
+        {solo && (
+          <button
+            type="button"
+            onClick={() => setInvite(true)}
+            className="mb-1.5 flex h-8 w-full items-center gap-2 rounded-lg border border-nav-line px-2.5 text-[13px] text-nav-ink hover:bg-nav-hover"
+          >
+            <UserPlus className="size-3.5 shrink-0 text-nav-muted" />
+            Inviter
+          </button>
+        )}
         <Menu
           align="start"
           className="w-full"
           trigger={() => (
-            <button className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-panel-2">
-              <span className="flex size-7 items-center justify-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent uppercase">
+            <button className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-nav-hover">
+              <span
+                className={cn(
+                  "flex size-7 items-center justify-center rounded-full text-[12px] font-semibold uppercase",
+                  brand.id === "plank" ? "bg-accent-soft text-accent" : "bg-white/15 text-white",
+                )}
+              >
                 {(me.user.name ?? me.user.email).slice(0, 1)}
               </span>
               <span className="min-w-0 flex-1 truncate text-[13px]">{me.user.name ?? me.user.email}</span>
@@ -370,6 +358,16 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
                 }}
               >
                 Kom i gang
+              </MenuItem>
+              <MenuItem
+                icon={<CircleHelp className="size-4" />}
+                active={location.pathname.startsWith(`${base}/hjelp`)}
+                onClick={() => {
+                  close();
+                  navigate(`${base}/hjelp`);
+                }}
+              >
+                Hjelp
               </MenuItem>
               <MenuItem
                 icon={<Settings className="size-4" />}
@@ -459,6 +457,7 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
         </Menu>
       </div>
       <PropertyFormModal open={newProperty} onClose={() => setNewProperty(false)} />
+      {invite && <InviteModal onClose={() => setInvite(false)} />}
     </div>
   );
 }
@@ -491,38 +490,227 @@ function SidebarPages() {
   const pages = useOrgQuery<SidebarPage[]>("/artifacts/sidebar");
   if (!pages.data?.length) return null;
   return (
-    <div className="mt-3 flex flex-col gap-0.5">
-      <div className="px-2.5 pb-1 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Mine sider</div>
-      {pages.data.map((p) => {
-        const Icon = (p.sidebar_icon && PAGE_ICONS[p.sidebar_icon]) || LayoutDashboard;
-        return <NavItem key={p.id} to={`/o/${orgId}/artifacts/${p.id}`} icon={<Icon />} label={p.title} />;
-      })}
+    <div className="mt-2 min-w-0">
+      <div className="px-2.5 pb-1 text-[11.5px] font-semibold tracking-wide text-nav-muted uppercase">Mine sider</div>
+      <div className="sidebar-scroll flex max-h-32 min-w-0 flex-col gap-0.5 overflow-x-hidden overflow-y-auto">
+        {pages.data.map((p) => {
+          const Icon = (p.sidebar_icon && PAGE_ICONS[p.sidebar_icon]) || LayoutDashboard;
+          return <NavItem key={p.id} to={`/o/${orgId}/artifacts/${p.id}`} icon={<Icon />} label={p.title} className="pr-10" />;
+        })}
+      </div>
     </div>
   );
 }
 
 // ─── Porteføljetre ───────────────────────────────────────────────────────────
 
-function useExpanded(id: string, defaultOpen = false): [boolean, () => void] {
-  const key = `plank-tree-${id}`;
-  const [open, setOpen] = useState(() => {
-    try {
-      const v = localStorage.getItem(key);
-      return v == null ? defaultOpen : v === "1";
-    } catch {
-      return defaultOpen;
-    }
-  });
+function storedOpen(id: string, fallback: boolean) {
+  try {
+    const v = localStorage.getItem(`plank-tree-${id}`);
+    if (v == null) return fallback;
+    return v === "1";
+  } catch {
+    return fallback;
+  }
+}
+
+/** `pinOpen` åpner noden når ruta ligger inni den, uten å lagre valget. Ny rute åpner den på nytt. */
+function useExpanded(id: string, fallback: boolean, pinOpen: boolean, pinToken: string): [boolean, () => void] {
+  const [open, setOpen] = useState(() => storedOpen(id, fallback) || pinOpen);
+  useEffect(() => {
+    if (pinOpen) setOpen(true);
+  }, [pinOpen, pinToken]);
   const toggle = () =>
-    setOpen((o) => {
+    setOpen((current) => {
+      const next = !current;
       try {
-        localStorage.setItem(key, o ? "0" : "1");
+        localStorage.setItem(`plank-tree-${id}`, next ? "1" : "0");
       } catch {
         /* ignorer */
       }
-      return !o;
+      return next;
     });
   return [open, toggle];
+}
+
+/** Søket viser treff åpnet, men lar brukeren folde dem igjen uten å skrive til lagringen. */
+function useShown(id: string, fallback: boolean, pinOpen: boolean, pinToken: string, revealKey: string): [boolean, () => void] {
+  const [open, toggle] = useExpanded(id, fallback, pinOpen, pinToken);
+  const [folded, setFolded] = useState(false);
+  useEffect(() => setFolded(false), [revealKey]);
+  if (revealKey === "") return [open, toggle];
+  return [!folded, () => setFolded((value) => !value)];
+}
+
+type TreeBuilding = TreeProperty["buildings"][number];
+type TreeFloor = TreeBuilding["floors"][number];
+type TreeRoom = TreeFloor["rooms"][number];
+
+function includes(value: string | null | undefined, q: string) {
+  return q !== "" && !!value && value.toLocaleLowerCase("nb").includes(q);
+}
+
+function roomHit(room: TreeRoom, q: string) {
+  return includes(room.name, q) || includes(room.number, q);
+}
+
+function floorHit(floor: TreeFloor, q: string) {
+  return includes(floor.name, q) || floor.rooms.some((room) => roomHit(room, q));
+}
+
+function buildingDeep(building: TreeBuilding, q: string) {
+  return building.floors.some((floor) => floorHit(floor, q));
+}
+
+function pathHas(pathname: string, kind: string, id: string) {
+  return pathname.includes(`/${kind}/${id}`);
+}
+
+function floorPinned(floor: TreeFloor, pathname: string) {
+  return pathHas(pathname, "floors", floor.id) || floor.rooms.some((room) => pathHas(pathname, "rooms", room.id));
+}
+
+function buildingPinned(building: TreeBuilding, pathname: string) {
+  return pathHas(pathname, "buildings", building.id) || building.floors.some((floor) => floorPinned(floor, pathname));
+}
+
+function propertyPinned(property: TreeProperty, pathname: string) {
+  return pathHas(pathname, "properties", property.id) || property.buildings.some((building) => buildingPinned(building, pathname));
+}
+
+function filterPortfolio(tree: TreeProperty[], q: string): TreeProperty[] {
+  const out: TreeProperty[] = [];
+  for (const property of tree) {
+    if (includes(property.name, q) || includes(property.city, q)) {
+      out.push(property);
+      continue;
+    }
+    const buildings = property.buildings.filter((building) => includes(building.name, q) || buildingDeep(building, q));
+    if (buildings.length) out.push({ ...property, buildings });
+  }
+  return out;
+}
+
+function portfolioCount(properties: number, buildings: number) {
+  const estates = properties === 1 ? "1 eiendom" : `${properties.toLocaleString("nb-NO")} eiendommer`;
+  const blocks = buildings === 1 ? "1 bygg" : `${buildings.toLocaleString("nb-NO")} bygg`;
+  return `${estates} · ${blocks}`;
+}
+
+function Portfolio({
+  tree,
+  canAdd,
+  limited,
+  onNewProperty,
+  base,
+}: {
+  tree: TreeProperty[] | undefined;
+  canAdd: boolean;
+  limited: boolean;
+  onNewProperty: () => void;
+  base: string;
+}) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const scroller = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLocaleLowerCase("nb");
+  const properties = tree ?? [];
+  const buildingCount = useMemo(() => properties.reduce((sum, property) => sum + property.buildings.length, 0), [properties]);
+  const many = properties.length > 4 || buildingCount > 8;
+  const fallbackOpen = properties.length <= 4;
+  const visible = useMemo(() => (q ? filterPortfolio(properties, q) : properties), [properties, q]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const parent = scroller.current;
+      const el = parent?.querySelector<HTMLElement>("[data-current='true']");
+      if (!parent || !el) return;
+      const top = el.getBoundingClientRect().top - parent.getBoundingClientRect().top;
+      if (top < 0 || top > parent.clientHeight - el.clientHeight) parent.scrollTop += top - 8;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [location.pathname, visible]);
+
+  return (
+    <>
+      <div className="mt-3 flex items-center justify-between gap-2 px-5 pb-1">
+        <div className="min-w-0">
+          <div className="text-[11.5px] font-semibold tracking-wide text-nav-muted uppercase">Portefølje</div>
+          {many && tree && <div className="text-[11px] text-nav-muted">{portfolioCount(properties.length, buildingCount)}</div>}
+        </div>
+        {canAdd && (
+          <Menu
+            align="end"
+            trigger={() => (
+              <IconButton label="Legg til" className="text-nav-muted hover:bg-nav-hover hover:text-nav-ink">
+                <Plus className="size-3.5" />
+              </IconButton>
+            )}
+          >
+            {(close) => (
+              <>
+                <MenuItem
+                  icon={<MapPin className="size-4" />}
+                  onClick={() => {
+                    close();
+                    onNewProperty();
+                  }}
+                >
+                  Ny eiendom
+                </MenuItem>
+                <MenuItem
+                  icon={<FolderTree className="size-4" />}
+                  onClick={() => {
+                    close();
+                    navigate(`${base}/boligmappa`);
+                  }}
+                >
+                  Hent fra Boligmappa
+                </MenuItem>
+                <MenuItem
+                  icon={<KeyRound className="size-4" />}
+                  onClick={() => {
+                    close();
+                    navigate(`${base}/laft`);
+                  }}
+                >
+                  Hent fra LAFT
+                </MenuItem>
+              </>
+            )}
+          </Menu>
+        )}
+      </div>
+      {many && (
+        <div className="relative px-2.5 pb-1.5">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Filtrer eiendommer og bygg …"
+            aria-label="Filtrer eiendommer og bygg"
+            className="h-7 w-full rounded-md border border-nav-line bg-nav-field px-2 pr-7 text-[12.5px] text-nav-ink outline-none placeholder:text-nav-muted"
+          />
+          {query && (
+            <button type="button" aria-label="Tøm filter" onClick={() => setQuery("")} className="absolute top-0 right-3 flex h-7 items-center text-nav-muted hover:text-nav-ink">
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+      <div ref={scroller} className="sidebar-scroll min-h-0 flex-1 overflow-y-auto px-2.5 pb-2">
+        {tree && tree.length === 0 && (
+          <div className="px-2.5 py-2 text-[12.5px] text-nav-muted">
+            {limited ? "Du har ikke fått tilgang til noen eiendommer ennå." : "Ingen eiendommer ennå. Hent fra Boligmappa eller LAFT, eller opprett selv."}
+          </div>
+        )}
+        {tree && tree.length > 0 && visible.length === 0 && <div className="px-2.5 py-2 text-[12.5px] text-nav-muted">Ingen treff i porteføljen</div>}
+        {visible.map((property) => (
+          <PropertyNode key={property.id} property={property} fallbackOpen={fallbackOpen} q={q} />
+        ))}
+      </div>
+    </>
+  );
 }
 
 function TreeRow({
@@ -547,52 +735,85 @@ function TreeRow({
   const location = useLocation();
   const active = location.pathname === to || location.pathname.startsWith(to + "/");
   return (
-    <div className={cn("group flex h-7.5 items-center rounded-md text-[13px]", active ? "bg-panel-2 font-medium text-ink" : "text-ink-2 hover:bg-panel-2/70")} style={{ paddingLeft: depth * 12 }}>
+    <div
+      data-current={active ? "true" : undefined}
+      className={cn(
+        "group flex h-7.5 items-center rounded-md text-[13px]",
+        active ? "bg-nav-active font-medium text-nav-ink" : "text-nav-ink-2 hover:bg-nav-hover",
+      )}
+      style={{ paddingLeft: depth * 12 }}
+    >
       <button
         onClick={onToggle}
-        className={cn("flex size-5 shrink-0 items-center justify-center rounded text-muted hover:text-ink", !expandable && "invisible")}
+        className={cn("flex size-5 shrink-0 items-center justify-center rounded text-nav-muted hover:text-nav-ink", !expandable && "invisible")}
         aria-label={open ? "Skjul" : "Vis"}
       >
         <ChevronRight className={cn("size-3.5 transition-transform", open && "rotate-90")} />
       </button>
       <NavLink to={to} className="flex min-w-0 flex-1 items-center gap-2 pr-2">
-        <span className="shrink-0 text-muted [&>svg]:size-3.5">{icon}</span>
+        <span className="shrink-0 text-nav-muted [&>svg]:size-3.5">{icon}</span>
         <span className="truncate" title={label}>
           {label}
         </span>
-        {sub && <span className="ml-auto shrink-0 text-[11px] text-muted">{sub}</span>}
+        {sub && <span className="ml-auto shrink-0 text-[11px] text-nav-muted">{sub}</span>}
       </NavLink>
     </div>
   );
 }
 
-function PropertyNode({ property }: { property: TreeProperty }) {
+function PropertyNode({ property, fallbackOpen, q }: { property: TreeProperty; fallbackOpen: boolean; q: string }) {
   const { orgId } = useOrg();
-  const [open, toggle] = useExpanded(property.id, true);
+  const { pathname } = useLocation();
+  const [open, toggle] = useShown(property.id, fallbackOpen, propertyPinned(property, pathname), pathname, q);
   return (
     <div>
-      <TreeRow to={`/o/${orgId}/properties/${property.id}`} icon={property.has_image ? <img src={placeImageUrl(orgId, "properties", property.id, property.updated_at)} alt="" className="size-4 rounded-[4px] object-cover" /> : <MapPin />} label={property.name} depth={0} expandable={property.buildings.length > 0} open={open} onToggle={toggle} />
-      {open &&
-        property.buildings.map((b) => <BuildingNode key={b.id} building={b} />)}
+      <TreeRow
+        to={`/o/${orgId}/properties/${property.id}`}
+        icon={property.has_image ? <img src={placeImageUrl(orgId, "properties", property.id, property.updated_at)} alt="" className="size-4 rounded-[4px] object-cover" /> : <MapPin />}
+        label={property.name}
+        depth={0}
+        expandable={property.buildings.length > 0}
+        open={open}
+        onToggle={toggle}
+        sub={!open && property.buildings.length ? `${property.buildings.length} bygg` : null}
+      />
+      {open && property.buildings.map((building) => <BuildingNode key={building.id} building={building} q={q} />)}
     </div>
   );
 }
 
-function BuildingNode({ building }: { building: TreeProperty["buildings"][number] }) {
+function BuildingNode({ building, q }: { building: TreeBuilding; q: string }) {
   const { orgId } = useOrg();
-  const [open, toggle] = useExpanded(building.id);
-  const floors = useMemo(() => [...building.floors].sort((a, b) => b.level - a.level), [building.floors]);
+  const { pathname } = useLocation();
+  const nameHit = includes(building.name, q);
+  const floors = useMemo(() => {
+    const sorted = [...building.floors].sort((a, b) => b.level - a.level);
+    if (q === "" || nameHit) return sorted;
+    return sorted.filter((floor) => floorHit(floor, q));
+  }, [building.floors, nameHit, q]);
+  const [open, toggle] = useShown(building.id, false, buildingPinned(building, pathname), pathname, q !== "" && !nameHit && floors.length > 0 ? q : "");
   return (
     <div>
-      <TreeRow to={`/o/${orgId}/buildings/${building.id}`} icon={building.has_image ? <img src={placeImageUrl(orgId, "buildings", building.id, building.updated_at)} alt="" className="size-4 rounded-[4px] object-cover" /> : <Building2 />} label={building.name} depth={1} expandable={floors.length > 0} open={open} onToggle={toggle} />
-      {open && floors.map((f) => <FloorNode key={f.id} floor={f} />)}
+      <TreeRow
+        to={`/o/${orgId}/buildings/${building.id}`}
+        icon={building.has_image ? <img src={placeImageUrl(orgId, "buildings", building.id, building.updated_at)} alt="" className="size-4 rounded-[4px] object-cover" /> : <Building2 />}
+        label={building.name}
+        depth={1}
+        expandable={floors.length > 0}
+        open={open}
+        onToggle={toggle}
+      />
+      {open && floors.map((floor) => <FloorNode key={floor.id} floor={floor} q={q} />)}
     </div>
   );
 }
 
-function FloorNode({ floor }: { floor: TreeProperty["buildings"][number]["floors"][number] }) {
+function FloorNode({ floor, q }: { floor: TreeFloor; q: string }) {
   const { orgId } = useOrg();
-  const [open, toggle] = useExpanded(floor.id);
+  const { pathname } = useLocation();
+  const nameHit = includes(floor.name, q);
+  const rooms = q === "" || nameHit ? floor.rooms : floor.rooms.filter((room) => roomHit(room, q));
+  const [open, toggle] = useShown(floor.id, false, floorPinned(floor, pathname), pathname, q !== "" && !nameHit && rooms.length > 0 ? q : "");
   return (
     <div>
       <TreeRow
@@ -600,14 +821,14 @@ function FloorNode({ floor }: { floor: TreeProperty["buildings"][number]["floors
         icon={<Layers />}
         label={floor.name}
         depth={2}
-        expandable={floor.rooms.length > 0}
+        expandable={rooms.length > 0}
         open={open}
         onToggle={toggle}
-        sub={floor.rooms.length ? String(floor.rooms.length) : null}
+        sub={!open && floor.rooms.length ? String(floor.rooms.length) : null}
       />
       {open &&
-        floor.rooms.map((r) => (
-          <TreeRow key={r.id} to={`/o/${orgId}/rooms/${r.id}`} icon={<DoorOpen />} label={r.number ? `${r.number} ${r.name}` : r.name} depth={3} expandable={false} />
+        rooms.map((room) => (
+          <TreeRow key={room.id} to={`/o/${orgId}/rooms/${room.id}`} icon={<DoorOpen />} label={room.number ? `${room.number} ${room.name}` : room.name} depth={3} expandable={false} />
         ))}
     </div>
   );

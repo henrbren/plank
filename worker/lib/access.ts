@@ -16,6 +16,8 @@ export interface Access {
   /** null = hele porteføljen */
   scope: AccessScope | null;
   expiresAt: number | null;
+  /** Plattformadmin ser denne forespørselen som Pro. Cron og kø har det ikke. */
+  seesPro?: boolean;
 }
 
 export interface AccessScope {
@@ -115,6 +117,12 @@ export function assertFullScope(what = "Dette") {
   if (currentAccess().scope) throw forbidden(`${what} krever tilgang til hele porteføljen`);
 }
 
+/** Deling publiserer dataene siden kan hente. Bare den som kan redigere hele porteføljen. */
+export function canShareArtifact(): boolean {
+  const a = currentAccess();
+  return a.canEdit && !a.scope;
+}
+
 /**
  * SQL-ledd som begrenser til brukerens tilgang. `building` og `property` er kolonnenavn.
  * Med begge: rader med bygg må ha bygget i tilgangen, rader med bare eiendom krever full eiendomstilgang.
@@ -192,6 +200,7 @@ const READ_ONLY_ALLOWED = [
   { method: "POST", path: /^\/api\/orgs\/[^/]+\/conversations\/[^/]+\/messages$/ },
   { method: "PATCH", path: /^\/api\/orgs\/[^/]+\/conversations\/[^/]+$/ },
   { method: "DELETE", path: /^\/api\/orgs\/[^/]+\/conversations\/[^/]+$/ },
+  { method: "PATCH", path: /^\/api\/orgs\/[^/]+\/bm-notify$/ },
 ];
 
 /** Lesetilgang: stopper alle endringer, men brukeren kan fortsatt snakke med agentene */

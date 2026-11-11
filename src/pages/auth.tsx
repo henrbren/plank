@@ -13,6 +13,8 @@ import { BRANDS } from "@shared/brand";
 import { LaftLoginForm } from "@/features/laft/LaftLogin";
 import { AccessRequestForm, AccessRequestSent, type AccessRequestResult } from "@/features/onboarding/AccessRequest";
 
+import { StartWizard, WizardShell } from "@/features/onboarding/Wizard";
+
 export function AuthFrame({ children }: { children: ReactNode }) {
   const brand = useBrand();
   return (
@@ -32,12 +34,20 @@ export function AuthFrame({ children }: { children: ReactNode }) {
 /** Illustrasjon av arbeidsflaten på innloggingssiden */
 function Showcase() {
   const brand = useBrand();
-  const rows = [
-    { icon: <FileText className="size-4" />, title: "Søker i dokumenter etter «filterbytte»", meta: "3 treff" },
-    { icon: <Sparkles className="size-4" />, title: "Leser Nordluft NL-4000 – drifts- og vedlikeholdsinstruks", meta: "" },
-    { icon: <LayoutDashboard className="size-4" />, title: "Bygger siden «Servicestatus»", meta: "v1" },
-    { icon: <Box className="size-4" />, title: "Spør BIM-modellen (IFCSPACE)", meta: "42 rom" },
-  ];
+  const lease = brand.id === "leie";
+  const rows = lease
+    ? [
+        { icon: <Sparkles className="size-4" />, title: "Leser pulten", meta: "" },
+        { icon: <FileText className="size-4" />, title: "Skriver neste brev", meta: "" },
+        { icon: <Landmark className="size-4" />, title: "Matcher et vedtak med en ledig bolig", meta: "" },
+        { icon: <Check className="size-4" />, title: "Sorterer på frist, så på beløp", meta: "" },
+      ]
+    : [
+        { icon: <FileText className="size-4" />, title: "Søker i dokumenter etter «filterbytte»", meta: "3 treff" },
+        { icon: <Sparkles className="size-4" />, title: "Leser Nordluft NL-4000 – drifts- og vedlikeholdsinstruks", meta: "" },
+        { icon: <LayoutDashboard className="size-4" />, title: "Bygger siden «Servicestatus»", meta: "v1" },
+        { icon: <Box className="size-4" />, title: "Spør BIM-modellen (IFCSPACE)", meta: "42 rom" },
+      ];
   return (
     <div className="flex h-full flex-col justify-center px-14">
       <div className="max-w-lg">
@@ -51,7 +61,7 @@ function Showcase() {
             </span>
             {brand.name}-assistent
           </div>
-          <div className="mb-3 rounded-lg bg-panel-2 px-3 py-2 text-[13.5px]">Når må vi bytte filter på ventilasjonsaggregatet i Hovedbygg?</div>
+          <div className="mb-3 rounded-lg bg-panel-2 px-3 py-2 text-[13.5px]">{lease ? "Hva tar jeg først i dag?" : "Når må vi bytte filter på ventilasjonsaggregatet i Hovedbygg?"}</div>
           <div className="space-y-1.5">
             {rows.map((r, i) => (
               <div key={i} className="flex items-center gap-2.5 rounded-lg border border-line px-3 py-2 text-[12.5px] text-ink-2">
@@ -62,7 +72,13 @@ function Showcase() {
             ))}
           </div>
           <div className="mt-3 text-[13.5px] leading-relaxed">
-            Filteret skal byttes <b>hver 6. måned</b>, eller ved trykkfall over 150 Pa. Siste service var for 200 dager siden – den er altså <span className="text-bad">på overtid</span>.
+            {lease ? (
+              <>Utflyttingen denne uken ligger øverst. Under den kan restansen få en purring, og et vedtak kan matches mot en ledig bolig.</>
+            ) : (
+              <>
+                Filteret skal byttes <b>hver 6. måned</b>, eller ved trykkfall over 150 Pa. Siste service var for 200 dager siden – den er altså <span className="text-bad">på overtid</span>.
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -182,7 +198,7 @@ export function LoginPage() {
   const me = useMe();
   const next = params.get("next");
 
-  if (me.data) return <Navigate to="/" replace />;
+  if (me.data) return <Navigate to={next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/"} replace />;
 
   const pick = (next: Intent) => {
     try {
@@ -356,24 +372,28 @@ export function LoginPage() {
             Send innloggingslenke
             <ArrowRight className="size-4" />
           </Button>
-          <div className="my-6 flex items-center gap-3 text-[12px] text-muted">
-            <span className="h-px flex-1 bg-line" />
-            eller
-            <span className="h-px flex-1 bg-line" />
-          </div>
-          <Button type="button" className="w-full" onClick={() => setMode("laft")}>
-            Logg inn med {brand.accountLabel}
-          </Button>
+          {brand.id !== "leie" && (
+            <>
+              <div className="my-6 flex items-center gap-3 text-[12px] text-muted">
+                <span className="h-px flex-1 bg-line" />
+                eller
+                <span className="h-px flex-1 bg-line" />
+              </div>
+              <Button type="button" className="w-full" onClick={() => setMode("laft")}>
+                Logg inn med {brand.accountLabel}
+              </Button>
+            </>
+          )}
           {laftHost ? (
             <Button type="button" variant="ghost" className="mt-4 -ml-3" onClick={() => setMode("home")}>
               Tilbake
             </Button>
-          ) : (
+          ) : brand.id !== "leie" ? (
             <Link to="/demo" className="mt-8 flex items-center justify-center gap-1.5 text-[13.5px] text-muted hover:text-ink">
               Send demo til noen
               <ArrowRight className="size-3.5" />
             </Link>
-          )}
+          ) : null}
         </form>
       )}
     </AuthFrame>
@@ -513,48 +533,10 @@ export function OnboardingPage() {
 
 function PlankOnboarding() {
   const me = useMe();
-  const navigate = useNavigate();
-  const qc = useQueryClient();
-  const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   if (me.isLoading) return <Loading />;
-  if (me.error) return <Navigate to="/login" replace />;
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      const org = await api<{ id: string }>("/me/orgs", { body: { name } });
-      await qc.invalidateQueries({ queryKey: ["me"] });
-      navigate(`/o/${org.id}?welcome=1`, { replace: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Noe gikk galt");
-      setBusy(false);
-    }
-  };
-
-  return (
-    <AuthFrame>
-      <form onSubmit={submit}>
-        <h1 className="text-[24px] font-semibold tracking-tight">Velkommen til Plank</h1>
-        <p className="mt-2 mb-7 text-[14px] text-ink-2">Opprett en organisasjon for porteføljen din. Du kan invitere kollegaer etterpå.</p>
-        <Field label="Navn på organisasjonen" error={error}>
-          <Input required autoFocus placeholder="F.eks. Eiendomsselskapet AS" value={name} onChange={(e) => setName(e.target.value)} />
-        </Field>
-        <Button type="submit" variant="primary" size="lg" className="mt-4 w-full" loading={busy}>
-          Opprett organisasjon
-        </Button>
-        {me.data && me.data.orgs.length > 0 && (
-          <Button type="button" variant="ghost" className="mt-2 w-full" onClick={() => navigate(`/o/${me.data!.orgs[0]!.id}`)}>
-            Avbryt
-          </Button>
-        )}
-      </form>
-    </AuthFrame>
-  );
+  if (me.error || !me.data) return <Navigate to="/login" replace />;
+  const first = me.data.orgs[0]?.id ?? null;
+  return <StartWizard cancelTo={first ? `/o/${first}` : null} />;
 }
 
 const ORGNR_KEY = "plank-orgnr";
@@ -670,14 +652,15 @@ function LaftOnboarding() {
 
   if (requesting && company) {
     return (
-      <AuthFrame>
-        <h1 className="text-[24px] font-semibold tracking-tight">Be om tilgang</h1>
+      <WizardShell step={0}>
+        <h1 className="text-[34px] leading-[1.15] font-semibold tracking-tight">Be om tilgang</h1>
         <p className="mt-2 mb-7 text-[14px] leading-relaxed text-ink-2">
           LAFT går gjennom forespørselen. Når den er godkjent, får du en e-post, og byggene og dokumentene hentes fra Boligmappa inn i {brand.name}.
         </p>
         <AccessRequestForm
           user={me.data.user}
           initialOrgNr={company.orgNr}
+          initialNotify={true}
           onDone={async () => {
             try {
               sessionStorage.removeItem(ORGNR_KEY);
@@ -691,7 +674,7 @@ function LaftOnboarding() {
         <Button variant="ghost" className="mt-4 -ml-3" onClick={() => setRequesting(false)}>
           Tilbake
         </Button>
-      </AuthFrame>
+      </WizardShell>
     );
   }
 
@@ -703,7 +686,9 @@ function LaftOnboarding() {
     setBusy(true);
     setError(null);
     try {
-      const org = await api<{ id?: string; queued?: boolean; autoImport?: boolean }>("/me/orgs", { body: { orgNr: company.orgNr } });
+      const org = await api<{ id?: string; queued?: boolean; autoImport?: boolean }>("/me/orgs", {
+        body: { orgNr: company.orgNr, ...(company.access === "kommune" ? {} : { bmNotify: true }) },
+      });
       try {
         sessionStorage.removeItem(ORGNR_KEY);
       } catch {
@@ -720,17 +705,19 @@ function LaftOnboarding() {
   };
 
   return (
-    <AuthFrame>
+    <WizardShell step={0}>
       <form onSubmit={submit}>
-        <h1 className="text-[24px] font-semibold tracking-tight">{kommune ? "Hvilken kommune?" : "Hvilken virksomhet?"}</h1>
-        <p className="mt-2 mb-7 text-[14px] leading-relaxed text-ink-2">
+        <p className="text-[12.5px] font-semibold tracking-wide text-accent uppercase">Kom i gang</p>
+        <h1 className="mt-2 text-[34px] leading-[1.15] font-semibold tracking-tight">{kommune ? "Hvilken kommune?" : "Hvilken virksomhet?"}</h1>
+        <p className="mt-3 mb-8 max-w-md text-[15px] leading-relaxed text-ink-2">
           {kommune
-            ? "Skriv organisasjonsnummeret til kommunen. LAFT godkjenner før dere flyttes over til kommuneløsningen."
-            : `Skriv organisasjonsnummeret. Vi sjekker rollen din i Brønnøysund, og henter så byggene og dokumentene fra Boligmappa inn i ${brand.name}.`}
+            ? "Skriv organisasjonsnummeret til kommunen. LAFT godkjenner før dere flyttes over."
+            : "Skriv organisasjonsnummeret. Vi sjekker rollen din, og henter så byggene og dokumentene."}
         </p>
         <Field label="Organisasjonsnummer" hint="9 siffer" error={error}>
           <div className="relative">
             <Input
+              className="h-14 px-4 text-[22px] tracking-[0.08em] tabular-nums"
               inputMode="numeric"
               autoFocus
               placeholder="123 456 789"
@@ -763,12 +750,12 @@ function LaftOnboarding() {
           </Button>
         )}
         {me.data && me.data.orgs.length > 0 && (
-          <Button type="button" variant="ghost" className="mt-2 w-full" onClick={() => navigate(`/o/${me.data!.orgs[0]!.id}`)}>
+          <button type="button" className="mt-4 w-full text-[13.5px] text-muted hover:text-ink" onClick={() => navigate(`/o/${me.data!.orgs[0]!.id}`)}>
             Avbryt
-          </Button>
+          </button>
         )}
       </form>
-    </AuthFrame>
+    </WizardShell>
   );
 }
 

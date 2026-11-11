@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { BRANDS, brandFromHost, resolveBrand, type Brand, type BrandId } from "@shared/brand";
+import { BRANDS, isLaftHost, resolveBrand, type Brand, type BrandId } from "@shared/brand";
 
 const STORAGE_KEY = "plank-brand";
 
@@ -7,7 +7,7 @@ interface BrandState {
   brand: Brand;
   /** Kom brukeren inn via et LAFT-domene? Da finnes merkevarevalget og Vipps. */
   laftHost: boolean;
-  choose: (id: Exclude<BrandId, "plank">) => void;
+  choose: (id: Exclude<BrandId, "plank" | "leie">) => void;
 }
 
 const BrandCtx = createContext<BrandState>({ brand: BRANDS.plank, laftHost: false, choose: () => undefined });
@@ -28,13 +28,13 @@ export function applyBrand(brand: Brand) {
 }
 
 export function BrandProvider({ children }: { children: ReactNode }) {
-  const laftHost = useMemo(() => brandFromHost(window.location.hostname).id !== "plank", []);
+  const laftHost = useMemo(() => isLaftHost(window.location.hostname), []);
   const [brand, setBrand] = useState(() => resolveBrand(window.location.hostname, storedChoice()));
 
   useEffect(() => applyBrand(brand), [brand]);
 
   const choose = useCallback(
-    (id: Exclude<BrandId, "plank">) => {
+    (id: Exclude<BrandId, "plank" | "leie">) => {
       if (!laftHost) return;
       try {
         localStorage.setItem(STORAGE_KEY, id);

@@ -58,6 +58,37 @@ export interface MsAccessDecision {
   decidedBy: string | null;
 }
 
+export interface MsWebhookDocument {
+  id: number;
+  boligmappaNumber: string;
+  fileName: string | null;
+  documentUrl: string;
+  companyName: string | null;
+  ownedByName: string | null;
+  createdDate: string | null;
+  status: string;
+}
+
+/**
+ * Dokumenter Boligmappa har sendt på webhook for organisasjonsnummeret.
+ * PLNT-filer ligger bare her. nextCursor er satt når det finnes en side til.
+ */
+export async function fetchWebhookDocuments(
+  env: Env,
+  orgNr: string,
+  after: number,
+): Promise<{ documents: MsWebhookDocument[]; nextCursor: number | null }> {
+  if (!env.BOLIGMAPPA_MS_KEY) throw new Error("BOLIGMAPPA_MS_KEY er ikke satt");
+  const res = await fetchRetry(
+    `${msBase(env)}/plank/webhook-documents`,
+    { method: "POST", headers: msHeaders(env), body: JSON.stringify({ orgNr, after, limit: 200 }) },
+    { label: "boligmappa-ms", timeoutMs: 15_000, budgetMs: 25_000, tries: 2 },
+  );
+  if (!res.ok) throw new Error(`boligmappa-ms svarte ${res.status}`);
+  const json = (await res.json()) as { documents?: MsWebhookDocument[]; nextCursor?: number | null };
+  return { documents: json.documents ?? [], nextCursor: json.nextCursor ?? null };
+}
+
 /** Status i boligmappa-ms. null betyr at forespørselen ikke finnes der. */
 export async function fetchAccessDecision(env: Env, plankId: string): Promise<MsAccessDecision | null> {
   if (!env.BOLIGMAPPA_MS_KEY) throw new Error("BOLIGMAPPA_MS_KEY er ikke satt");

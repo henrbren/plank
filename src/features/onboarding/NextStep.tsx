@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { PLANS, type Activation } from "@shared/types";
 import { formatOre } from "@/lib/format";
 import { useAgentPanel, useOrg, useOrgApi, useOrgQuery } from "@/lib/app";
-import { Button, ButtonLink, cn, useToast } from "@/components/ui";
+import { useLeaseModules } from "@/lib/modules";
+import { Button, ButtonLink, useToast } from "@/components/ui";
 import { PropertyFormModal } from "@/components/forms";
-
-const FUNNEL = ["Inn", "Bygg", "Spør", "Betal"];
+import { HomeTrialNote } from "@/features/billing/TrialNote";
 
 export interface NextAction {
   kind: "boligmappa" | "resume" | "import" | "property" | "building" | "ask" | "pay" | "portal" | "service";
@@ -78,7 +78,7 @@ export function nextAction(a: Activation, isAdmin: boolean): NextAction | null {
     return {
       kind: "ask",
       title: "Spør agenten om porteføljen",
-      detail: `Ett spørsmål om ${a.buildings === 1 ? "bygget" : `de ${a.buildings} byggene`} er nok. Da ser du hva agenten finner, før du bestemmer deg for å betale.`,
+      detail: `Ett spørsmål om ${a.buildings === 1 ? "bygget" : `de ${a.buildings} byggene`} er nok. Da ser du hva agenten finner.`,
       action: "Spør nå",
       funnel: 2,
       prompt: `Hva bør jeg prioritere denne uken? Se på ${a.buildings === 1 ? "bygget" : `de ${a.buildings} byggene`}, dokumentene og service som forfaller.`,
@@ -118,33 +118,21 @@ export function nextAction(a: Activation, isAdmin: boolean): NextAction | null {
 
 export function useNextAction() {
   const { isAdmin, canEdit, limited } = useOrg();
+  const mods = useLeaseModules();
   const q = useOrgQuery<Activation>("/activation");
   // Oppstartsstegene handler om å bygge opp porteføljen – ikke for dem med lese- eller begrenset tilgang
-  return { ...q, step: q.data && canEdit && !limited ? nextAction(q.data, isAdmin) : null };
-}
-
-function Pips({ current }: { current: number }) {
-  return (
-    <ol className="flex shrink-0 items-center gap-2">
-      {FUNNEL.map((label, i) => {
-        const done = i < current;
-        const here = i === current;
-        return (
-          <li key={label} className={cn("flex items-center gap-1.5 text-[11.5px]", done || here ? "text-ink" : "text-muted")}>
-            <span
-              className={cn(
-                "flex size-4 items-center justify-center rounded-full",
-                done ? "bg-accent text-accent-ink" : here ? "bg-ink text-bg" : "bg-panel-3 text-muted",
-              )}
-            >
-              {done ? <Check className="size-2.5" /> : <span className="text-[10px] leading-none">{i + 1}</span>}
-            </span>
-            <span className={cn(here ? "font-medium" : "hidden sm:inline")}>{label}</span>
-          </li>
-        );
-      })}
-    </ol>
-  );
+  let step = q.data && canEdit && !limited ? nextAction(q.data, isAdmin) : null;
+  if (mods.lease && step?.kind === "service" && !mods.komponenter) step = null;
+  else if (mods.lease && step && (step.kind === "boligmappa" || step.kind === "import" || step.kind === "resume") && !mods.drift) step = null;
+  else if (mods.lease && step?.kind === "ask") {
+    step = {
+      ...step,
+      title: "Spør om pulten",
+      detail: "Ett spørsmål er nok. Da ser du hva agenten finner i køen.",
+      prompt: "Hva tar jeg først i dag?",
+    };
+  }
+  return { ...q, step };
 }
 
 /** Kjører handlingen for steget. Brukes både i stripen og på forsiden. */
@@ -272,13 +260,13 @@ export function NextStepBar() {
     );
   }
 
-  if (!step || (onHome && step.funnel != null)) return modal;
+  // «Start abonnementet» er et salgsargument, ikke et arbeidssteg. Grunnen ligger i siden i stedet.
+  if (!step || step.kind === "pay" || (onHome && step.funnel != null)) return modal;
 
   return (
     <>
       <div className="sticky top-0 z-20 border-b border-line bg-panel/95 backdrop-blur-sm">
         <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
-          {step.funnel != null && <Pips current={step.funnel} />}
           <div className="min-w-0 flex-1">
             <div className="truncate text-[13.5px] font-medium">{step.title}</div>
             <div className="truncate text-[12.5px] text-muted">{step.detail}</div>
@@ -310,35 +298,33 @@ export function Journey({ onDemo, seeding }: { onDemo?: () => void; seeding?: bo
   const { data, step } = useNextAction();
   const { isAdmin } = useOrg();
   const { run, busy, modal } = useRunStep();
-  if (!step || step.funnel == null) return null;
+  if (!step || step.funnel == null || step.kind === "pay") return <HomeTrialNote />;
   const empty = (data?.buildings ?? 0) === 0;
 
   return (
     <>
-      <section className="mb-6 overflow-hidden rounded-2xl border border-line bg-panel">
-        <div className="border-b border-line px-5 py-4">
-          <Pips current={step.funnel} />
-        </div>
-        <div className="px-5 py-5">
-          <h2 className="text-[18px] font-semibold tracking-tight">{step.title}</h2>
-          <p className="mt-1 max-w-xl text-[14px] text-ink-2">{step.detail}</p>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Button variant="primary" loading={busy} onClick={() => void run(step)}>
-              {step.action}
-              <ArrowRight className="size-4" />
-            </Button>
-            {empty && step.kind !== "property" && (
-              <Button variant="ghost" onClick={() => void run({ ...step, kind: "property" })}>
-                Opprett eiendom i stedet
-              </Button>
+      <section className="mb-6 rounded-2xl border border-line bg-panel px-5 py-5">
+        <h2 className="text-[18px] font-semibold tracking-tight">{step.title}</h2>
+        <p className="mt-1 max-w-xl text-[14px] text-ink-2">{step.detail}</p>
+        <Button variant="primary" className="mt-4" loading={busy} onClick={() => void run(step)}>
+          {step.action}
+          <ArrowRight className="size-4" />
+        </Button>
+        {empty && (step.kind !== "property" || (isAdmin && onDemo)) && (
+          <p className="mt-3 text-[13px] text-muted">
+            {step.kind !== "property" && (
+              <button type="button" className="hover:text-ink" onClick={() => void run({ ...step, kind: "property" })}>
+                Opprett eiendom selv
+              </button>
             )}
-            {empty && isAdmin && onDemo && (
-              <Button variant="ghost" loading={seeding} onClick={onDemo}>
-                Se en demoportefølje
-              </Button>
+            {step.kind !== "property" && isAdmin && onDemo && <span> · </span>}
+            {isAdmin && onDemo && (
+              <button type="button" className="hover:text-ink disabled:opacity-60" disabled={seeding} onClick={onDemo}>
+                {seeding ? "Laster demo …" : "Se en demoportefølje"}
+              </button>
             )}
-          </div>
-        </div>
+          </p>
+        )}
       </section>
       {modal}
     </>

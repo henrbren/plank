@@ -2,11 +2,11 @@ import { Hono } from "hono";
 import type { AppEnv } from "../env";
 import { logActivity } from "../lib/activity";
 import { first, insert } from "../lib/db";
-import { guessMime, INLINE_SAFE_MIME, isIfc, processDocument } from "../lib/documents";
+import { guessMime, inlineMime, isIfc, processDocument } from "../lib/documents";
 import { ApiError, badRequest, body } from "../lib/http";
 import { newId, now } from "../lib/util";
 import { DOCUMENT_KINDS } from "../../shared/types";
-import { deleteDocument, documentPatchSchema, getDocument, listDocuments, readDocumentText, searchDocuments, updateDocument } from "../services/documents";
+import { deleteDocument, documentCatalog, documentPatchSchema, getDocument, listDocumentBriefs, listDocumentTexts, listDocuments, readDocumentText, searchDocuments, updateDocument } from "../services/documents";
 import { resolveWritableLocation } from "../services/portfolio";
 import { assertCanEdit, scopeSql, sees } from "../lib/access";
 
@@ -16,18 +16,24 @@ export const documents = new Hono<AppEnv>();
 
 documents.get("/", async (c) => {
   const q = c.req.query();
-  return c.json(
-    await listDocuments(c.env, c.get("orgId"), {
-      property_id: q.property_id,
-      building_id: q.building_id,
-      floor_id: q.floor_id,
-      room_id: q.room_id,
-      component_id: q.component_id,
-      kind: q.kind,
-      q: q.q,
-    }),
-  );
+  const filter = {
+    property_id: q.property_id,
+    building_id: q.building_id,
+    floor_id: q.floor_id,
+    room_id: q.room_id,
+    component_id: q.component_id,
+    kind: q.kind,
+    q: q.q,
+    unplaced: q.unplaced === "1",
+    limit: q.limit ? Number(q.limit) : undefined,
+  };
+  if (q.brief === "1") return c.json(await listDocumentBriefs(c.env, c.get("orgId"), filter));
+  return c.json(await listDocuments(c.env, c.get("orgId"), filter));
 });
+
+documents.get("/catalog", async (c) => c.json(await documentCatalog(c.env, c.get("orgId"))));
+
+documents.get("/texts", async (c) => c.json(await listDocumentTexts(c.env, c.get("orgId"))));
 
 documents.get("/search", async (c) => {
   const q = c.req.query("q") ?? "";
@@ -114,22 +120,60 @@ documents.get("/:id/text", async (c) => {
   return c.json({ text: res.text, total_chars: res.total_chars, has_more: res.has_more });
 });
 
-documents.get("/:id/file", async (c) => {
+/** Byte-intervall slik PDF-viseren kan tegne første side uten å vente på hele filen. */
+function finite(n: unknown): n is number {
+  return typeof n === "number" && Number.isFinite(n);
+}
+
+/** R2 kan ha både offset og suffix på samme objekt. Bruk feltet som faktisk er et tall. */
+function byteSpan(size: number, range: R2Object["range"]): { status: 200 | 206; length: number; contentRange: string | null } {
+  if (!range) return { status: 200, length: size, contentRange: null };
+  if ("suffix" in range && finite(range.suffix) && !("offset" in range && finite(range.offset))) {
+    const length = Math.min(Math.max(range.suffix, 0), size);
+    const start = size - length;
+    const end = Math.max(size - 1, 0);
+    return { status: 206, length, contentRange: length === 0 ? `bytes */${size}` : `bytes ${start}-${end}/${size}` };
+  }
+  const start = "offset" in range && finite(range.offset) ? range.offset : 0;
+  const length = "length" in range && finite(range.length) ? range.length : Math.max(size - start, 0);
+  const end = length === 0 ? start : start + length - 1;
+  return { status: 206, length, contentRange: `bytes ${start}-${end}/${size}` };
+}
+
+documents.on(["GET", "HEAD"], "/:id/file", async (c) => {
   const d = await getDocument(c.env, c.get("orgId"), c.req.param("id"));
-  const obj = await c.env.FILES.get(d.r2_key);
+  const incoming = c.req.raw.headers;
+  let obj: R2Object | R2ObjectBody | null;
+  try {
+    obj = await c.env.FILES.get(d.r2_key, {
+      onlyIf: incoming,
+      ...(incoming.has("range") ? { range: incoming } : {}),
+    });
+  } catch (err) {
+    if (incoming.has("range")) return new Response("Ugyldig del av filen", { status: 416, headers: { "Content-Range": "bytes */*" } });
+    throw err;
+  }
   if (!obj) throw new ApiError(404, "Filen finnes ikke i lagringen");
-  // Bare et fast sett med trygge typer vises inline – alt annet lastes ned
-  const inline = INLINE_SAFE_MIME.has(d.mime) && c.req.query("download") !== "1";
+
+  const shown = c.req.query("download") === "1" ? null : inlineMime(d.filename, d.mime);
   const headers = new Headers({
-    "Content-Type": inline ? d.mime : "application/octet-stream",
-    "Content-Length": String(obj.size),
-    "Content-Disposition": `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(d.filename)}`,
+    "Accept-Ranges": "bytes",
+    ETag: obj.httpEtag,
+    "Cache-Control": "private, max-age=31536000, immutable",
     "X-Content-Type-Options": "nosniff",
-    "Cache-Control": "private, max-age=300",
   });
+  const body = "body" in obj ? obj.body : null;
+  if (!body) return new Response(null, { status: 304, headers });
+
+  const span = byteSpan(obj.size, obj.range);
+  headers.set("Content-Type", shown ?? "application/octet-stream");
+  headers.set("Content-Length", String(span.length));
+  headers.set("Content-Disposition", `${shown ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(d.filename)}`);
+  if (span.contentRange) headers.set("Content-Range", span.contentRange);
   // Chrome sin PDF-visning fungerer ikke i sandkasse; PDF kan uansett ikke kjøre skript på vårt domene
-  if (d.mime !== "application/pdf" || !inline) headers.set("Content-Security-Policy", "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'");
-  return new Response(obj.body, { headers });
+  if (shown !== "application/pdf") headers.set("Content-Security-Policy", "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'");
+  if (c.req.method === "HEAD") return new Response(null, { status: span.status, headers });
+  return new Response(body, { status: span.status, headers });
 });
 
 documents.patch("/:id", async (c) => c.json(await updateDocument(c.env, c.get("orgId"), c.req.param("id"), await body(c, documentPatchSchema))));

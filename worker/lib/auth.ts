@@ -69,7 +69,7 @@ export const requireOrg: MiddlewareHandler<AppEnv> = async (c, next) => {
     if (isPlatformAdmin(c.env, user.email)) {
       c.set("orgId", orgId);
       c.set("role", "member");
-      const access = { ...FULL_ACCESS, userId: user.id, admin: false };
+      const access = { ...FULL_ACCESS, userId: user.id, admin: false, seesPro: true };
       c.set("access", access);
       await runWithAccess(access, () => next());
       return;
@@ -79,7 +79,7 @@ export const requireOrg: MiddlewareHandler<AppEnv> = async (c, next) => {
   if (m.role === "member" && m.expires_at && m.expires_at <= now()) {
     throw forbidden(`Tilgangen din utløp ${osloDateLong(m.expires_at - 1)}. Be en administrator om å forlenge den.`);
   }
-  const access = await loadAccess(c.env, orgId, user.id, m);
+  const access = { ...(await loadAccess(c.env, orgId, user.id, m)), seesPro: isPlatformAdmin(c.env, user.email) };
   c.set("orgId", orgId);
   c.set("role", m.role);
   c.set("access", access);

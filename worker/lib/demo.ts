@@ -1,4 +1,5 @@
 import type { Env } from "../env";
+import { seedDesk } from "./deskSeed";
 import { insert } from "./db";
 import { indexDocumentText } from "./documents";
 import { addMonths, newId, now, todayIso } from "./util";
@@ -284,6 +285,7 @@ export async function seedDemo(env: Env, orgId: string, userId: string): Promise
   });
 
   await env.DB.batch(stmts);
+  await seedDesk(env, orgId, { kontorId: bA, lagerId: bB, boligId: bC });
 
   // ── Dokumenter (tekst lagres i R2 og indekseres) ──
   const docs: { title: string; filename: string; kind: string; ns3451: string; building_id: string; component_id?: string; summary: string; text: string }[] = [
@@ -524,7 +526,7 @@ const DEMO_ARTIFACT = `<!doctype html>
 </style></head>
 <body><main>
   <h1>Servicestatus</h1>
-  <p class="sub">Levende data fra FDV-registeret i Plank.</p>
+  <p class="sub">Levende data fra komponentene i Plank.</p>
   <div class="stats" id="stats"></div>
   <table><thead><tr><th>Komponent</th><th>Bygg</th><th>Neste service</th><th>Status</th></tr></thead><tbody id="rows"><tr><td colspan="4">Laster …</td></tr></tbody></table>
 </main>

@@ -5,8 +5,10 @@ import { ArrowRight, CircleCheck, CircleAlert, CreditCard, FolderTree, KeyRound,
 import { PLANS, type BillingInfo, type Member } from "@shared/types";
 import { api } from "@/lib/api";
 import { useOrg, useOrgApi, useOrgQuery, useSetFocus } from "@/lib/app";
+import { useNavFlags } from "@/lib/modules";
 import { formatDate, formatOre } from "@/lib/format";
 import { Badge, Button, ButtonLink, Card, CardHeader, Field, Input, PageHeader, useToast } from "@/components/ui";
+import { BmNotifyChoice } from "@/features/onboarding/BmNotify";
 
 export function SettingsPage() {
   const { org, orgId, me, isAdmin, canEdit, limited } = useOrg();
@@ -20,7 +22,10 @@ export function SettingsPage() {
   const [orgName, setOrgName] = useState(org.name);
   const [name, setName] = useState(me.user.name ?? "");
   const [busy, setBusy] = useState<string | null>(null);
+  const [notifyDocs, setNotifyDocs] = useState(org.bm_notify);
+  const sources = useNavFlags().sources;
   useEffect(() => setOrgName(org.name), [org.name]);
+  useEffect(() => setNotifyDocs(org.bm_notify), [org.bm_notify]);
 
   const saveProfile = async () => {
     setBusy("profile");
@@ -28,6 +33,19 @@ export function SettingsPage() {
       await api("/me", { method: "PATCH", body: { name } });
       await qc.invalidateQueries({ queryKey: ["me"] });
       toast("Profilen er lagret", "ok");
+    } finally {
+      setBusy(null);
+    }
+  };
+  const setNotify = async (on: boolean) => {
+    setNotifyDocs(on);
+    setBusy("notify");
+    try {
+      await call("/bm-notify", { method: "PATCH", body: { on } });
+      await qc.invalidateQueries({ queryKey: ["me"] });
+    } catch (err) {
+      setNotifyDocs(org.bm_notify);
+      toast(err instanceof Error ? err.message : "Kunne ikke lagre valget", "bad");
     } finally {
       setBusy(null);
     }
@@ -85,6 +103,13 @@ export function SettingsPage() {
           </div>
         </Card>
 
+        <Card className="p-5">
+          <CardHeader title="Varsler" />
+          <div className="-mx-2">
+            <BmNotifyChoice checked={notifyDocs} onChange={(on) => void setNotify(on)} disabled={busy === "notify"} />
+          </div>
+        </Card>
+
         {billing.data && (
           <Card className="p-5">
             <CardHeader
@@ -136,7 +161,7 @@ export function SettingsPage() {
           </Card>
         )}
 
-        {!limited && (
+        {!limited && sources && (
         <Card className="p-5">
           <CardHeader title="Datakilder" />
           <p className="mb-3 text-[13.5px] text-ink-2">Her henter du bygg og dokumenter inn i Plank. Agentene bruker det samme.</p>

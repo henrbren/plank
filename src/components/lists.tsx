@@ -107,6 +107,7 @@ export function ComponentTable({ components, showLocation = true }: { components
         <tr>
           <th className={th}>Komponent</th>
           <th className={th}>NS 3451</th>
+          <th className={th}>Leverandør</th>
           {showLocation && <th className={th}>Plassering</th>}
           <th className={th}>Tilstand</th>
           <th className={th}>Neste service</th>
@@ -123,6 +124,7 @@ export function ComponentTable({ components, showLocation = true }: { components
             {c.ns3451 ?? "–"}
             {c.tfm && <div className="text-[11.5px] text-muted">{c.tfm}</div>}
           </td>
+          <td className={cn(td, "text-ink-2")}>{c.supplier ?? "–"}</td>
           {showLocation && <td className={cn(td, "text-ink-2")}>{[c.building_name, c.floor_name, c.room_name].filter(Boolean).join(" › ") || "–"}</td>}
           <td className={td}>
             <ConditionBadge condition={c.condition} />
@@ -170,6 +172,7 @@ export function DocumentTable({ documents, showLocation = true }: { documents: D
                   <div className="truncate text-[12px] text-muted">
                     {d.filename} · {formatBytes(d.size)}
                     {d.ns3451 && ` · NS ${d.ns3451}`}
+                    {d.extracted?.supplier && ` · ${d.extracted.supplier}`}
                   </div>
                 </div>
               </div>

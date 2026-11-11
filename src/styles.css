@@ -27,6 +27,15 @@
   --info-soft: #e0ecf5;
   --shadow: 0 1px 2px rgb(29 27 24 / 0.06), 0 4px 16px rgb(29 27 24 / 0.06);
   --shadow-lg: 0 8px 40px rgb(29 27 24 / 0.16);
+  /* Sidebaren følger flaten. Sameie og Næringsmappa bytter til LAFT-blå under. */
+  --nav: var(--panel);
+  --nav-ink: var(--ink);
+  --nav-ink-2: var(--ink-2);
+  --nav-muted: var(--muted);
+  --nav-hover: color-mix(in srgb, var(--panel-2) 70%, transparent);
+  --nav-active: var(--panel-2);
+  --nav-line: var(--line);
+  --nav-field: var(--bg);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -57,17 +66,42 @@
     --shadow-lg: 0 8px 40px rgb(0 0 0 / 0.5);
   }
 }
-:root[data-brand="naeringsmappa"] {
-  --accent: #2f4a9f;
-  --accent-hover: #243a80;
+/* LAFT-blå fra laft-app/laft-web. Sidebaren i laft-web er Laft 600 (#4E5E89). Sameie ligger ett trinn mørkere, Laft 700. */
+:root[data-brand="naeringsmappa"],
+:root[data-brand="sameie"] {
+  --accent: #466084;
+  --accent-hover: #324660;
   --accent-ink: #ffffff;
-  --accent-soft: #e4e8f5;
+  --accent-soft: #e6eaf0;
+  --nav-ink: #ffffff;
+  --nav-ink-2: rgb(255 255 255 / 0.9);
+  --nav-muted: rgb(255 255 255 / 0.72);
+  --nav-hover: rgb(255 255 255 / 0.12);
+  --nav-line: rgb(255 255 255 / 0.16);
+  --nav-field: rgb(255 255 255 / 0.08);
+}
+:root[data-brand="naeringsmappa"] {
+  --nav: #4e5e89;
+  --nav-active: #3c4969;
 }
 :root[data-brand="sameie"] {
-  --accent: #1d4ed8;
-  --accent-hover: #1a43b8;
+  --nav: #3c4969;
+  --nav-active: #2a334a;
+}
+/* Leie: grønn pult, ikke Plank-kobber og ikke LAFT-navy. Sidebaren inverterer ikke i mørk modus. */
+:root[data-brand="leie"] {
+  --accent: #1f6b4a;
+  --accent-hover: #18553a;
   --accent-ink: #ffffff;
-  --accent-soft: #e0e7ff;
+  --accent-soft: #e5f3eb;
+  --nav: #14352c;
+  --nav-active: #1e4d40;
+  --nav-ink: #ffffff;
+  --nav-ink-2: rgb(255 255 255 / 0.9);
+  --nav-muted: rgb(255 255 255 / 0.68);
+  --nav-hover: rgb(255 255 255 / 0.1);
+  --nav-line: rgb(255 255 255 / 0.14);
+  --nav-field: rgb(255 255 255 / 0.08);
 }
 
 :root[data-theme="dark"] {
@@ -98,30 +132,32 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"])[data-brand="naeringsmappa"] {
-    --accent: #7b93e0;
-    --accent-hover: #93a6e8;
-    --accent-ink: #0f1320;
-    --accent-soft: #1c2438;
-  }
+  :root:not([data-theme="light"])[data-brand="naeringsmappa"],
   :root:not([data-theme="light"])[data-brand="sameie"] {
-    --accent: #60a5fa;
-    --accent-hover: #7bb6fb;
-    --accent-ink: #0b1226;
-    --accent-soft: #172554;
+    --accent: #8fa6c4;
+    --accent-hover: #a3b6ce;
+    --accent-ink: #141a22;
+    --accent-soft: #253242;
+  }
+  :root:not([data-theme="light"])[data-brand="leie"] {
+    --accent: #8dcead;
+    --accent-hover: #a5d9be;
+    --accent-ink: #0e241b;
+    --accent-soft: #1a3328;
   }
 }
-:root[data-theme="dark"][data-brand="naeringsmappa"] {
-  --accent: #7b93e0;
-  --accent-hover: #93a6e8;
-  --accent-ink: #0f1320;
-  --accent-soft: #1c2438;
-}
+:root[data-theme="dark"][data-brand="naeringsmappa"],
 :root[data-theme="dark"][data-brand="sameie"] {
-  --accent: #60a5fa;
-  --accent-hover: #7bb6fb;
-  --accent-ink: #0b1226;
-  --accent-soft: #172554;
+  --accent: #8fa6c4;
+  --accent-hover: #a3b6ce;
+  --accent-ink: #141a22;
+  --accent-soft: #253242;
+}
+:root[data-theme="dark"][data-brand="leie"] {
+  --accent: #8dcead;
+  --accent-hover: #a5d9be;
+  --accent-ink: #0e241b;
+  --accent-soft: #1a3328;
 }
 
 @theme inline {
@@ -146,6 +182,14 @@
   --color-bad-soft: var(--bad-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
+  --color-nav: var(--nav);
+  --color-nav-ink: var(--nav-ink);
+  --color-nav-ink-2: var(--nav-ink-2);
+  --color-nav-muted: var(--nav-muted);
+  --color-nav-hover: var(--nav-hover);
+  --color-nav-active: var(--nav-active);
+  --color-nav-line: var(--nav-line);
+  --color-nav-field: var(--nav-field);
   --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
   --shadow-card: var(--shadow);
@@ -179,6 +223,20 @@ body {
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
+}
+.sidebar-scroll {
+  scrollbar-color: color-mix(in srgb, var(--nav-ink) 32%, transparent) transparent;
+  overscroll-behavior: contain;
+}
+/* Tailwind setter max-width på img. Det klemmer kartflisene. */
+.plank-map img {
+  max-width: none;
+  max-height: none;
+}
+.plank-map.leaflet-container {
+  background: var(--panel-2);
+  font-family: inherit;
+  z-index: 0;
 }
 
 }

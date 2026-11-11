@@ -10,6 +10,12 @@ export function Logo({ className, withText = true }: { className?: string; withT
     <span className={cn("inline-flex items-center gap-2", className)}>
       {brand.logo ? (
         <img src={brand.logo} alt="" className="size-6 object-contain" />
+      ) : brand.id === "leie" ? (
+        <svg viewBox="0 0 32 32" className="size-6" aria-hidden>
+          <rect width="32" height="32" rx="7" fill="#1f6b4a" />
+          <circle cx="12.2" cy="16" r="4.2" fill="none" stroke="#f4fbf7" strokeWidth="2.1" />
+          <path d="M16 16h9.4M21.5 16v3.1M24.8 16v2.2" fill="none" stroke="#f4fbf7" strokeWidth="2.1" strokeLinecap="round" />
+        </svg>
       ) : (
         <svg viewBox="0 0 32 32" className="size-6" aria-hidden>
           <rect width="32" height="32" rx="7" className="fill-ink" />

@@ -17,7 +17,7 @@ import { createOrg } from "./orgs";
 import { brandOf, emailFrom, laftHost, publicOrigin } from "../lib/brand";
 import { brregRoles, lookupBrreg, nameMatches, type BrregCompany } from "../lib/brreg";
 import { enqueueKommune, grantedBuildingCount } from "../lib/boligmappaMs";
-import { boligmappaConfigured, connectBoligmappa } from "../lib/boligmappa";
+import { boligmappaConfigured, connectBoligmappa, setBoligmappaNotify, startBoligmappaTransfer } from "../lib/boligmappa";
 import { grantAgents } from "../services/laft";
 import { createAccessRequest, pendingRequestFor } from "../services/accessRequests";
 
@@ -176,7 +176,7 @@ auth.post("/request", async (c) => {
   const link = await createLoginLink(c.env, email, redirect, LOGIN_TTL_MS, "login", null, publicOrigin(c));
 
   if (emailConfigured(c.env)) {
-    const mail = magicLinkEmail(link, brandOf(c).name);
+    const mail = magicLinkEmail(link, brandOf(c).name, brandOf(c).accent);
     await sendEmail(c.env, { to: email, from: emailFrom(c.env, brandOf(c)), ...mail });
     return c.json({ ok: true });
   }
@@ -374,6 +374,7 @@ auth.post("/access-request", async (c) => {
       name: z.string().trim().min(3, "Skriv fullt navn").max(120),
       email: z.string().trim().email("Ugyldig e-postadresse").max(200),
       consent: z.boolean().refine((v) => v, "Du må bekrefte at du har lov til å hente dokumentene"),
+      bmNotify: z.boolean().optional(),
     }),
   );
   const ip = c.req.header("cf-connecting-ip") ?? null;
@@ -382,7 +383,16 @@ auth.post("/access-request", async (c) => {
   const email = user ? user.email : normalizeEmail(input.email);
   await throttle(c.env, `access-request:${email}`, 5, 24 * 60 * 60 * 1000, "Du har sendt mange forespørsler i dag. Vent til i morgen, eller ta kontakt med LAFT.");
   const company = await lookupBrreg(input.orgNr);
-  const { row, deliver } = await createAccessRequest(c.env, { company, brand: brandOf(c), origin: publicOrigin(c), email, name: input.name, user, ip });
+  const { row, deliver } = await createAccessRequest(c.env, {
+    company,
+    brand: brandOf(c),
+    origin: publicOrigin(c),
+    email,
+    name: input.name,
+    user,
+    ip,
+    bmNotify: input.bmNotify,
+  });
   c.executionCtx.waitUntil(deliver().catch((e) => console.warn("Tilgangsforespørsel ble ikke levert", row.id, e)));
   return c.json({ ok: true, id: row.id, kind: row.kind, email, orgName: company.name, orgNr: company.orgNr }, 201);
 });
@@ -400,9 +410,9 @@ me.use("*", requireUser);
 
 me.get("/", async (c) => {
   const user = c.get("user");
-  const rows = await all<{ id: string; name: string; role: Role; can_edit: number; scope: "all" | "limited"; expires_at: number | null }>(
+  const rows = await all<{ id: string; name: string; role: Role; can_edit: number; scope: "all" | "limited"; expires_at: number | null; bm_notify: number }>(
     c.env.DB,
-    `SELECT o.id, o.name, m.role, m.can_edit, m.scope, m.expires_at FROM memberships m JOIN orgs o ON o.id = m.org_id
+    `SELECT o.id, o.name, m.role, m.can_edit, m.scope, m.expires_at, m.bm_notify FROM memberships m JOIN orgs o ON o.id = m.org_id
      WHERE m.user_id = ? AND (m.role != 'member' OR m.expires_at IS NULL OR m.expires_at > ?) ORDER BY o.name`,
     user.id,
     now(),
@@ -416,6 +426,7 @@ me.get("/", async (c) => {
       can_edit: !member || r.can_edit === 1,
       limited: member && r.scope === "limited",
       expires_on: member && r.expires_at ? osloDay(r.expires_at - 1) : null,
+      bm_notify: r.bm_notify === 1,
     };
   });
   const result: Me = { user, orgs, platformAdmin: isPlatformAdmin(c.env, user.email) };
@@ -452,9 +463,13 @@ async function orgAccess(env: Env, user: { id: string; email: string }, company:
 
 /** Opprett ny organisasjon (brukeren blir eier). På LAFT-domenene går kommuner i kø, ikke inn i løsningen. */
 me.post("/orgs", async (c) => {
-  const input = await body(c, z.object({ name: z.string().trim().max(100).optional(), orgNr: z.string().trim().max(20).optional() }));
+  const input = await body(c, z.object({ name: z.string().trim().max(100).optional(), orgNr: z.string().trim().max(20).optional(), bmNotify: z.boolean().optional() }));
   const user = c.get("user");
   const brand = brandOf(c);
+  const rememberNotify = async (orgId: string) => {
+    if (input.bmNotify === undefined) return;
+    await setBoligmappaNotify(c.env, orgId, user.id, input.bmNotify);
+  };
 
   if (laftHost(c)) {
     if (!input.orgNr) throw badRequest("Skriv organisasjonsnummeret");
@@ -491,17 +506,47 @@ me.post("/orgs", async (c) => {
     }
     const org = await createOrg(c.env, (input.name || company.name).slice(0, 100), user.id);
     await c.env.DB.prepare(`UPDATE orgs SET org_nr = ?, brand = ? WHERE id = ?`).bind(company.orgNr, brand.id, org.id).run();
+    await rememberNotify(org.id);
     let autoImport = false;
     if (boligmappaConfigured(c.env)) {
       try {
         await connectBoligmappa(c.env, org.id, company.orgNr, { autoImport: true });
         await grantAgents(c.env, org.id, ["boligmappa"]);
+        await startBoligmappaTransfer(c.env, org.id, { type: "user", id: user.id, name: user.name ?? user.email }, c.executionCtx);
         autoImport = true;
       } catch (err) {
         console.error("Kunne ikke koble Boligmappa på ny organisasjon", err);
       }
     }
     return c.json({ ...org, name: input.name || company.name, orgNr: company.orgNr, autoImport }, 201);
+  }
+
+  if (input.orgNr) {
+    const company = await lookupBrreg(input.orgNr);
+    const existing = await first<{ id: string }>(
+      c.env.DB,
+      `SELECT o.id FROM orgs o JOIN memberships m ON m.org_id = o.id AND m.user_id = ? WHERE o.org_nr = ? LIMIT 1`,
+      user.id,
+      company.orgNr,
+    );
+    if (existing) {
+      await rememberNotify(existing.id);
+      return c.json({ id: existing.id, name: company.name, orgNr: company.orgNr, autoImport: true, existing: true });
+    }
+    const org = await createOrg(c.env, company.name.slice(0, 100), user.id);
+    await c.env.DB.prepare(`UPDATE orgs SET org_nr = ?, brand = ? WHERE id = ?`).bind(company.orgNr, brand.id, org.id).run();
+    await rememberNotify(org.id);
+    let autoImport = false;
+    if (boligmappaConfigured(c.env)) {
+      try {
+        await connectBoligmappa(c.env, org.id, company.orgNr, { autoImport: true });
+        await startBoligmappaTransfer(c.env, org.id, { type: "user", id: user.id, name: user.name ?? user.email }, c.executionCtx);
+        autoImport = true;
+      } catch (err) {
+        console.error("Kunne ikke koble Boligmappa på ny organisasjon", err);
+      }
+    }
+    return c.json({ ...org, name: company.name, orgNr: company.orgNr, autoImport }, 201);
   }
 
   const name = (input.name || "").trim();

@@ -21,14 +21,18 @@ import { stripeWebhook } from "./routes/stripe";
 import { boligmappa } from "./routes/boligmappa";
 import { laft } from "./routes/laft";
 import { keepLaftAlive } from "./lib/laft";
-import { handleBoligmappaQueue, runAutoImports } from "./lib/boligmappa";
+import { handleBoligmappaQueue, runAutoImports, runBoligmappaWatches } from "./lib/boligmappa";
 import { claudeConfigured } from "./lib/anthropic";
 import { emailConfigured } from "./lib/email";
 import { brandOf } from "./lib/brand";
 import { hooks } from "./routes/hooks";
 import { syncAccessRequests } from "./services/accessRequests";
 import { help } from "./routes/help";
+import { share } from "./routes/share";
+import { fillStreetNumbers } from "./lib/resolvar";
 import { maintainHelp } from "./services/help";
+import { publishSupplierPages } from "./services/suppliers";
+import { desk } from "./routes/desk";
 
 const app = new Hono<AppEnv>();
 
@@ -62,6 +66,7 @@ app.get("/api/health", (c) =>
 app.get("/api/brand", (c) => c.json(brandOf(c)));
 
 app.route("/api/auth", auth);
+app.route("/api/share", share);
 app.route("/api/me", me);
 
 const platform = new Hono<AppEnv>();
@@ -81,6 +86,7 @@ org.route("/", orgs);
 org.route("/portfolio", portfolio);
 org.route("/components", components);
 org.route("/tasks", tasks);
+org.route("/desk", desk);
 org.route("/documents", documents);
 org.route("/search", search);
 org.route("/artifacts", artifacts);
@@ -94,8 +100,19 @@ app.route("/api/orgs/:orgId", org);
 
 app.all("/api/*", (c) => c.json({ error: "Ukjent API-endepunkt" }, 404));
 
-// Alt annet serveres av React-appen (statiske filer)
-app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
+const STATIC_ASSET = /\.(?:js|mjs|css|map|woff2?|png|jpe?g|gif|webp|svg|ico)$/i;
+
+// Alt annet serveres av React-appen. En manglende skriptfil skal ikke bli index.html,
+// for da prøver nettleseren å kjøre siden som modul etter en deploy.
+app.all("*", async (c) => {
+  const res = await c.env.ASSETS.fetch(c.req.raw);
+  const path = new URL(c.req.url).pathname;
+  const html = (res.headers.get("content-type") ?? "").includes("text/html");
+  if (STATIC_ASSET.test(path) && (res.status === 404 || html)) {
+    return new Response(null, { status: 404, headers: { "cache-control": "no-store" } });
+  }
+  return res;
+});
 
 export default {
   fetch: app.fetch,
@@ -109,6 +126,9 @@ export default {
         await keepLaftAlive(env).catch((err) => console.error("LAFT-fornyelse feilet", err));
         await syncAccessRequests(env).catch((err) => console.error("Synk av tilgangsforespørsler feilet", err));
         await runAutoImports(env, ctx).catch((err) => console.error("Automatisk Boligmappa-henting feilet", err));
+        await runBoligmappaWatches(env, ctx).catch((err) => console.error("Sjekk etter nye Boligmappa-dokumenter feilet", err));
+        await fillStreetNumbers(env).catch((err) => console.error("Husnummer fra bygningsnummer feilet", err));
+        await publishSupplierPages(env).catch((err) => console.error("Leverandørside feilet", err));
       })(),
     );
   },
