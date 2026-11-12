@@ -133,7 +133,7 @@ export function SettingsPage() {
                 </>
               ) : (
                 <>
-                  Standard koster {PLANS.standard.priceNok.toLocaleString("nb-NO")} kr/mnd og Pro {PLANS.pro.priceNok.toLocaleString("nb-NO")} kr/mnd, inkl. mva. Begge har AI-bruk inkludert hver måned.
+                  Basis koster {PLANS.basis.priceNok.toLocaleString("nb-NO")} kr/mnd, Standard {PLANS.standard.priceNok.toLocaleString("nb-NO")} kr/mnd og Pro {PLANS.pro.priceNok.toLocaleString("nb-NO")} kr/mnd, inkl. mva. Alle har AI-bruk inkludert hver måned.
                 </>
               )}
             </p>

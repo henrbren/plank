@@ -1,0 +1,186 @@
+- generic [ref=f12e3]:
+  - complementary [ref=f12e4]:
+    - generic [ref=f12e5]:
+      - button "Demoportefølje Plank" [ref=f12e9]:
+        - generic [ref=f12e16]:
+          - generic [ref=f12e17]: Demoportefølje
+          - generic [ref=f12e18]: Plank
+      - button "Søk … ⌘K" [ref=f12e23]:
+        - generic [ref=f12e27]: Søk …
+        - generic [ref=f12e28]: ⌘K
+      - navigation [ref=f12e29]:
+        - link "Oversikt" [ref=f12e30] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl
+        - link "Oppgaver" [ref=f12e36] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/tasks
+        - link "Dokumenter" [ref=f12e42] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/documents
+        - link "FDV-register" [ref=f12e48] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/components
+        - link "Agenter" [ref=f12e53] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/agents
+        - link "Sider" [ref=f12e59] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/artifacts
+        - link "Hjelp" [ref=f12e67] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/hjelp
+      - generic [ref=f12e73]:
+        - generic [ref=f12e74]: Portefølje
+        - button "Legg til" [ref=f12e77]
+      - generic [ref=f12e79]:
+        - generic [ref=f12e80]:
+          - generic [ref=f12e81]:
+            - button "Skjul" [ref=f12e82]
+            - link "Elvebakken borettslag (demo)" [ref=f12e85] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/properties/prp_0mv0wv3y6pg9b0kmuoy
+          - generic [ref=f12e92]:
+            - button "Vis" [ref=f12e93]
+            - link "Blokk 1" [ref=f12e96] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/buildings/bld_0mv0wv3y6of4orsomj4
+        - generic [ref=f12e103]:
+          - generic [ref=f12e104]:
+            - button "Skjul" [ref=f12e105]
+            - link "Sagbruket kontorpark (demo)" [ref=f12e108] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/properties/prp_0mv0wv3y43x7zv8zkoa
+          - generic [ref=f12e115]:
+            - button "Vis" [ref=f12e116]
+            - link "Hovedbygg" [ref=f12e119] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/buildings/bld_0mv0wv3y4koh2rdvf3u
+          - generic [ref=f12e127]:
+            - button "Vis" [ref=f12e128]
+            - link "Lagerhall" [ref=f12e131] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/buildings/bld_0mv0wv3y47v7eaehenl
+      - button "AI-bruk 0 %" [ref=f12e140]:
+        - generic [ref=f12e141]: AI-bruk
+        - generic [ref=f12e142]: 0 %
+      - button "d demo.mottaker@example.com" [ref=f12e146]:
+        - generic [ref=f12e147]: d
+        - generic [ref=f12e148]: demo.mottaker@example.com
+  - main [ref=f12e149]:
+    - generic [ref=f12e150]:
+      - generic [ref=f12e152]:
+        - list [ref=f12e153]:
+          - listitem [ref=f12e154]:
+            - generic [ref=f12e158]: Inn
+          - listitem [ref=f12e159]:
+            - generic [ref=f12e163]: Bygg
+          - listitem [ref=f12e164]:
+            - generic [ref=f12e165]: "3"
+            - generic [ref=f12e167]: Spør
+          - listitem [ref=f12e168]:
+            - generic [ref=f12e169]: "4"
+            - generic [ref=f12e171]: Betal
+        - generic [ref=f12e172]:
+          - generic [ref=f12e173]: Spør agenten om porteføljen
+          - generic [ref=f12e174]: Ett spørsmål om de 3 byggene er nok. Da ser du hva agenten finner, før du bestemmer deg for å betale.
+        - button "Spør nå" [ref=f12e175]
+      - generic [ref=f12e178]:
+        - generic [ref=f12e179]:
+          - navigation [ref=f12e180]:
+            - link "Dokumenter" [ref=f12e182] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/documents
+            - generic [ref=f12e183]:
+              - generic [ref=f12e184]: /
+              - link "Hovedbygg" [ref=f12e185] [cursor=pointer]:
+                - /url: /o/org_0mv0wv3xoht8ih433dl/buildings/bld_0mv0wv3y4koh2rdvf3u
+          - generic [ref=f12e186]:
+            - generic [ref=f12e192]:
+              - heading "GK – FDV ventilasjonsaggregat" [level=1] [ref=f12e193]
+              - generic [ref=f12e195]:
+                - generic [ref=f12e196]: FDV-dokumentasjon
+                - generic [ref=f12e197]: Indeksert
+                - generic [ref=f12e201]: fdv-ventilasjon.pdf · 12 kB
+            - generic [ref=f12e202]:
+              - link "Last ned" [ref=f12e203] [cursor=pointer]:
+                - /url: /api/orgs/org_0mv0wv3xoht8ih433dl/documents/doc_extracttest/file?download=1
+              - button "Oppsummer" [ref=f12e207]
+              - button "Mer" [ref=f12e213]
+        - generic [ref=f12e218]:
+          - generic [ref=f12e219]:
+            - generic [ref=f12e220]:
+              - button "Forhåndsvisning" [ref=f12e221]
+              - button "Uttrukket tekst" [ref=f12e222]
+            - iframe [ref=f12e223]:
+              - generic [ref=f13e1]: "{\"error\":\"Filen finnes ikke i lagringen\"}"
+          - generic [ref=f12e224]:
+            - generic [ref=f12e225]:
+              - generic [ref=f12e226]: Sammendrag
+              - paragraph [ref=f12e227]: Driftsinstruks for aggregatet i hovedbygget.
+            - generic [ref=f12e228]:
+              - generic [ref=f12e229]: Lest ut av dokumentet
+              - generic [ref=f12e230]:
+                - generic [ref=f12e231]:
+                  - term [ref=f12e232]: Leverandør
+                  - definition [ref=f12e233]: GK Norge AS · 912 345 678
+                - generic [ref=f12e234]:
+                  - term [ref=f12e235]: Produsent
+                  - definition [ref=f12e236]: Systemair SAVE VTR 300
+                - generic [ref=f12e237]:
+                  - term [ref=f12e238]: Serienr.
+                  - definition [ref=f12e239]: SN-19-0042
+                - generic [ref=f12e240]:
+                  - term [ref=f12e241]: TFM
+                  - definition [ref=f12e242]: =360.001
+                - generic [ref=f12e243]:
+                  - term [ref=f12e244]: Installert
+                  - definition [ref=f12e245]: 12. apr. 2019
+                - generic [ref=f12e246]:
+                  - term [ref=f12e247]: Garanti til
+                  - definition [ref=f12e248]: 12. apr. 2024
+                - generic [ref=f12e249]:
+                  - term [ref=f12e250]: Siste service
+                  - definition [ref=f12e251]: 1. mars 2025
+                - generic [ref=f12e252]:
+                  - term [ref=f12e253]: Intervall
+                  - definition [ref=f12e254]: Hver 12. måned
+                - generic [ref=f12e255]:
+                  - term [ref=f12e256]: Andre
+                  - definition [ref=f12e257]: Veidekke (entreprenør)
+              - link "Åpne i FDV-registeret" [ref=f12e258] [cursor=pointer]:
+                - /url: /o/org_0mv0wv3xoht8ih433dl/components/cmp_extracttest
+            - generic [ref=f12e260]:
+              - generic [ref=f12e261]:
+                - term [ref=f12e262]: Type
+                - definition [ref=f12e263]: FDV-dokumentasjon
+              - generic [ref=f12e264]:
+                - term [ref=f12e265]: NS 3451
+                - definition [ref=f12e266]: "360"
+              - generic [ref=f12e267]:
+                - term [ref=f12e268]: Bygg
+                - definition [ref=f12e269]:
+                  - link "Hovedbygg" [ref=f12e270] [cursor=pointer]:
+                    - /url: /o/org_0mv0wv3xoht8ih433dl/buildings/bld_0mv0wv3y4koh2rdvf3u
+              - generic [ref=f12e271]:
+                - term [ref=f12e272]: Komponent
+                - definition [ref=f12e273]:
+                  - link "Ventilasjonsaggregat" [ref=f12e274] [cursor=pointer]:
+                    - /url: /o/org_0mv0wv3xoht8ih433dl/components/cmp_extracttest
+              - generic [ref=f12e275]:
+                - term [ref=f12e276]: Tegn
+                - definition [ref=f12e277]: "400"
+              - generic [ref=f12e278]:
+                - term [ref=f12e279]: Lastet opp
+                - definition [ref=f12e280]: 29. okt., 02:06
+  - complementary [ref=f12e281]:
+    - generic [ref=f12e282]:
+      - button "FDV-assistent" [ref=f12e285]:
+        - generic "Gnisten" [ref=f12e286]
+      - button "Historikk" [ref=f12e297]
+      - button "Ny samtale" [ref=f12e302]
+      - button "Lukk panel (⌘J)" [ref=f12e304]
+    - generic [ref=f12e309]:
+      - generic [ref=f12e310]:
+        - generic "Gnisten" [ref=f12e311]
+        - generic [ref=f12e319]: FDV-assistent
+        - generic [ref=f12e320]: Allround-assistent som svarer på spørsmål om byggene, dokumentene og FDV-registeret.
+      - generic [ref=f12e321]:
+        - button "Oppsummer dokumentet" [ref=f12e322]
+        - button "Hvilke vedlikeholdskrav står i dokumentet?" [ref=f12e323]
+        - button "Lag vedlikeholdsoppgaver fra dokumentet" [ref=f12e324]
+    - generic [ref=f12e326]:
+      - generic [ref=f12e328]:
+        - generic [ref=f12e332]: GK – FDV ventilasjonsaggregat
+        - button "Fjern kontekst" [ref=f12e333]
+      - textbox "Spør FDV-assistent …" [ref=f12e337]
+      - generic [ref=f12e338]:
+        - generic [ref=f12e339]: Enter sender · Shift+Enter ny linje
+        - button "Send" [disabled] [ref=f12e340]

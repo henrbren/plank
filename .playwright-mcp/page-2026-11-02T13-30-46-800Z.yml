@@ -1,0 +1,35 @@
+- generic [ref=f31e3]:
+  - generic [ref=f31e4]:
+    - generic [ref=f31e5]: Plank
+    - generic [ref=f31e13]:
+      - heading "Inn i Plank" [level=1] [ref=f31e14]
+      - paragraph [ref=f31e15]: Skriv e-posten. Du får en lenke, og er inne på under et minutt.
+      - generic [ref=f31e16]:
+        - generic [ref=f31e17]: E-post
+        - textbox "E-post" [active] [ref=f31e18]:
+          - /placeholder: navn@firma.no
+      - button "Send innloggingslenke" [ref=f31e19]
+      - generic [ref=f31e22]: eller
+      - button "Logg inn med LAFT-konto" [ref=f31e25]
+      - link "Send demo til noen" [ref=f31e26] [cursor=pointer]:
+        - /url: /demo
+    - generic [ref=f31e29]: © 2026 Plank
+  - generic [ref=f31e32]:
+    - generic [ref=f31e33]: FDV med AI-agenter
+    - heading "Arbeidsflaten der agentene kjenner byggene dine." [level=2] [ref=f31e34]
+    - paragraph [ref=f31e35]: Last opp FDV-dokumentasjon og IFC-modeller, sett opp agenter som jobber for deg, og lag egne sider med levende data – for hver eiendom, hvert bygg og hver etasje.
+    - generic [ref=f31e36]:
+      - generic [ref=f31e37]: Plank-assistent
+      - generic [ref=f31e42]: Når må vi bytte filter på ventilasjonsaggregatet i Hovedbygg?
+      - generic [ref=f31e43]:
+        - generic [ref=f31e44]:
+          - generic [ref=f31e49]: Søker i dokumenter etter «filterbytte»
+          - generic [ref=f31e50]: 3 treff
+        - generic [ref=f31e51]: Leser Nordluft NL-4000 – drifts- og vedlikeholdsinstruks
+        - generic [ref=f31e57]:
+          - generic [ref=f31e64]: Bygger siden «Servicestatus»
+          - generic [ref=f31e65]: v1
+        - generic [ref=f31e66]:
+          - generic [ref=f31e71]: Spør BIM-modellen (IFCSPACE)
+          - generic [ref=f31e72]: 42 rom
+      - generic [ref=f31e73]: Filteret skal byttes hver 6. måned, eller ved trykkfall over 150 Pa. Siste service var for 200 dager siden – den er altså på overtid.

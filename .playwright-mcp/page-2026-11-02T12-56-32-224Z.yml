@@ -1,0 +1,203 @@
+- generic [ref=f26e6]:
+  - complementary [ref=f26e7]:
+    - generic [ref=f26e8]:
+      - button "Demoportefølje Plank" [ref=f26e12]:
+        - generic [ref=f26e19]:
+          - generic [ref=f26e20]: Demoportefølje
+          - generic [ref=f26e21]: Plank
+      - button "Søk … ⌘K" [ref=f26e26]:
+        - generic [ref=f26e30]: Søk …
+        - generic [ref=f26e31]: ⌘K
+      - navigation [ref=f26e32]:
+        - link "Oversikt" [ref=f26e33] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl
+        - link "Oppgaver" [ref=f26e39] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/tasks
+        - link "Dokumenter" [ref=f26e45] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/documents
+        - link "FDV-register" [ref=f26e51] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/components
+        - link "Agenter" [ref=f26e56] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/agents
+        - link "Sider" [ref=f26e62] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/artifacts
+      - generic [ref=f26e70]:
+        - generic [ref=f26e71]: Portefølje
+        - button "Legg til" [ref=f26e75]
+      - generic [ref=f26e77]:
+        - generic [ref=f26e78]:
+          - generic [ref=f26e79]:
+            - button "Skjul" [ref=f26e80]
+            - link "Elvebakken borettslag (demo)" [ref=f26e83] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/properties/prp_0mv0wv3y6pg9b0kmuoy
+          - generic [ref=f26e90]:
+            - button "Vis" [ref=f26e91]
+            - link "Blokk 1" [ref=f26e94] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/buildings/bld_0mv0wv3y6of4orsomj4
+        - generic [ref=f26e101]:
+          - generic [ref=f26e102]:
+            - button "Skjul" [ref=f26e103]
+            - link "Sagbruket kontorpark (demo)" [ref=f26e106] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/properties/prp_0mv0wv3y43x7zv8zkoa
+          - generic [ref=f26e113]:
+            - button "Vis" [ref=f26e114]
+            - link "Hovedbygg" [ref=f26e117] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/buildings/bld_0mv0wv3y4koh2rdvf3u
+          - generic [ref=f26e125]:
+            - button "Vis" [ref=f26e126]
+            - link "Lagerhall" [ref=f26e129] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/buildings/bld_0mv0wv3y47v7eaehenl
+      - button "AI-bruk 0 %" [ref=f26e138]:
+        - generic [ref=f26e139]: AI-bruk
+        - generic [ref=f26e140]: 0 %
+      - button "d demo.mottaker@example.com" [ref=f26e144]:
+        - generic [ref=f26e145]: d
+        - generic [ref=f26e146]: demo.mottaker@example.com
+  - main [ref=f26e147]:
+    - generic [ref=f26e308]:
+      - generic [ref=f26e315]:
+        - heading "Abonnement og bruk" [level=1] [ref=f26e316]
+        - generic [ref=f26e317]: Plan, AI-bruk og grense for Demoportefølje. Alle beløp er inkl. mva.
+      - generic [ref=f26e318]:
+        - generic [ref=f26e319]:
+          - generic [ref=f26e320]:
+            - generic [ref=f26e321]:
+              - generic [ref=f26e322]: Nåværende plan
+              - generic [ref=f26e323]:
+                - heading "Prøveperiode" [level=2] [ref=f26e324]
+                - generic [ref=f26e325]: Ikke startet
+              - paragraph [ref=f26e327]: Dere bruker Plank gratis. Det agentene gjør nå, faktureres ikke. Velg en plan når dere vil fortsette.
+            - button "Velg plan" [ref=f26e329]
+          - generic [ref=f26e330]:
+            - generic [ref=f26e331]:
+              - generic [ref=f26e332]: AI-bruk i november
+              - generic [ref=f26e336]: 0 kr
+              - generic [ref=f26e337]: Faktureres ikke
+            - generic [ref=f26e338]:
+              - generic [ref=f26e339]: Bygg
+              - generic [ref=f26e344]: 3 av 10
+            - generic [ref=f26e348]:
+              - generic [ref=f26e349]: Ny måned
+              - generic [ref=f26e354]: 1. desember
+              - generic [ref=f26e355]: Om 29 dager
+        - generic [ref=f26e356]:
+          - heading "Bruk i november" [level=2] [ref=f26e358]
+          - generic [ref=f26e360]:
+            - generic [ref=f26e361]:
+              - generic [ref=f26e362]: Prøvebruk
+              - generic [ref=f26e363]: 0 kr
+            - generic [ref=f26e364]: Faktureres ikke. Når abonnementet er startet, følger 300 kr med hver måned på Standard og 1 200 kr på Pro.
+        - generic [ref=f26e365]:
+          - generic [ref=f26e366]:
+            - generic [ref=f26e367]:
+              - heading "Bruk per dag" [level=2] [ref=f26e368]
+              - paragraph [ref=f26e369]: 0 kr så langt i måneden
+            - generic [ref=f26e370]:
+              - generic [ref=f26e371]:
+                - text: Samtaler
+                - generic [ref=f26e373]: 0 kr
+              - generic [ref=f26e374]:
+                - text: Planlagte agenter
+                - generic [ref=f26e376]: 0 kr
+              - generic [ref=f26e377]:
+                - text: Dokumenter
+                - generic [ref=f26e379]: 0 kr
+          - generic [ref=f26e380]:
+            - generic [ref=f26e381]:
+              - generic [ref=f26e382]: 10,00 kr
+              - generic [ref=f26e384]: 5,00 kr
+              - generic [ref=f26e386]: 0 kr
+            - generic [ref=f26e449]:
+              - generic [ref=f26e451]: "2"
+              - generic [ref=f26e454]: "5"
+              - generic [ref=f26e459]: "10"
+              - generic [ref=f26e464]: "15"
+              - generic [ref=f26e469]: "20"
+              - generic [ref=f26e474]: "25"
+              - generic [ref=f26e479]: "30"
+            - generic: Ingen AI-bruk ennå denne måneden.
+        - generic [ref=f26e480]:
+          - generic [ref=f26e481]:
+            - heading "Planer" [level=2] [ref=f26e482]
+            - paragraph [ref=f26e483]: Bytt når som helst. Oppgraderinger gjelder med en gang.
+          - generic [ref=f26e484]:
+            - generic [ref=f26e485]:
+              - heading "Standard" [level=3] [ref=f26e487]
+              - paragraph [ref=f26e488]: For forvaltere som vil i gang med noen få bygg.
+              - generic [ref=f26e489]:
+                - generic [ref=f26e490]: 990 kr
+                - generic [ref=f26e491]: /mnd
+              - generic [ref=f26e492]: inkl. mva
+              - list [ref=f26e493]:
+                - listitem [ref=f26e494]:
+                  - generic [ref=f26e497]: 300 kr AI-bruk inkludert hver måned
+                - listitem [ref=f26e498]:
+                  - generic [ref=f26e501]: Inntil 10 bygg
+                - listitem [ref=f26e502]:
+                  - generic [ref=f26e505]: Agenter, dokumenter, oppgaver og etasjer
+                - listitem [ref=f26e506]:
+                  - generic [ref=f26e509]: Så mange kollegaer dere vil
+              - button "Start med Standard" [ref=f26e511]
+            - generic [ref=f26e512]:
+              - generic [ref=f26e513]:
+                - heading "Pro" [level=3] [ref=f26e514]
+                - generic [ref=f26e515]: For porteføljer
+              - paragraph [ref=f26e516]: For porteføljer der agentene jobber hver dag.
+              - generic [ref=f26e517]:
+                - generic [ref=f26e518]: 3 000 kr
+                - generic [ref=f26e519]: /mnd
+              - generic [ref=f26e520]: inkl. mva
+              - list [ref=f26e521]:
+                - listitem [ref=f26e522]:
+                  - generic [ref=f26e525]: 1 200 kr AI-bruk inkludert hver måned
+                - listitem [ref=f26e526]:
+                  - generic [ref=f26e529]: Inntil 50 bygg
+                - listitem [ref=f26e530]:
+                  - generic [ref=f26e533]: 4 ganger så mye AI-bruk som Standard
+                - listitem [ref=f26e534]:
+                  - generic [ref=f26e537]: Agenter, dokumenter, oppgaver og etasjer
+                - listitem [ref=f26e538]:
+                  - generic [ref=f26e541]: Så mange kollegaer dere vil
+              - button "Start med Pro" [ref=f26e543]
+          - paragraph [ref=f26e544]: Trenger dere mer enn 50 bygg? Ta kontakt, så setter vi opp en avtale.
+        - generic [ref=f26e545]:
+          - heading "Slik fungerer det" [level=2] [ref=f26e547]
+          - generic [ref=f26e548]:
+            - generic [ref=f26e554]:
+              - generic [ref=f26e555]: Inkludert bruk fornyes hver måned
+              - paragraph [ref=f26e556]: Hver plan har AI-bruk inkludert. Det som ikke brukes, overføres ikke, og ny måned starter den 1.
+            - generic [ref=f26e562]:
+              - generic [ref=f26e563]: Kreditter tas deretter
+              - paragraph [ref=f26e564]: Kjøpte kreditter brukes når den inkluderte bruken er tom, de eldste først. Først etter det blir det ekstra bruk.
+            - generic [ref=f26e570]:
+              - generic [ref=f26e571]: Dere bestemmer grensen
+              - paragraph [ref=f26e572]: Ekstra bruk faktureres etterskuddsvis. Med fast grense settes agentene på pause når den er nådd, og administratorer får e-post ved 80 % og 100 %.
+            - generic [ref=f26e578]:
+              - generic [ref=f26e579]: Bytt plan når dere vil
+              - paragraph [ref=f26e580]: Ved oppgradering trekkes mellomlegget med en gang. Ved nedgradering kommer resten til gode, og inkludert bruk gjelder ut måneden.
+  - complementary [ref=f26e254]:
+    - generic [ref=f26e255]:
+      - button "FDV-assistent" [ref=f26e258]:
+        - generic "Gnisten" [ref=f26e259]
+      - button "Historikk" [ref=f26e270]
+      - button "Ny samtale" [ref=f26e275]
+      - button "Lukk panel (⌘J)" [ref=f26e277]
+    - generic [ref=f26e282]:
+      - generic [ref=f26e283]:
+        - generic "Gnisten" [ref=f26e284]
+        - generic [ref=f26e292]: FDV-assistent
+        - generic [ref=f26e293]: Allround-assistent som svarer på spørsmål om byggene, dokumentene og FDV-registeret.
+      - generic [ref=f26e294]:
+        - button "Hva bør jeg prioritere denne uken?" [ref=f26e295]
+        - button "Hvilke komponenter har service på overtid?" [ref=f26e296]
+        - button "Lag et dashboard over åpne avvik og oppgaver" [ref=f26e297]
+    - generic [ref=f26e298]:
+      - paragraph [ref=f26e299]:
+        - text: Spør fritt mens dere prøver. Abonnementet tar med AI-bruk hver måned.
+        - link "Se planene" [active] [ref=f26e300] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/abonnement
+      - generic [ref=f26e301]:
+        - textbox "Spør FDV-assistent …" [ref=f26e302]
+        - generic [ref=f26e303]:
+          - generic [ref=f26e304]: Enter sender · Shift+Enter ny linje
+          - button "Send" [disabled] [ref=f26e305]

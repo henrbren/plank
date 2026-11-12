@@ -3,7 +3,7 @@ import { BRANDS, type BrandId } from "../../shared/brand";
 import type { AutoImportStep, BmBuilding, BmDocument, BmEstate, BmTree, TransferStatus } from "../../shared/types";
 import { activityStatement, logActivity } from "./activity";
 import { assertCanAddBuilding, buildingLimit } from "./billing";
-import { emailFrom } from "./brand";
+import { brandOrigin, emailFrom } from "./brand";
 import { all, first, insert } from "./db";
 import { guessMime, kindOf, magicMime, processDocument } from "./documents";
 import { boligmappaNewDocumentsEmail, boligmappaReadyEmail, emailConfigured, sendEmail } from "./email";
@@ -25,9 +25,13 @@ const MAX_DOC_BYTES = 95 * 1024 * 1024;
 const LIST_CONCURRENCY = 4;
 /** Én fil av gangen. Boligmappa kutter ofte strømmen, og parallelle kopier dør sammen. */
 const DOWNLOAD_CONCURRENCY = 1;
-/** Tid til første byte, og deretter tid til selve fila. En kort frist på hele kallet kutter store tegninger. */
-const HEADER_MS = 25_000;
-const BODY_MS = 90_000;
+/**
+ * Første byte kan dra ut. Deretter nullstilles fristen for hver bit som kommer,
+ * så en stor tegning ikke kuttes, mens en død strøm ikke henger i timevis.
+ */
+const HEADER_MS = 60_000;
+const BODY_IDLE_MS = 45_000;
+const BODY_MAX_MS = 4 * 60_000;
 /** Øvre tak per importsteg. Nye filer startes ikke etter QUEUE_WALL_MS. */
 const DOCS_PER_STEP = 12;
 /** Ikke start mer arbeid etter dette, så én organisasjon ikke holder køen. Et kall som alt er i gang får gjøre seg ferdig. */
@@ -36,8 +40,22 @@ const QUEUE_WALL_MS = 120_000;
 const QUEUE_ROUNDS = 16;
 /** Kort pause når et steg ikke fikk inn noe, så vi ikke hamrer et API som allerede feiler. */
 const IDLE_DELAY_MS = 4_000;
-/** Nedlastinger som feiler forbigående, prøves så mange ganger før dokumentet merkes med feil */
-const MAX_DOC_ATTEMPTS = 5;
+/**
+ * Forbigående brudd prøves så mange ganger før fila legges til side.
+ * Fem korte avbrudd gjorde at hele arkivet ble meldt ferdig uten en eneste fil.
+ */
+const MAX_DOC_ATTEMPTS = 8;
+/** Signert lenke som svarer 400 eller 403. Lista åpnes på nytt så mange ganger før lenken legges til side. */
+const MAX_STALE_ATTEMPTS = 4;
+const DOWNLOAD_ABORTED = "Nedlastingen fra Boligmappa ble avbrutt";
+const DOWNLOAD_STALE = "Nedlastingslenken fra Boligmappa er utløpt";
+const RETRYABLE_DOWNLOAD_ERRORS = [
+  DOWNLOAD_ABORTED,
+  "Fikk ikke kontakt med Boligmappa",
+  DOWNLOAD_STALE,
+  "Klarte ikke å laste ned dokumentet (400)",
+  "Klarte ikke å laste ned dokumentet (403)",
+] as const;
 /**
  * Forsøk på dokumentlisten før vi gir opp ett bygg eller én boenhet. Boligmappa gir ofte 504 på boenheter,
  * og de er et tillegg til byggets egne dokumenter, så de får færre forsøk.
@@ -525,8 +543,8 @@ async function storeDocuments(env: Env, orgId: string, ownerKind: "building" | "
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)
        ON CONFLICT(org_id, remote_id) DO UPDATE SET
          title = excluded.title, filename = excluded.filename, category = excluded.category, download_url = excluded.download_url,
-         error = CASE WHEN error = 'Nedlastingen fra Boligmappa ble avbrutt' THEN NULL ELSE error END,
-         attempts = CASE WHEN error = 'Nedlastingen fra Boligmappa ble avbrutt' THEN 0 ELSE attempts END
+         error = CASE WHEN error = '${DOWNLOAD_ABORTED}' THEN NULL ELSE error END,
+         attempts = CASE WHEN error = '${DOWNLOAD_ABORTED}' THEN 0 ELSE attempts END
          WHERE imported_document_id IS NULL`,
     )
       .bind(orgId, remoteId, ownerKind, ownerBmn, title, filename, labelOf(raw.documentType) ?? labelOf(raw.category), url)
@@ -1191,52 +1209,102 @@ async function ensureBuilding(env: Env, orgId: string, propertyId: string, build
   return { id, created: true, skipped: null };
 }
 
+function downloadHost(url: string): string | null {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+/** API-lenker på boligmappa.no krever token. Signerte lagerlenker blir ugyldige hvis vi legger på Authorization. */
+function boligmappaDownload(url: string): boolean {
+  const host = downloadHost(url);
+  return host === "boligmappa.no" || Boolean(host?.endsWith(".boligmappa.no"));
+}
+
+class StaleDownloadError extends Error {
+  constructor() {
+    super(DOWNLOAD_STALE);
+    this.name = "StaleDownloadError";
+  }
+}
+
 /**
- * Hent fila uten å avbryte kroppen etter noen sekunder. Første byte har en kort frist.
- * Når svaret er i gang, får kopien resten av steget så den kan lande i R2.
+ * Hent fila. Første byte har en frist. Når byte kommer, løper fristen på nytt,
+ * så store tegninger får komme inn uten at en stille strøm henger.
  */
 async function fetchFile(url: string, headers?: HeadersInit): Promise<Response> {
   const controller = new AbortController();
+  const started = Date.now();
   let timer = setTimeout(() => controller.abort(), HEADER_MS);
-  const arm = (ms: number) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => controller.abort(), ms);
+  const clear = () => clearTimeout(timer);
+  const armIdle = () => {
+    clear();
+    const left = BODY_MAX_MS - (Date.now() - started);
+    if (left <= 0) {
+      controller.abort();
+      return;
+    }
+    timer = setTimeout(() => controller.abort(), Math.min(BODY_IDLE_MS, left));
   };
   try {
     const res = await fetch(url, { headers, redirect: "follow", signal: controller.signal });
     if (res.status === 429) {
-      clearTimeout(timer);
+      clear();
       await res.body?.cancel().catch(() => undefined);
       const retryAfter = Number(res.headers.get("retry-after"));
       throw new TransientError("Boligmappa svarte 429", Number.isFinite(retryAfter) ? retryAfter * 1000 : null);
     }
     if (!res.ok || !res.body) {
-      clearTimeout(timer);
+      clear();
       return res;
     }
-    arm(BODY_MS);
+    armIdle();
     const wrapped = res.body.pipeThrough(
       new TransformStream<Uint8Array, Uint8Array>({
         transform(chunk, out) {
+          armIdle();
           out.enqueue(chunk);
         },
         flush() {
-          clearTimeout(timer);
+          clear();
         },
         cancel() {
-          clearTimeout(timer);
+          clear();
         },
       }),
     );
     return new Response(wrapped, { status: res.status, headers: res.headers });
   } catch (err) {
-    clearTimeout(timer);
+    clear();
     if (err instanceof TransientError) throw err;
-    throw new TransientError(isTimeout(err) ? "Nedlastingen fra Boligmappa ble avbrutt" : "Fikk ikke kontakt med Boligmappa");
+    throw new TransientError(isTimeout(err) ? DOWNLOAD_ABORTED : "Fikk ikke kontakt med Boligmappa");
   }
 }
 
-/** Brukeren ba om filene på nytt. Avbrutte kopier får et nytt forsøk. Varige feil blir stående. */
+/** Boligmappa-lenker får token med en gang. Et kall uten token kan henge til fristen, og da kommer fila aldri. */
+async function openDownload(env: Env, url: string): Promise<Response> {
+  const onBoligmappa = boligmappaDownload(url);
+  const load = async (fresh: boolean) => {
+    if (!onBoligmappa) return fetchFile(url);
+    if (fresh) tokenCache = null;
+    return fetchFile(url, { Authorization: `Bearer ${await accessToken(env)}` });
+  };
+  let res = await load(false);
+  if (onBoligmappa && res.status === 401) {
+    await res.body?.cancel().catch(() => undefined);
+    res = await load(true);
+  }
+  if (res.ok) return res;
+  const status = res.status;
+  await res.body?.cancel().catch(() => undefined);
+  if (status === 408 || status === 425 || status >= 500) throw new TransientError(DOWNLOAD_ABORTED);
+  if (!onBoligmappa && (status === 400 || status === 401 || status === 403)) throw new StaleDownloadError();
+  throw new Error(`Klarte ikke å laste ned dokumentet (${status})`);
+}
+
+/** Brukeren ba om filene på nytt. Avbrutte kopier og utløpte lenker får et nytt forsøk. Varige feil blir stående. */
 export async function reviveFailedDownloads(env: Env, orgId: string, bmns: string[]): Promise<void> {
   const wanted = [...new Set(bmns.map((b) => b.trim()).filter(Boolean))].slice(0, 200);
   if (wanted.length === 0) return;
@@ -1255,12 +1323,13 @@ export async function reviveFailedDownloads(env: Env, orgId: string, bmns: strin
   const list = [...owners];
   for (let i = 0; i < list.length; i += 40) {
     const slice = list.slice(i, i + 40);
+    const marks = RETRYABLE_DOWNLOAD_ERRORS.map(() => "?").join(", ");
     await env.DB.prepare(
       `UPDATE bm_documents SET error = NULL, attempts = 0
-       WHERE org_id = ? AND imported_document_id IS NULL AND error = 'Nedlastingen fra Boligmappa ble avbrutt'
+       WHERE org_id = ? AND imported_document_id IS NULL AND error IN (${marks})
          AND owner_bmn IN (${slice.map(() => "?").join(", ")})`,
     )
-      .bind(orgId, ...slice)
+      .bind(orgId, ...RETRYABLE_DOWNLOAD_ERRORS, ...slice)
       .run();
   }
 }
@@ -1306,19 +1375,15 @@ async function downloadToPlank(
     }
   }
   const url = doc.download_url;
-  let res = await fetchFile(url);
-  if (res.status === 401 || res.status === 403) {
-    await res.body?.cancel().catch(() => undefined);
-    res = await fetchFile(url, { Authorization: `Bearer ${await accessToken(env)}` });
-  }
-  if (!res.ok) throw new Error(`Klarte ikke å laste ned dokumentet (${res.status})`);
+  const res = await openDownload(env, url);
   const filename = (doc.filename || doc.title || "dokument").replace(/[\\/\u0000-\u001f]/g, "_").slice(0, 180);
   const id = newId("doc");
   const key = `orgs/${orgId}/documents/${id}/${filename}`;
   const length = Number(res.headers.get("content-length") ?? NaN);
-  if (Number.isFinite(length) && length === 0) throw new Error("Dokumentet var tomt");
-  if (Number.isFinite(length) && length > MAX_DOC_BYTES) throw new Error("Dokumentet er for stort");
-  if (!res.body) throw new Error("Dokumentet var tomt");
+  if ((Number.isFinite(length) && (length === 0 || length > MAX_DOC_BYTES)) || !res.body) {
+    await res.body?.cancel().catch(() => undefined);
+    throw new Error(Number.isFinite(length) && length > MAX_DOC_BYTES ? "Dokumentet er for stort" : "Dokumentet var tomt");
+  }
   const reader = res.body.getReader();
   const opened = await reader.read();
   const firstChunk = opened.value ?? new Uint8Array();
@@ -1342,24 +1407,43 @@ async function downloadToPlank(
       return reader.cancel(reason);
     },
   });
-  // Strøm til R2 med tak. Hele filen i minnet (særlig flere samtidig) gjør at workeren dør med Feil 503.
+  // R2 tar ikke imot en strøm uten kjent lengde. Med Content-Length bruker vi den.
+  // Uten lengde leser vi én fil (nedlastingen er én om gangen) og stopper ved taket.
   let size = 0;
-  const capped = new TransformStream<Uint8Array, Uint8Array>({
-    transform(chunk, controller) {
-      size += chunk.byteLength;
-      if (size > MAX_DOC_BYTES) throw new Error("Dokumentet er for stort");
-      controller.enqueue(chunk);
-    },
-  });
   try {
-    const piping = source.pipeTo(capped.writable);
-    await env.FILES.put(key, capped.readable, { httpMetadata: { contentType: mime } });
-    await piping;
-    if (size === 0) throw new Error("Dokumentet var tomt");
+    if (Number.isFinite(length) && length > 0) {
+      const fixed = new FixedLengthStream(length);
+      const pipe = source.pipeTo(fixed.writable);
+      await env.FILES.put(key, fixed.readable, { httpMetadata: { contentType: mime } });
+      await pipe;
+      size = length;
+    } else {
+      const incoming = source.getReader();
+      const chunks: Uint8Array[] = [];
+      while (true) {
+        const next = await incoming.read();
+        if (next.done) break;
+        size += next.value.byteLength;
+        if (size > MAX_DOC_BYTES) {
+          await incoming.cancel().catch(() => undefined);
+          throw new Error("Dokumentet er for stort");
+        }
+        chunks.push(next.value);
+      }
+      if (size === 0) throw new Error("Dokumentet var tomt");
+      const body = new Uint8Array(size);
+      let offset = 0;
+      for (const chunk of chunks) {
+        body.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      await env.FILES.put(key, body, { httpMetadata: { contentType: mime } });
+    }
   } catch (err) {
     await env.FILES.delete(key).catch(() => undefined);
     if (err instanceof Error && /tomt|for stort/.test(err.message)) throw err;
-    throw new TransientError("Nedlastingen fra Boligmappa ble avbrutt");
+    console.warn("Lagring av dokument feilet", err instanceof Error ? err.message : err);
+    throw new TransientError(DOWNLOAD_ABORTED);
   }
   const t = now();
   await insert(env.DB, "documents", {
@@ -1459,6 +1543,70 @@ interface ImportCtx {
   deferProcessing?: boolean;
 }
 
+async function noteDownloadAttempt(
+  env: Env,
+  orgId: string,
+  remoteId: string,
+  message: string,
+  cap: number,
+): Promise<{ attempts: number; error: string | null } | null> {
+  return first(
+    env.DB,
+    `UPDATE bm_documents SET attempts = attempts + 1, error = CASE WHEN attempts + 1 >= ? THEN ? ELSE NULL END
+     WHERE org_id = ? AND remote_id = ? AND imported_document_id IS NULL
+     RETURNING attempts, error`,
+    cap,
+    message,
+    orgId,
+    remoteId,
+  );
+}
+
+/** Hent dokumentlista på nytt for én eier, så utløpte signaturer byttes ut. Sidene tas alle, også når fila allerede er telt. */
+async function refreshOwnerLinks(env: Env, orgId: string, owner: { kind: "building" | "unit"; bmn: string }): Promise<void> {
+  const entity = owner.kind === "building" ? "buildings" : "properties";
+  for (let page = 1; page <= 20; page++) {
+    const data = await apiGet(env, `${entity}/${encodeURIComponent(owner.bmn)}/documents?page=${page}&pageSize=${PAGE_SIZE}`, { failFast: [429], tries: 2 });
+    if (data.items.length === 0) return;
+    await storeDocuments(env, orgId, owner.kind, owner.bmn, data.items);
+    if (data.pageCount != null && data.pageCount > 0 && page >= data.pageCount) return;
+    if ((data.pageCount == null || data.pageCount <= 0) && data.items.length < PAGE_SIZE) return;
+  }
+}
+
+/** Utløpte lenker får ny adresse fra lista. Etter nok forsøk blir de liggende, så hentingen ikke går i ring. */
+async function refreshStaleDownloads(env: Env, orgId: string, docs: PendingDoc[]): Promise<{ retryAfterMs: number | null }> {
+  const owners: { kind: "building" | "unit"; bmn: string; docs: PendingDoc[] }[] = [];
+  for (const doc of docs) {
+    const kind = doc.owner_kind === "unit" ? "unit" : "building";
+    let owner = owners.find((row) => row.kind === kind && row.bmn === doc.owner_bmn);
+    if (!owner) {
+      owner = { kind, bmn: doc.owner_bmn, docs: [] };
+      owners.push(owner);
+    }
+    owner.docs.push(doc);
+  }
+  let retryAfterMs: number | null = null;
+  for (const owner of owners.slice(0, 4)) {
+    let stillPending = false;
+    for (const doc of owner.docs) {
+      const row = await noteDownloadAttempt(env, orgId, doc.remote_id, DOWNLOAD_STALE, MAX_STALE_ATTEMPTS);
+      if (!row?.error) stillPending = true;
+    }
+    if (!stillPending) continue;
+    try {
+      await refreshOwnerLinks(env, orgId, owner);
+    } catch (err) {
+      if (isRateLimited(err)) {
+        retryAfterMs = Math.max(retryAfterMs ?? 0, err.retryAfterMs ?? 2_000);
+        break;
+      }
+      console.warn("Fikk ikke ny nedlastingslenke", orgId, owner.bmn, err instanceof Error ? err.message : err);
+    }
+  }
+  return { retryAfterMs };
+}
+
 /** Legger valgte bygg inn i porteføljen og henter noen dokumenter av gangen. */
 export async function importSelection(env: Env, orgId: string, actor: BmActor, bmns: string[], ctx: ImportCtx): Promise<ImportProgress> {
   const wanted = [...new Set(bmns.map((b) => b.trim()).filter(Boolean))].slice(0, 200);
@@ -1519,8 +1667,10 @@ export async function importSelection(env: Env, orgId: string, actor: BmActor, b
   const owners = placed.flatMap((p) => p.owners);
   const pending = await pendingDocuments(env, orgId, owners, DOCS_PER_STEP);
   const importedIds: string[] = [];
+  const staleDocs: PendingDoc[] = [];
   let rateLimited = false;
   let rateAfter: number | null = null;
+  let sawTransient = false;
   const started = Date.now();
   // Noen filer i parallell. Strømmen går rett til R2, og vi starter ikke en ny bølge hvis den første brukte opp tiden eller fikk 429.
   await eachLimited(
@@ -1540,18 +1690,26 @@ export async function importSelection(env: Env, orgId: string, actor: BmActor, b
           if (err.retryAfterMs != null) rateAfter = Math.max(rateAfter ?? 0, err.retryAfterMs);
           return;
         }
-        // Forbigående feil gir nye forsøk senere. Først etter MAX_DOC_ATTEMPTS (eller ved varig feil) merkes dokumentet.
+        if (err instanceof StaleDownloadError) {
+          staleDocs.push(doc);
+          return;
+        }
+        console.warn("Dokumentnedlasting feilet", orgId, doc.remote_id, err instanceof Error ? err.message : err);
         const permanent = !isTransient(err);
-        await env.DB.prepare(
-          `UPDATE bm_documents SET attempts = attempts + 1, error = CASE WHEN ? OR attempts + 1 >= ? THEN ? ELSE NULL END WHERE org_id = ? AND remote_id = ?`,
-        )
-          .bind(permanent ? 1 : 0, MAX_DOC_ATTEMPTS, err instanceof Error ? err.message : "Nedlasting feilet", orgId, doc.remote_id)
-          .run();
+        if (!permanent) sawTransient = true;
+        await noteDownloadAttempt(env, orgId, doc.remote_id, err instanceof Error ? err.message : "Nedlasting feilet", permanent ? 1 : MAX_DOC_ATTEMPTS);
       }
     },
     () => !rateLimited && Date.now() - started < QUEUE_WALL_MS,
   );
-  const retryInMs = rateLimited ? Math.max(2_000, rateAfter ?? 0) : null;
+  if (!rateLimited && staleDocs.length > 0) {
+    const refreshed = await refreshStaleDownloads(env, orgId, staleDocs);
+    if (refreshed.retryAfterMs != null) {
+      rateLimited = true;
+      rateAfter = Math.max(rateAfter ?? 0, refreshed.retryAfterMs);
+    }
+  }
+  const retryInMs = rateLimited ? Math.max(2_000, rateAfter ?? 0) : sawTransient && importedIds.length === 0 ? 20_000 : null;
   if (!ctx.deferProcessing) await scheduleProcessing(env, ctx, orgId, importedIds);
   const importedDocuments = importedIds.length;
   const remaining = await countPending(env, orgId, owners);
@@ -1729,7 +1887,14 @@ async function touchSource(env: Env, orgId: string): Promise<void> {
   await env.DB.prepare(`UPDATE bm_sources SET updated_at = ? WHERE org_id = ?`).bind(now(), orgId).run();
 }
 
-/** Starter hele overføringen i køen. Uten kø kjøres de første stegene her, og cron tar resten. */
+/**
+ * Køen tar én organisasjon om gangen, og hver jobb kan vare et par minutter.
+ * En ny kunde skal ikke vente på andres dokumentnedlasting før det første bygget vises.
+ * Leien hindrer at køen gjør det samme oppslaget samtidig. Feilteksten står tom.
+ */
+const START_LEASE_MS = 90_000;
+
+/** Starter overføringen. De første stegene kjøres med en gang. Køen tar resten. */
 export async function startBoligmappaTransfer(
   env: Env,
   orgId: string,
@@ -1737,25 +1902,49 @@ export async function startBoligmappaTransfer(
   ctx?: { waitUntil(promise: Promise<unknown>): void },
 ): Promise<void> {
   await enableAutoImport(env, orgId);
+  await kickTransfer(env, orgId, actor, ctx);
+}
+
+async function kickTransfer(
+  env: Env,
+  orgId: string,
+  actor: BmActor,
+  ctx?: { waitUntil(promise: Promise<unknown>): void },
+): Promise<void> {
   const job: Extract<BoligmappaJob, { kind: "transfer" }> = { kind: "transfer", orgId, actor, steps: 0, refresh: true };
-  const queued = await enqueue(env, job);
-  if (queued || !ctx) return;
+  if (!ctx) {
+    await enqueue(env, job);
+    return;
+  }
+  const t = now();
+  await env.DB.prepare(`UPDATE bm_sources SET status = 'syncing', error = NULL, retry_at = ?, updated_at = ? WHERE org_id = ?`).bind(t + START_LEASE_MS, t, orgId).run();
+  await enqueue(env, job, START_LEASE_MS);
   ctx.waitUntil(
     (async () => {
-      const deadline = Date.now() + 20_000;
+      await env.DB.prepare(`UPDATE bm_sources SET retry_at = NULL, updated_at = ? WHERE org_id = ? AND error IS NULL`).bind(now(), orgId).run();
+      const deadline = Date.now() + 25_000;
       let current = job;
-      for (let i = 0; i < 6 && Date.now() < deadline; i++) {
+      for (let i = 0; i < 4 && Date.now() < deadline; i++) {
         const follow = await runTransferStep(env, current, ctx);
         if (!follow) return;
-        if (follow.delayMs > 2_000) return;
+        if (follow.delayMs > 2_000) {
+          await enqueue(env, follow.job, follow.delayMs);
+          return;
+        }
         current = follow.job;
       }
+      await enqueue(env, current);
     })().catch((err) => console.error("Oppstart av Boligmappa feilet", orgId, err)),
   );
 }
 
 /** Brukeren trykket prøv igjen. Feilede dokumenter får nye forsøk, og listene gås gjennom på nytt. */
-export async function retryBoligmappaTransfer(env: Env, orgId: string, actor: BmActor): Promise<void> {
+export async function retryBoligmappaTransfer(
+  env: Env,
+  orgId: string,
+  actor: BmActor,
+  ctx?: { waitUntil(promise: Promise<unknown>): void },
+): Promise<void> {
   const t = now();
   await env.DB.batch([
     env.DB.prepare(
@@ -1763,7 +1952,7 @@ export async function retryBoligmappaTransfer(env: Env, orgId: string, actor: Bm
     ).bind(t, orgId),
     env.DB.prepare(`UPDATE bm_documents SET error = NULL, attempts = 0 WHERE org_id = ? AND imported_document_id IS NULL`).bind(orgId),
   ]);
-  await enqueue(env, { kind: "transfer", orgId, actor, steps: 0, refresh: true });
+  await kickTransfer(env, orgId, actor, ctx);
 }
 
 /** Leser status. Gjør ingen arbeid, så siden kan spørre ofte. */
@@ -1817,23 +2006,26 @@ async function notifyTransfer(env: Env, orgId: string, actor: BmActor, stopped: 
   const failed = await first<{ n: number }>(env.DB, `SELECT COUNT(*) AS n FROM bm_documents WHERE org_id = ? AND imported_document_id IS NULL AND error IS NOT NULL`, orgId);
   const { overQuota, limit } = await importableBmns(env, orgId);
   const quotaNote = overQuota > 0 ? `${overQuota} bygg venter fordi abonnementet dekker ${limit} bygg.` : null;
+  const failedCount = failed?.n ?? 0;
   const empty = counts.buildings === 0 && !stopped;
-  const summary = stopped ? "Hentingen fra Boligmappa stoppet" : empty ? "Boligmappa hadde ingen bygg" : `Overførte ${counts.documents} dokumenter fra Boligmappa`;
+  const missed = !stopped && !empty && counts.documents === 0 && failedCount > 0;
+  const halted = stopped || missed;
+  const summary = halted ? "Hentingen fra Boligmappa fikk ikke inn dokumentene" : empty ? "Boligmappa hadde ingen bygg" : `Overførte ${counts.documents} dokumenter fra Boligmappa`;
   if (!emailConfigured(env) || owners.length === 0 || !org) {
-    await logActivity(env, { orgId, actor, action: stopped ? "boligmappa.stopped" : "boligmappa.transferred", summary });
+    await logActivity(env, { orgId, actor, action: halted ? "boligmappa.stopped" : "boligmappa.transferred", summary });
     return;
   }
   const claimed = await env.DB.prepare(`UPDATE bm_sources SET transfer_mail_at = ? WHERE org_id = ? AND transfer_mail_at IS NULL`).bind(now(), orgId).run();
   if (!claimed.meta.changes) return;
   try {
     const brand = brandFromId(org.brand);
-    const url = `${env.APP_URL.replace(/\/$/, "")}/o/${orgId}`;
+    const url = `${brandOrigin(env, org.brand)}/o/${orgId}${halted || empty ? "" : "/documents"}`;
     const mail = boligmappaReadyEmail({
       brand: brand.name,
       orgName: org.name,
       buildings: counts.buildings,
       documents: counts.documents,
-      failed: failed?.n ?? 0,
+      failed: failedCount,
       empty,
       stopped,
       quotaNote,
@@ -1843,9 +2035,9 @@ async function notifyTransfer(env: Env, orgId: string, actor: BmActor, stopped: 
       to: owners.map((o) => o.email),
       from: emailFrom(env, brand),
       ...mail,
-      idempotencyKey: stopped ? `bm-transfer-stopped-${orgId}` : `bm-transfer-${orgId}`,
+      idempotencyKey: stopped ? `bm-transfer-stopped-${orgId}` : missed ? `bm-transfer-missed-${orgId}` : `bm-transfer-done-${orgId}`,
     });
-    await logActivity(env, { orgId, actor, action: stopped ? "boligmappa.stopped" : "boligmappa.transferred", summary });
+    await logActivity(env, { orgId, actor, action: halted ? "boligmappa.stopped" : "boligmappa.transferred", summary });
   } catch (err) {
     await env.DB.prepare(`UPDATE bm_sources SET transfer_mail_at = NULL WHERE org_id = ?`).bind(orgId).run();
     throw err;
@@ -2054,7 +2246,7 @@ async function notifyNewDocuments(env: Env, orgId: string, actor: BmActor): Prom
   if (!claimed.meta.changes) return;
   try {
     const brand = brandFromId(org.brand);
-    const url = `${env.APP_URL.replace(/\/$/, "")}/o/${orgId}/documents`;
+    const url = `${brandOrigin(env, org.brand)}/o/${orgId}/documents`;
     const mail = boligmappaNewDocumentsEmail({
       brand: brand.name,
       orgName: org.name,

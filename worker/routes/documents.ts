@@ -25,6 +25,7 @@ documents.get("/", async (c) => {
     kind: q.kind,
     q: q.q,
     unplaced: q.unplaced === "1",
+    includeProperty: q.include_property === "1",
     limit: q.limit ? Number(q.limit) : undefined,
   };
   if (q.brief === "1") return c.json(await listDocumentBriefs(c.env, c.get("orgId"), filter));

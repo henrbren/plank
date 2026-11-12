@@ -1,0 +1,106 @@
+- generic [ref=f13e6]:
+  - complementary [ref=f13e7]:
+    - generic [ref=f13e8]:
+      - button "A. WESTRE AS Plank" [ref=f13e12]:
+        - generic [ref=f13e19]:
+          - generic [ref=f13e20]: A. WESTRE AS
+          - generic [ref=f13e21]: Plank
+      - button "Søk … ⌘K" [ref=f13e26]:
+        - generic [ref=f13e30]: Søk …
+        - generic [ref=f13e31]: ⌘K
+      - navigation [ref=f13e32]:
+        - link "Oversikt" [ref=f13e33] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq
+        - link "Kart" [ref=f13e39] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/kart
+        - link "Dokumenter" [ref=f13e44] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents
+      - generic [ref=f13e50]:
+        - generic [ref=f13e51]: Portefølje
+        - button "Legg til" [ref=f13e55]
+      - generic [ref=f13e57]:
+        - link "1520/49/9/0/0 0" [ref=f13e60] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4yfqqiumpbfnu
+        - generic [ref=f13e66]:
+          - generic [ref=f13e67]:
+            - button "Skjul" [ref=f13e68]
+            - link "Industrivegen" [ref=f13e71] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4y4m1p96tkxdu
+          - link "Industrivegen" [ref=f13e79] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/buildings/bld_0mvkxh4y9kfljugztdp
+        - generic [ref=f13e86]:
+          - generic [ref=f13e87]:
+            - button "Skjul" [ref=f13e88]
+            - link "Ukjent" [ref=f13e91] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4ybt23gqviydb
+          - link "Ukjent" [ref=f13e99] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/buildings/bld_0mvkxh4ycbghnv6ggsb
+      - button "AI-bruk 0 %" [ref=f13e108]:
+        - generic [ref=f13e109]: AI-bruk
+        - generic [ref=f13e110]: 0 %
+      - generic [ref=f13e111]:
+        - button "Inviter" [ref=f13e112]
+        - button "T Test Testesen" [ref=f13e118]:
+          - generic [ref=f13e119]: T
+          - generic [ref=f13e120]: Test Testesen
+  - main [ref=f13e121]:
+    - generic [ref=f13e122]:
+      - generic [ref=f13e124]:
+        - generic [ref=f13e125]:
+          - generic [ref=f13e126]: Spør agenten om porteføljen
+          - generic [ref=f13e127]: Ett spørsmål om de 2 byggene er nok. Da ser du hva agenten finner.
+        - button "Spør nå" [ref=f13e128]
+      - generic [ref=f13e131]:
+        - generic [ref=f13e133]:
+          - generic [ref=f13e139]:
+            - heading "Dokumenter" [level=1] [ref=f13e140]
+            - generic [ref=f13e141]: FDV-dokumentasjon, produktdatablad, tegninger, rapporter og IFC-modeller. Tekst hentes ut og indekseres automatisk.
+          - button "Last opp" [ref=f13e143]
+        - paragraph [ref=f13e147]:
+          - text: Teksten i dokumentene blir søkbar for agenten. Abonnementet er det som gir den en fast pott AI-bruk hver måned.
+          - link "Se planene" [ref=f13e148] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/abonnement
+        - generic [ref=f13e149]:
+          - searchbox "Søk på navn, adresse eller nummer" [ref=f13e151]
+          - combobox [ref=f13e152]:
+            - option "Bygg og eiendommer" [selected]
+            - option "Bare bygg"
+            - option "Bare eiendommer"
+          - textbox "Søk i innholdet …" [ref=f13e157]
+        - paragraph [ref=f13e158]: 2 bygg · 3 eiendommer
+        - generic [ref=f13e159]:
+          - button "Bygg 70 dokumenter Industrivegen Industrivegen, 6155 ØRSTA OTJ8442" [ref=f13e160] [cursor=pointer]:
+            - generic [ref=f13e161]:
+              - generic [ref=f13e162]: Bygg
+              - generic [ref=f13e163]: 70 dokumenter
+            - generic [ref=f13e164]: Industrivegen
+            - generic [ref=f13e165]: Industrivegen, 6155 ØRSTA
+            - generic [ref=f13e166]: OTJ8442
+          - button "Bygg 0 dokumenter Ukjent UOZ3770" [ref=f13e167] [cursor=pointer]:
+            - generic [ref=f13e168]:
+              - generic [ref=f13e169]: Bygg
+              - generic [ref=f13e170]: 0 dokumenter
+            - generic [ref=f13e171]: Ukjent
+            - generic [ref=f13e172]: UOZ3770
+          - button "Eiendom 0 dokumenter 1520/49/9/0/0 0 1520/49/9/0/0 0, 0000 gnr 49 / bnr 9" [ref=f13e173] [cursor=pointer]:
+            - generic [ref=f13e174]:
+              - generic [ref=f13e175]: Eiendom
+              - generic [ref=f13e176]: 0 dokumenter
+            - generic [ref=f13e177]: 1520/49/9/0/0 0
+            - generic [ref=f13e178]: 1520/49/9/0/0 0, 0000
+            - generic [ref=f13e179]: gnr 49 / bnr 9
+          - button "Eiendom 70 dokumenter Industrivegen Industrivegen, 6155 ØRSTA" [ref=f13e180] [cursor=pointer]:
+            - generic [ref=f13e181]:
+              - generic [ref=f13e182]: Eiendom
+              - generic [ref=f13e183]: 70 dokumenter
+            - generic [ref=f13e184]: Industrivegen
+            - generic [ref=f13e185]: Industrivegen, 6155 ØRSTA
+          - button "Eiendom 0 dokumenter Ukjent UOZ3770" [ref=f13e186] [cursor=pointer]:
+            - generic [ref=f13e187]:
+              - generic [ref=f13e188]: Eiendom
+              - generic [ref=f13e189]: 0 dokumenter
+            - generic [ref=f13e190]: Ukjent
+            - generic [ref=f13e191]: UOZ3770
+  - button "Spør en agent ⌘J" [ref=f13e192]:
+    - text: Spør en agent
+    - generic [ref=f13e196]: ⌘J

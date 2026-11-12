@@ -9,7 +9,7 @@ import { formatOrgNr } from "@/lib/format";
 import { useMe } from "@/lib/app";
 import { useBrand, useBrandState } from "@/lib/brand";
 import { startVippsLogin } from "@/lib/vipps";
-import { BRANDS } from "@shared/brand";
+import { BRANDS, brandFromHost } from "@shared/brand";
 import { LaftLoginForm } from "@/features/laft/LaftLogin";
 import { AccessRequestForm, AccessRequestSent, type AccessRequestResult } from "@/features/onboarding/AccessRequest";
 
@@ -22,7 +22,10 @@ export function AuthFrame({ children }: { children: ReactNode }) {
       <div className="flex flex-col justify-between px-6 py-8 sm:px-12">
         <Logo />
         <div className="mx-auto w-full max-w-sm py-12">{children}</div>
-        <div className="text-[12px] text-muted">© {new Date().getFullYear()} {brand.copyright}</div>
+        <div className="text-[12px] leading-relaxed text-muted">
+          <div>© {new Date().getFullYear()} {brand.copyright}</div>
+          {brand.id === "naeringsmappa" && <div className="mt-1">{brand.tagline}</div>}
+        </div>
       </div>
       <div className="relative hidden overflow-hidden border-l border-line bg-panel-2 lg:block">
         <Showcase />
@@ -127,7 +130,9 @@ const INTENT_KEY = "plank-intent";
 function readIntent(): Intent | null {
   try {
     const v = sessionStorage.getItem(INTENT_KEY);
-    return v === "naeringsmappa" || v === "sameie" || v === "kommune" ? v : null;
+    if (v !== "naeringsmappa" && v !== "sameie" && v !== "kommune") return null;
+    if (v === "sameie" && brandFromHost(window.location.hostname).id !== "sameie") return null;
+    return v;
   } catch {
     return null;
   }
@@ -158,15 +163,17 @@ function BrandChooser({ onPick }: { onPick: (intent: Intent) => void }) {
       <h1 className="mt-2 text-[26px] font-semibold tracking-tight">Hva skal du logge inn på?</h1>
       <p className="mt-2 mb-7 text-[14px] text-ink-2">Samme innlogging og samme arkiv. Velg det som passer dere.</p>
       <div className="space-y-2.5">
-        {(["naeringsmappa", "sameie"] as const).map((id) => (
-          <ChoiceCard
-            key={id}
-            icon={<img src={BRANDS[id].logo ?? ""} alt="" className="size-10 object-contain" />}
-            title={BRANDS[id].name}
-            body={BRANDS[id].chooserBody}
-            onClick={() => onPick(id)}
-          />
-        ))}
+        {(["naeringsmappa", "sameie"] as const)
+          .filter((id) => id !== "sameie" || brandFromHost(window.location.hostname).id === "sameie")
+          .map((id) => (
+            <ChoiceCard
+              key={id}
+              icon={<img src={BRANDS[id].logo ?? ""} alt="" className="size-10 object-contain" />}
+              title={BRANDS[id].name}
+              body={BRANDS[id].chooserBody}
+              onClick={() => onPick(id)}
+            />
+          ))}
         <ChoiceCard
           icon={
             <span className="flex size-10 items-center justify-center rounded-xl bg-panel-3 text-ink-2">

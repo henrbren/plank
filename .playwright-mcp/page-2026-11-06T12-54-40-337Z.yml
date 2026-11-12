@@ -1,0 +1,180 @@
+- generic [ref=f6e61]:
+  - complementary [ref=f6e62]:
+    - generic [ref=f6e63]:
+      - button "Test Plank" [ref=f6e67]:
+        - generic [ref=f6e74]:
+          - generic [ref=f6e75]: Test
+          - generic [ref=f6e76]: Plank
+      - button "Søk … ⌘K" [ref=f6e81]:
+        - generic [ref=f6e85]: Søk …
+        - generic [ref=f6e86]: ⌘K
+      - navigation [ref=f6e87]:
+        - link "Oversikt" [ref=f6e88] [cursor=pointer]:
+          - /url: /o/org_localtest
+        - link "Kart" [ref=f6e94] [cursor=pointer]:
+          - /url: /o/org_localtest/kart
+        - link "Oppgaver" [ref=f6e99] [cursor=pointer]:
+          - /url: /o/org_localtest/tasks
+        - link "Dokumenter" [ref=f6e105] [cursor=pointer]:
+          - /url: /o/org_localtest/documents
+        - link "FDV-register" [ref=f6e111] [cursor=pointer]:
+          - /url: /o/org_localtest/components
+        - link "Sider" [ref=f6e116] [cursor=pointer]:
+          - /url: /o/org_localtest/artifacts
+        - generic [ref=f6e124]:
+          - generic [ref=f6e125]: Mine sider
+          - generic [ref=f6e126]:
+            - link "Eiendomspuls – tilstand, oppgaver og dokumentasjon" [ref=f6e127] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mv17y53dob3xyaplek
+            - link "Leverandører" [ref=f6e135] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mw4yuvtcloa0ijjfte
+      - generic [ref=f6e143]:
+        - generic [ref=f6e144]: Portefølje
+        - button "Legg til" [ref=f6e148]
+      - generic [ref=f6e150]:
+        - generic [ref=f6e151]:
+          - generic [ref=f6e152]:
+            - button "Skjul" [ref=f6e153]
+            - link "Elvebakken borettslag (demo)" [ref=f6e156] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y526q8hzz4oabu
+          - generic [ref=f6e163]:
+            - button "Vis" [ref=f6e164]
+            - link "Blokk 1" [ref=f6e167] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y5266xh2e21l0p
+        - generic [ref=f6e174]:
+          - generic [ref=f6e175]:
+            - button "Skjul" [ref=f6e176]
+            - link "Sagbruket kontorpark (demo)" [ref=f6e179] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y525si45dvzten
+          - generic [ref=f6e186]:
+            - button "Vis" [ref=f6e187]
+            - link "Hovedbygg" [ref=f6e190] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+          - generic [ref=f6e198]:
+            - button "Vis" [ref=f6e199]
+            - link "Lagerhall" [ref=f6e202] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525xfez0xmsi5
+      - button "AI-bruk 0 %" [ref=f6e211]:
+        - generic [ref=f6e212]: AI-bruk
+        - generic [ref=f6e213]: 0 %
+      - button "H Henrik" [ref=f6e217]:
+        - generic [ref=f6e218]: H
+        - generic [ref=f6e219]: Henrik
+  - main [ref=f6e220]:
+    - generic [ref=f6e221]:
+      - generic [ref=f6e223]:
+        - generic [ref=f6e224]:
+          - generic [ref=f6e225]: 3 komponenter har service på overtid
+          - generic [ref=f6e226]: Se hva som bør gjøres først.
+        - link "Se service" [ref=f6e227] [cursor=pointer]:
+          - /url: /o/org_localtest/components?forfalt=1
+      - generic [ref=f6e701]:
+        - generic [ref=f6e703]:
+          - generic [ref=f6e709]:
+            - heading "Oppgaver" [level=1] [ref=f6e710]
+            - generic [ref=f6e711]: Vedlikehold, avvik, kontroller og dokumentasjonsmangler – fra brukere og agenter.
+          - button "Ny oppgave" [ref=f6e713]
+        - generic [ref=f6e715]:
+          - generic [ref=f6e716]:
+            - button "Åpne" [ref=f6e717]
+            - button "Utførte" [ref=f6e718]
+            - button "Alle" [ref=f6e719]
+          - textbox "Søk i oppgaver …" [ref=f6e724]
+          - combobox [ref=f6e725]:
+            - option "Alle typer" [selected]
+            - option "Vedlikehold (2)"
+            - option "Avvik (1)"
+            - option "Kontroll (1)"
+            - option "Dokumentasjon (1)"
+            - option "Annet"
+          - combobox [ref=f6e726]:
+            - option "Alle bygg" [selected]
+            - option "Blokk 1"
+            - option "Hovedbygg"
+            - option "Lagerhall"
+        - table [ref=f6e728]:
+          - rowgroup [ref=f6e729]:
+            - row [ref=f6e730]:
+              - columnheader [ref=f6e731]
+              - columnheader "Oppgave" [ref=f6e732]
+              - columnheader "Type" [ref=f6e733]
+              - columnheader "Bygg" [ref=f6e734]
+              - columnheader "Frist" [ref=f6e735]
+          - rowgroup [ref=f6e736]:
+            - row [ref=f6e737] [cursor=pointer]:
+              - cell [ref=f6e738]:
+                - button "Marker som utført" [ref=f6e739]
+              - cell "Halvårlig service ventilasjonsaggregat VA01 Ventilasjonsaggregat VA01" [ref=f6e740]:
+                - generic [ref=f6e741]: Halvårlig service ventilasjonsaggregat VA01
+                - generic [ref=f6e742]: Ventilasjonsaggregat VA01
+              - cell "Vedlikehold Høy" [ref=f6e744]:
+                - generic [ref=f6e745]:
+                  - generic [ref=f6e746]: Vedlikehold
+                  - generic [ref=f6e747]: Høy
+              - cell "Hovedbygg" [ref=f6e748]
+              - cell "25. sep. 2026(42 d over)" [ref=f6e749]:
+                - generic "25. sep. 2026" [ref=f6e750]:
+                  - text: 25. sep. 2026
+                  - generic [ref=f6e751]: (42 d over)
+            - row [ref=f6e752] [cursor=pointer]:
+              - cell [ref=f6e753]:
+                - button "Marker som utført" [ref=f6e754]
+              - cell "Lekkasje under oppvaskkum i pantry 2. etg" [ref=f6e755]
+              - cell "Avvik" [ref=f6e757]
+              - cell "Hovedbygg" [ref=f6e760]
+              - cell "12. okt. 2026(25 d over)" [ref=f6e761]:
+                - generic "12. okt. 2026" [ref=f6e762]:
+                  - text: 12. okt. 2026
+                  - generic [ref=f6e763]: (25 d over)
+            - row [ref=f6e764] [cursor=pointer]:
+              - cell [ref=f6e765]:
+                - button "Marker som utført" [ref=f6e766]
+              - cell "Årlig kontroll brannalarmanlegg Brannalarmsentral" [ref=f6e767]:
+                - generic [ref=f6e768]: Årlig kontroll brannalarmanlegg
+                - generic [ref=f6e769]: Brannalarmsentral
+              - cell "Kontroll Høy" [ref=f6e771]:
+                - generic [ref=f6e772]:
+                  - generic [ref=f6e773]: Kontroll
+                  - generic [ref=f6e774]: Høy
+              - cell "Hovedbygg" [ref=f6e775]
+              - cell "8. nov. 2026(om 2 d)" [ref=f6e776]:
+                - generic "8. nov. 2026" [ref=f6e777]:
+                  - text: 8. nov. 2026
+                  - generic [ref=f6e778]: (om 2 d)
+            - row [ref=f6e779] [cursor=pointer]:
+              - cell [ref=f6e780]:
+                - button "Marker som utført" [ref=f6e781]
+              - cell "Test fra begrenset redigerer" [ref=f6e782]
+              - cell "Vedlikehold" [ref=f6e784]
+              - cell "Hovedbygg" [ref=f6e787]
+              - cell "–" [ref=f6e788]
+            - row [ref=f6e789] [cursor=pointer]:
+              - cell [ref=f6e790]:
+                - button "Marker som utført" [ref=f6e791]
+              - cell "Mangler innreguleringsprotokoll for VA01 Ventilasjonsaggregat VA01" [ref=f6e792]:
+                - generic [ref=f6e793]: Mangler innreguleringsprotokoll for VA01
+                - generic [ref=f6e794]: Ventilasjonsaggregat VA01
+              - cell "Dokumentasjon" [ref=f6e796]
+              - cell "Hovedbygg" [ref=f6e799]
+              - cell "–" [ref=f6e800]
+  - complementary [ref=f6e566]:
+    - generic [ref=f6e567]:
+      - button "Hjelp" [ref=f6e570]:
+        - generic "Gnisten" [ref=f6e571]
+      - button "Historikk" [ref=f6e582]
+      - button "Ny samtale" [ref=f6e587]
+      - button "Lukk panel (⌘J)" [ref=f6e589]
+    - generic [ref=f6e594]:
+      - generic [ref=f6e595]:
+        - generic "Gnisten" [ref=f6e596]
+        - generic [ref=f6e604]: Hjelp
+        - generic [ref=f6e605]: Forklarer hvordan Plank brukes, og holder hjelpesenteret oppdatert med skjermbilder.
+      - generic [ref=f6e606]:
+        - button "Hvordan laster jeg opp FDV-dokumentasjon?" [ref=f6e607]
+        - button "Hvordan registrerer jeg et avvik?" [ref=f6e608]
+        - button "Hvor ser jeg service som forfaller?" [ref=f6e609]
+    - generic [ref=f6e611]:
+      - textbox "Spør Hjelp …" [ref=f6e612]
+      - generic [ref=f6e613]:
+        - generic [ref=f6e614]: Enter sender · Shift+Enter ny linje
+        - button "Send" [disabled] [ref=f6e615]

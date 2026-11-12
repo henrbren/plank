@@ -304,7 +304,7 @@ export function SubscriptionPage() {
               <Meter
                 label="Prøvebruk"
                 value={<span className="font-medium text-ink">{formatOre(u.trialOre)}</span>}
-                hint={`Faktureres ikke. Når abonnementet er startet, følger ${kr(PLANS.standard.includedAiNok)} med hver måned på Standard og ${kr(PLANS.pro.includedAiNok)} på Pro.`}
+                hint={`Faktureres ikke. Når abonnementet er startet, følger ${kr(PLANS.basis.includedAiNok)} med hver måned på Basis, ${kr(PLANS.standard.includedAiNok)} på Standard og ${kr(PLANS.pro.includedAiNok)} på Pro.`}
               />
             )}
           </div>
@@ -325,7 +325,7 @@ export function SubscriptionPage() {
         {!b.managed && (
           <section id="planer" className="scroll-mt-6">
             <SectionTitle title="Planer" subtitle="Bytt når som helst. Oppgraderinger gjelder med en gang." />
-            <div className="mt-4 grid gap-4 @2xl:grid-cols-2">
+            <div className="mt-4 grid gap-4 @2xl:grid-cols-3">
               {PLAN_IDS.map((id) => (
                 <PlanCard key={id} plan={PLANS[id]} current={subscribed && id === b.plan} highlight={id === "pro"} action={planAction(PLANS[id])} />
               ))}

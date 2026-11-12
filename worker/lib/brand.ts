@@ -32,6 +32,13 @@ export function publicOrigin(c: Context<AppEnv>): string {
   return (c.env.APP_URL || `${url.protocol}//${url.host}`).replace(/\/$/, "");
 }
 
+/** E-postlenker må åpne samme vert som innloggingen. Økten gjelder ikke på tvers av domener. */
+export function brandOrigin(env: Env, brandId: string | null | undefined): string {
+  if (brandId === "naeringsmappa") return "https://mappa2.laft.io";
+  if (brandId === "sameie") return "https://sameie.laft.io";
+  return (env.APP_URL || "").replace(/\/$/, "");
+}
+
 export function emailFrom(env: Env, brand: Brand): string {
   const raw = env.EMAIL_FROM || "Plank <hei@plank.vixon.no>";
   return raw.replace(/^[^<]+/, `${brand.emailFromName} `);

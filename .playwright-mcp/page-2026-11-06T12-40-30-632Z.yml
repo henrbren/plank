@@ -1,0 +1,80 @@
+- generic [active] [ref=e1]:
+  - region "Mumf Studios presenterer" [ref=e3]:
+    - generic [ref=e4]:
+      - img "Mumf Studios" [ref=e5]
+      - paragraph [ref=e6]: presenterer
+    - button "Hopp over" [ref=e7] [cursor=pointer]
+  - generic [ref=e9]:
+    - banner [ref=e10]:
+      - paragraph [ref=e11]: Mumf Studios
+      - paragraph [ref=e12]: v0.3.0
+    - generic [ref=e13]:
+      - generic [ref=e14]:
+        - paragraph [ref=e15]: Kjerne online · Lyn
+        - heading "C.L.A.R.K. C.L.A.R.K. C.L.A.R.K." [level=1] [ref=e17]
+        - paragraph [ref=e18]: Centralized Logic and Automated Response Kernel
+        - paragraph [ref=e19]:
+          - generic [ref=e20]: Basen er kroppen din.
+          - generic [ref=e21]: Hæren er hendene dine.
+          - generic [ref=e22]: Roboten er ditt første ansikt i verden.
+        - paragraph [aria-hidden] [ref=e23]
+        - paragraph [ref=e24]: Lynvakta
+        - group "Faksjon" [ref=e25]:
+          - button "Lynvakta" [ref=e26] [cursor=pointer]
+          - button "Frostfolket" [ref=e27] [cursor=pointer]
+          - button "Glødsmia" [ref=e28] [cursor=pointer]
+          - button "Vindrytterne" [ref=e29] [cursor=pointer]
+      - navigation "Hovedmeny" [ref=e30]:
+        - button "01 Start nytt spill Doktrine, stridssone og hvem som er med" [ref=e31] [cursor=pointer]:
+          - generic [ref=e32]: "01"
+          - generic [ref=e33]: Start nytt spill
+          - generic: Doktrine, stridssone og hvem som er med
+        - button "02 Bli med Koble til en annen kjerne med romkode" [ref=e34] [cursor=pointer]:
+          - generic [ref=e35]: "02"
+          - generic [ref=e36]: Bli med
+          - generic: Koble til en annen kjerne med romkode
+        - button "03 Slik spiller du Kroppen, CLARK, basen, hæren og kjernen" [ref=e37] [cursor=pointer]:
+          - generic [ref=e38]: "03"
+          - generic [ref=e39]: Slik spiller du
+          - generic: Kroppen, CLARK, basen, hæren og kjernen
+        - button "04 Arkivet Verdenen, fraksjonene og hvem du er" [ref=e40] [cursor=pointer]:
+          - generic [ref=e41]: "04"
+          - generic [ref=e42]: Arkivet
+          - generic: Verdenen, fraksjonene og hvem du er
+        - button "05 Innstillinger Lyd, bilde, spillet og tastene" [ref=e43] [cursor=pointer]:
+          - generic [ref=e44]: "05"
+          - generic [ref=e45]: Innstillinger
+          - generic: Lyd, bilde, spillet og tastene
+      - generic [ref=e47]:
+        - generic [ref=e48]: Kjerne online
+        - generic [ref=e49]: //
+        - generic [ref=e50]: Minneintegritet 12,4 %
+        - generic [ref=e51]: //
+        - generic [ref=e52]: "Nettverk: frakoblet"
+        - generic [ref=e53]: //
+        - generic [ref=e54]: "Menneskelige operatører: 0"
+        - generic [ref=e55]: //
+        - generic [ref=e56]: "Aktive maskiner: 1"
+        - generic [ref=e57]: //
+        - generic [ref=e58]: "Primærdirektiv: sikre sonen · utvid basen · eliminer motstand"
+        - generic [ref=e59]: //
+        - generic [ref=e60]: "Siste systemkommando: «keep things running»"
+        - generic [ref=e61]: //
+        - generic [ref=e62]: Fiendtlige kjerner registrert
+        - generic [ref=e63]: //
+        - generic [ref=e64]: Kjerne online
+        - generic [ref=e65]: //
+        - generic [ref=e66]: Minneintegritet 12,4 %
+        - generic [ref=e67]: //
+        - generic [ref=e68]: "Nettverk: frakoblet"
+        - generic [ref=e69]: //
+        - generic [ref=e70]: "Menneskelige operatører: 0"
+        - generic [ref=e71]: //
+        - generic [ref=e72]: "Aktive maskiner: 1"
+        - generic [ref=e73]: //
+        - generic [ref=e74]: "Primærdirektiv: sikre sonen · utvid basen · eliminer motstand"
+        - generic [ref=e75]: //
+        - generic [ref=e76]: "Siste systemkommando: «keep things running»"
+        - generic [ref=e77]: //
+        - generic [ref=e78]: Fiendtlige kjerner registrert
+    - status [ref=e79]

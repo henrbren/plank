@@ -1,0 +1,13 @@
+- generic [ref=f17e7]:
+  - generic [ref=f17e8]: Plank
+  - generic [ref=f17e15]:
+    - paragraph [ref=f17e16]: Test
+    - heading "Vi henter byggene fra Boligmappa" [level=1] [ref=f17e17]
+    - paragraph [ref=f17e18]: Vi slår opp Test og legger byggene inn med en gang vi finner dem.
+    - generic [ref=f17e20] [cursor=pointer]:
+      - checkbox "Varsle meg når det kommer nye dokumenter E-post når det senere kommer nye dokumenter. Den første e-posten, når overføringen er ferdig, sender vi uansett." [ref=f17e21]
+      - generic [ref=f17e22]:
+        - generic [ref=f17e23]: Varsle meg når det kommer nye dokumenter
+        - generic [ref=f17e24]: E-post når det senere kommer nye dokumenter. Den første e-posten, når overføringen er ferdig, sender vi uansett.
+    - generic [ref=f17e25]: Det er ikke startet noen henting fra Boligmappa for denne organisasjonen. Du kan legge inn bygg selv, eller koble til fra Boligmappa-siden.
+    - button "Legg inn selv" [ref=f17e26]

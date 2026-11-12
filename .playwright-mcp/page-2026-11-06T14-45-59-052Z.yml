@@ -1,0 +1,225 @@
+- generic [ref=f13e6]:
+  - complementary [ref=f13e7]:
+    - generic [ref=f13e8]:
+      - button "Test Plank" [ref=f13e12]:
+        - generic [ref=f13e19]:
+          - generic [ref=f13e20]: Test
+          - generic [ref=f13e21]: Plank
+      - button "Søk … ⌘K" [ref=f13e26]:
+        - generic [ref=f13e30]: Søk …
+        - generic [ref=f13e31]: ⌘K
+      - navigation [ref=f13e32]:
+        - link "Oversikt" [ref=f13e33] [cursor=pointer]:
+          - /url: /o/org_localtest
+        - link "Kart" [ref=f13e39] [cursor=pointer]:
+          - /url: /o/org_localtest/kart
+        - link "Oppgaver" [ref=f13e44] [cursor=pointer]:
+          - /url: /o/org_localtest/tasks
+        - link "Dokumenter" [ref=f13e50] [cursor=pointer]:
+          - /url: /o/org_localtest/documents
+        - link "Komponenter" [ref=f13e56] [cursor=pointer]:
+          - /url: /o/org_localtest/components
+        - link "Sider" [ref=f13e61] [cursor=pointer]:
+          - /url: /o/org_localtest/artifacts
+        - generic [ref=f13e69]:
+          - generic [ref=f13e70]: Mine sider
+          - generic [ref=f13e71]:
+            - link "Eiendomspuls – tilstand, oppgaver og dokumentasjon" [ref=f13e72] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mv17y53dob3xyaplek
+            - link "Leverandører" [ref=f13e80] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mw4yuvtcloa0ijjfte
+      - generic [ref=f13e88]:
+        - generic [ref=f13e89]: Portefølje
+        - button "Legg til" [ref=f13e93]
+      - generic [ref=f13e95]:
+        - generic [ref=f13e96]:
+          - generic [ref=f13e97]:
+            - button "Skjul" [ref=f13e98]
+            - link "Elvebakken borettslag (demo)" [ref=f13e101] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y526q8hzz4oabu
+          - generic [ref=f13e108]:
+            - button "Vis" [ref=f13e109]
+            - link "Blokk 1" [ref=f13e112] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y5266xh2e21l0p
+        - generic [ref=f13e119]:
+          - generic [ref=f13e120]:
+            - button "Skjul" [ref=f13e121]
+            - link "Sagbruket kontorpark (demo)" [ref=f13e124] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y525si45dvzten
+          - generic [ref=f13e130]:
+            - generic [ref=f13e131]:
+              - button "Skjul" [ref=f13e534]
+              - link "Hovedbygg" [active] [ref=f13e135] [cursor=pointer]:
+                - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+            - generic [ref=f13e536]:
+              - button "Vis" [ref=f13e537]
+              - link "3. etasje 2" [ref=f13e540] [cursor=pointer]:
+                - /url: /o/org_localtest/floors/flr_0mv17y525sl6azldetk
+                - generic "3. etasje" [ref=f13e546]
+                - generic [ref=f13e547]: "2"
+            - generic [ref=f13e549]:
+              - button "Vis" [ref=f13e550]
+              - link "2. etasje 3" [ref=f13e553] [cursor=pointer]:
+                - /url: /o/org_localtest/floors/flr_0mv17y52501jbthr7dq
+                - generic "2. etasje" [ref=f13e559]
+                - generic [ref=f13e560]: "3"
+            - generic [ref=f13e562]:
+              - button "Vis" [ref=f13e563]
+              - link "1. etasje 3" [ref=f13e566] [cursor=pointer]:
+                - /url: /o/org_localtest/floors/flr_0mv17y5256eo43shos5
+                - generic "1. etasje" [ref=f13e572]
+                - generic [ref=f13e573]: "3"
+            - generic [ref=f13e575]:
+              - button "Vis" [ref=f13e576]
+              - link "Kjeller (U1) 3" [ref=f13e579] [cursor=pointer]:
+                - /url: /o/org_localtest/floors/flr_0mv17y5253db87tl92s
+                - generic "Kjeller (U1)" [ref=f13e585]
+                - generic [ref=f13e586]: "3"
+          - generic [ref=f13e143]:
+            - button "Vis" [ref=f13e144]
+            - link "Lagerhall" [ref=f13e147] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525xfez0xmsi5
+      - button "AI-bruk 0 %" [ref=f13e156]:
+        - generic [ref=f13e157]: AI-bruk
+        - generic [ref=f13e158]: 0 %
+      - button "H Henrik" [ref=f13e162]:
+        - generic [ref=f13e163]: H
+        - generic [ref=f13e164]: Henrik
+  - main [ref=f13e165]:
+    - generic [ref=f13e166]:
+      - generic [ref=f13e168]:
+        - generic [ref=f13e169]:
+          - generic [ref=f13e170]: 3 komponenter har service på overtid
+          - generic [ref=f13e171]: Se hva som bør gjøres først.
+        - link "Se service" [ref=f13e172] [cursor=pointer]:
+          - /url: /o/org_localtest/components?forfalt=1
+      - generic [ref=f13e587]:
+        - generic [ref=f13e588]:
+          - navigation [ref=f13e589]:
+            - link "Sagbruket kontorpark (demo)" [ref=f13e591] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y525si45dvzten
+          - generic [ref=f13e592]:
+            - generic [ref=f13e599]:
+              - heading "Hovedbygg" [level=1] [ref=f13e600]
+              - generic [ref=f13e601]: Kontor · bygget 2019 · BTA 4 200 m² · bygningsnr. 300112233
+            - generic [ref=f13e602]:
+              - button "Last opp" [ref=f13e603]
+              - button "Oppsummer" [ref=f13e607]
+              - button "Mer" [ref=f13e613]
+        - button "Legg til bilde av bygget" [ref=f13e619]
+        - generic [ref=f13e625]:
+          - button "Oversikt" [ref=f13e626]
+          - button "Dokumenter 5" [ref=f13e627]:
+            - text: Dokumenter
+            - generic [ref=f13e628]: "5"
+          - button "Komponenter 6" [ref=f13e629]:
+            - text: Komponenter
+            - generic [ref=f13e630]: "6"
+          - button "Oppgaver 5" [ref=f13e631]:
+            - text: Oppgaver
+            - generic [ref=f13e632]: "5"
+          - button "BIM 1" [ref=f13e633]:
+            - text: BIM
+            - generic [ref=f13e634]: "1"
+          - button "Sider 1" [ref=f13e635]:
+            - text: Sider
+            - generic [ref=f13e636]: "1"
+        - generic [ref=f13e637]:
+          - generic [ref=f13e638]:
+            - generic [ref=f13e639]:
+              - heading "Etasjer" [level=2] [ref=f13e640]
+              - generic [ref=f13e641]:
+                - button "Fra plantegning" [ref=f13e642]
+                - button "Ny etasje" [ref=f13e646]
+            - table [ref=f13e649]:
+              - rowgroup [ref=f13e650]:
+                - row [ref=f13e651]:
+                  - columnheader "Etasje" [ref=f13e652]
+                  - columnheader "Nivå" [ref=f13e653]
+                  - columnheader "Rom" [ref=f13e654]
+                  - columnheader "Romareal" [ref=f13e655]
+              - rowgroup [ref=f13e656]:
+                - row [ref=f13e657]:
+                  - cell [ref=f13e658]:
+                    - link "3. etasje" [ref=f13e659] [cursor=pointer]:
+                      - /url: /o/org_localtest/floors/flr_0mv17y525sl6azldetk
+                  - cell "2" [ref=f13e664]
+                  - cell "2" [ref=f13e665]
+                  - cell "462 m²" [ref=f13e666]
+                - row [ref=f13e667]:
+                  - cell [ref=f13e668]:
+                    - link "2. etasje" [ref=f13e669] [cursor=pointer]:
+                      - /url: /o/org_localtest/floors/flr_0mv17y52501jbthr7dq
+                  - cell "1" [ref=f13e674]
+                  - cell "3" [ref=f13e675]
+                  - cell "460 m²" [ref=f13e676]
+                - row [ref=f13e677]:
+                  - cell [ref=f13e678]:
+                    - link "1. etasje" [ref=f13e679] [cursor=pointer]:
+                      - /url: /o/org_localtest/floors/flr_0mv17y5256eo43shos5
+                  - cell "0" [ref=f13e684]
+                  - cell "3" [ref=f13e685]
+                  - cell "311 m²" [ref=f13e686]
+                - row [ref=f13e687]:
+                  - cell [ref=f13e688]:
+                    - link "Kjeller (U1)" [ref=f13e689] [cursor=pointer]:
+                      - /url: /o/org_localtest/floors/flr_0mv17y5253db87tl92s
+                  - cell "-1" [ref=f13e694]
+                  - cell "3" [ref=f13e695]
+                  - cell "202 m²" [ref=f13e696]
+          - generic [ref=f13e697]:
+            - generic [ref=f13e698]:
+              - generic [ref=f13e699]:
+                - generic [ref=f13e700]: Åpne oppgaver
+                - generic [ref=f13e701]: "5"
+              - generic [ref=f13e702]:
+                - generic [ref=f13e703]: Komponenter
+                - generic [ref=f13e704]: "6"
+            - generic [ref=f13e705]:
+              - heading "Om bygget" [level=3] [ref=f13e707]
+              - generic [ref=f13e708]:
+                - generic [ref=f13e709]:
+                  - term [ref=f13e710]: Eiendom
+                  - definition [ref=f13e711]:
+                    - link "Sagbruket kontorpark (demo)" [ref=f13e712] [cursor=pointer]:
+                      - /url: /o/org_localtest/properties/prp_0mv17y525si45dvzten
+                - generic [ref=f13e713]:
+                  - term [ref=f13e714]: Formål
+                  - definition [ref=f13e715]: Kontor
+                - generic [ref=f13e716]:
+                  - term [ref=f13e717]: Byggeår
+                  - definition [ref=f13e718]: "2019"
+                - generic [ref=f13e719]:
+                  - term [ref=f13e720]: BTA
+                  - definition [ref=f13e721]: 4 200 m²
+                - generic [ref=f13e722]:
+                  - term [ref=f13e723]: Bygningsnr.
+                  - definition [ref=f13e724]: "300112233"
+                - generic [ref=f13e725]:
+                  - term [ref=f13e726]: Registrert
+                  - definition [ref=f13e727]: 9. okt. 2026
+              - paragraph [ref=f13e728]: Kontorbygg i 3 etasjer + kjeller med teknisk rom.
+  - complementary [ref=f13e482]:
+    - generic [ref=f13e483]:
+      - button "Hjelp" [ref=f13e486]:
+        - generic "Gnisten" [ref=f13e487]
+      - button "Historikk" [ref=f13e498]
+      - button "Ny samtale" [ref=f13e503]
+      - button "Lukk panel (⌘J)" [ref=f13e505]
+    - generic [ref=f13e510]:
+      - generic [ref=f13e511]:
+        - generic "Gnisten" [ref=f13e512]
+        - generic [ref=f13e520]: Hjelp
+        - generic [ref=f13e521]: Forklarer hvordan Plank brukes, og holder hjelpesenteret oppdatert med skjermbilder.
+      - generic [ref=f13e522]:
+        - button "Hvordan laster jeg opp FDV-dokumentasjon?" [ref=f13e523]
+        - button "Hvordan registrerer jeg et avvik?" [ref=f13e524]
+        - button "Hvor ser jeg service som forfaller?" [ref=f13e525]
+    - generic [ref=f13e527]:
+      - generic [ref=f13e730]:
+        - generic [ref=f13e735]: Hovedbygg
+        - button "Fjern kontekst" [ref=f13e736]
+      - textbox "Spør Hjelp …" [ref=f13e528]
+      - generic [ref=f13e529]:
+        - generic [ref=f13e530]: Enter sender · Shift+Enter ny linje
+        - button "Send" [disabled] [ref=f13e531]

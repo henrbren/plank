@@ -32,6 +32,8 @@ export interface DocumentFilter {
   q?: string | null;
   /** Bare dokumenter som ikke ligger på en eiendom eller et bygg */
   unplaced?: boolean;
+  /** Med building_id: ta også med dokumenter på samme eiendom som ikke er lagt på et bygg */
+  includeProperty?: boolean;
   limit?: number;
 }
 
@@ -41,7 +43,10 @@ function documentFilter(orgId: string, f: DocumentFilter, max = 1000): { where: 
   if (f.unplaced) where.push("d.property_id IS NULL AND d.building_id IS NULL");
   else {
     if (f.property_id) where.push("d.property_id = ?"), params.push(f.property_id);
-    if (f.building_id) where.push("d.building_id = ?"), params.push(f.building_id);
+    if (f.building_id && f.includeProperty) {
+      where.push("(d.building_id = ? OR (d.building_id IS NULL AND d.property_id = (SELECT property_id FROM buildings WHERE id = ? AND org_id = ?)))");
+      params.push(f.building_id, f.building_id, orgId);
+    } else if (f.building_id) where.push("d.building_id = ?"), params.push(f.building_id);
   }
   if (f.floor_id) where.push("d.floor_id = ?"), params.push(f.floor_id);
   if (f.room_id) where.push("d.room_id = ?"), params.push(f.room_id);
@@ -97,10 +102,10 @@ export async function listDocumentTexts(env: Env, orgId: string): Promise<{ id: 
   return out;
 }
 
-/** Tittel og dato til listen under et kort. Uten uttrukket tekst. */
+/** Tittel og dato til listen under et kort. Uten uttrukket tekst. Tar også med filer som er listet, men ikke kopiert inn ennå. */
 export async function listDocumentBriefs(env: Env, orgId: string, f: DocumentFilter = {}): Promise<DocumentBrief[]> {
   const { where, params, limit } = documentFilter(orgId, f, 5000);
-  return all<DocumentBrief>(
+  const rows = await all<DocumentBrief>(
     env.DB,
     `SELECT d.id, d.property_id, d.building_id, d.title, d.filename, d.mime, d.kind, d.status, d.created_at, b.name AS building_name
      FROM documents d
@@ -108,6 +113,69 @@ export async function listDocumentBriefs(env: Env, orgId: string, f: DocumentFil
      WHERE ${where} ORDER BY d.created_at DESC LIMIT ${limit}`,
     ...params,
   );
+  if (f.q || f.kind || f.floor_id || f.room_id || f.component_id || f.unplaced) return rows;
+  const incoming = await incomingBriefs(env, orgId, { buildingId: f.building_id ?? null, propertyId: f.property_id ?? null });
+  return [...rows, ...incoming].slice(0, limit);
+}
+
+/** Boligmappa-rader som hører til et bygg, før filen ligger i arkivet. */
+async function incomingBriefs(
+  env: Env,
+  orgId: string,
+  filter: { buildingId: string | null; propertyId: string | null },
+): Promise<DocumentBrief[]> {
+  const buildings = await all<{ id: string; property_id: string; name: string; boligmappa_number: string | null; building_number: string | null }>(
+    env.DB,
+    `SELECT id, property_id, name, boligmappa_number, building_number FROM buildings WHERE org_id = ?`,
+    orgId,
+  );
+  const visible = buildings.filter((b) => sees({ building_id: b.id, property_id: b.property_id }));
+  const wanted = visible.filter((b) => {
+    if (filter.buildingId && b.id !== filter.buildingId) return false;
+    if (filter.propertyId && b.property_id !== filter.propertyId) return false;
+    return true;
+  });
+  if (wanted.length === 0) return [];
+  const byBmn = new Map<string, (typeof wanted)[number]>();
+  for (const b of wanted) if (b.boligmappa_number) byBmn.set(b.boligmappa_number, b);
+  const units = await all<{ bmn: string; building_bmn: string | null; building_number: string | null }>(
+    env.DB,
+    `SELECT bmn, building_bmn, building_number FROM bm_units WHERE org_id = ?`,
+    orgId,
+  );
+  const byNumber = new Map<string, (typeof wanted)[number]>();
+  for (const b of wanted) if (b.building_number && !byNumber.has(b.building_number)) byNumber.set(b.building_number, b);
+  const unitBuilding = new Map<string, (typeof wanted)[number]>();
+  for (const u of units) {
+    const parent = (u.building_bmn ? byBmn.get(u.building_bmn) : undefined) ?? (u.building_number ? byNumber.get(u.building_number) : undefined);
+    if (parent) unitBuilding.set(u.bmn, parent);
+  }
+  const docs = await all<{ remote_id: string; title: string; filename: string | null; owner_kind: string; owner_bmn: string }>(
+    env.DB,
+    `SELECT remote_id, title, filename, owner_kind, owner_bmn FROM bm_documents
+     WHERE org_id = ? AND imported_document_id IS NULL AND error IS NULL
+     ORDER BY title LIMIT 2000`,
+    orgId,
+  );
+  const out: DocumentBrief[] = [];
+  for (const doc of docs) {
+    const building = doc.owner_kind === "unit" ? unitBuilding.get(doc.owner_bmn) : byBmn.get(doc.owner_bmn);
+    if (!building) continue;
+    out.push({
+      id: `bm:${doc.remote_id}`,
+      property_id: building.property_id,
+      building_id: building.id,
+      title: doc.title,
+      filename: doc.filename || doc.title,
+      mime: "",
+      kind: "annet",
+      status: "processing",
+      created_at: 0,
+      building_name: building.name,
+      incoming: true,
+    });
+  }
+  return out;
 }
 
 function addressLine(street: string | null | undefined, postal: string | null | undefined, city: string | null | undefined): string | null {
@@ -136,7 +204,7 @@ export async function documentCatalog(env: Env, orgId: string): Promise<Document
   const props = scopeSql({ property: "p.id" });
   const blds = scopeSql({ building: "b.id" });
   const docs = scopeSql({ building: "d.building_id", property: "d.property_id" });
-  const [properties, buildings, counts, pending] = await Promise.all([
+  const [properties, buildings, counts, pending, units] = await Promise.all([
     all<{ id: string; name: string; address: string | null; postal_code: string | null; city: string | null; gnr: string | null; bnr: string | null; boligmappa_key: string | null }>(
       env.DB,
       `SELECT p.id, p.name, p.address, p.postal_code, p.city, p.gnr, p.bnr, p.boligmappa_key
@@ -179,31 +247,64 @@ export async function documentCatalog(env: Env, orgId: string): Promise<Document
       orgId,
       ...docs.params,
     ),
-    all<{ bmn: string }>(
+    all<{ owner_kind: string; owner_bmn: string; n: number }>(
       env.DB,
-      `SELECT owner_bmn AS bmn FROM bm_documents
-       WHERE org_id = ? AND owner_kind = 'building' AND imported_document_id IS NULL AND error IS NULL
-       GROUP BY owner_bmn`,
+      `SELECT owner_kind, owner_bmn, COUNT(*) AS n FROM bm_documents
+       WHERE org_id = ? AND imported_document_id IS NULL AND error IS NULL
+       GROUP BY owner_kind, owner_bmn`,
+      orgId,
+    ),
+    all<{ bmn: string; building_bmn: string | null; building_number: string | null }>(
+      env.DB,
+      `SELECT bmn, building_bmn, building_number FROM bm_units WHERE org_id = ?`,
       orgId,
     ),
   ]);
 
   const byBuilding = new Map<string, number>();
   const byProperty = new Map<string, number>();
+  const sharedByProperty = new Map<string, number>();
   let loose = 0;
   for (const row of counts) {
     const n = Number(row.n) || 0;
     if (row.building_id) byBuilding.set(row.building_id, (byBuilding.get(row.building_id) ?? 0) + n);
     if (row.property_id) byProperty.set(row.property_id, (byProperty.get(row.property_id) ?? 0) + n);
+    if (row.property_id && !row.building_id) sharedByProperty.set(row.property_id, (sharedByProperty.get(row.property_id) ?? 0) + n);
     if (!row.property_id && !row.building_id) loose += n;
   }
-  const waiting = new Set(pending.map((row) => row.bmn));
+  const pendingOnBuilding = new Map<string, number>();
+  const idByBmn = new Map<string, string>();
+  const idByNumber = new Map<string, string>();
+  for (const b of buildings) {
+    if (b.boligmappa_number) idByBmn.set(b.boligmappa_number, b.id);
+    if (b.building_number && !idByNumber.has(b.building_number)) idByNumber.set(b.building_number, b.id);
+  }
+  const addPending = (id: string | undefined, n: number) => {
+    if (!id || n <= 0) return;
+    pendingOnBuilding.set(id, (pendingOnBuilding.get(id) ?? 0) + n);
+  };
+  const unitParent = new Map<string, string>();
+  for (const u of units) {
+    const id = (u.building_bmn ? idByBmn.get(u.building_bmn) : undefined) ?? (u.building_number ? idByNumber.get(u.building_number) : undefined);
+    if (id) unitParent.set(u.bmn, id);
+  }
+  for (const row of pending) {
+    const n = Number(row.n) || 0;
+    if (row.owner_kind === "unit") addPending(unitParent.get(row.owner_bmn), n);
+    else addPending(idByBmn.get(row.owner_bmn), n);
+  }
+  const pendingOnProperty = new Map<string, number>();
+  for (const b of buildings) {
+    const n = pendingOnBuilding.get(b.id) ?? 0;
+    if (n > 0) pendingOnProperty.set(b.property_id, (pendingOnProperty.get(b.property_id) ?? 0) + n);
+  }
 
   const buildingPlaces: DocumentPlace[] = buildings.map((b) => {
-    const count = byBuilding.get(b.id) ?? 0;
+    const pendingCount = pendingOnBuilding.get(b.id) ?? 0;
+    const count = (byBuilding.get(b.id) ?? 0) + (sharedByProperty.get(b.property_id) ?? 0) + pendingCount;
     const bmn = b.boligmappa_number?.trim() || null;
     const stillFetching = Boolean(b.has_bm) && b.docs_fetched_at == null;
-    const stillImporting = bmn != null && waiting.has(bmn);
+    const stillImporting = pendingCount > 0;
     const address = addressLine(b.bm_address, b.bm_postal, b.bm_city) ?? addressLine(b.p_address, b.p_postal, b.p_city);
     return {
       kind: "building",
@@ -213,7 +314,7 @@ export async function documentCatalog(env: Env, orgId: string): Promise<Document
       address: address && address.localeCompare(b.name?.trim() || "", "nb", { sensitivity: "accent" }) !== 0 ? address : null,
       number: bmn || b.building_number?.trim() || null,
       document_count: count,
-      files_ready: count > 0 || !(stillFetching || stillImporting),
+      files_ready: !(stillFetching || stillImporting),
     };
   });
   const waitingProperties = new Set(buildingPlaces.filter((b) => !b.files_ready && b.property_id).map((b) => b.property_id as string));
@@ -221,7 +322,7 @@ export async function documentCatalog(env: Env, orgId: string): Promise<Document
   const items: DocumentPlace[] = [
     ...buildingPlaces,
     ...properties.map((p): DocumentPlace => {
-      const count = byProperty.get(p.id) ?? 0;
+      const count = (byProperty.get(p.id) ?? 0) + (pendingOnProperty.get(p.id) ?? 0);
       const address = addressLine(p.address, p.postal_code, p.city);
       return {
         kind: "property",
@@ -231,7 +332,7 @@ export async function documentCatalog(env: Env, orgId: string): Promise<Document
         address: address && address.localeCompare(p.name?.trim() || "", "nb", { sensitivity: "accent" }) !== 0 ? address : null,
         number: propertyNumber(p),
         document_count: count,
-        files_ready: count > 0 || !waitingProperties.has(p.id),
+        files_ready: !waitingProperties.has(p.id),
       };
     }),
   ];

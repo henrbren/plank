@@ -1,0 +1,15 @@
+- generic [ref=f11e4]:
+  - generic [ref=f11e5]: Plank
+  - generic [ref=f11e13]:
+    - heading "Inn i Plank" [level=1] [ref=f11e14]
+    - paragraph [ref=f11e15]: Skriv e-posten. Du får en lenke, og er inne på under et minutt.
+    - generic [ref=f11e16]:
+      - generic [ref=f11e17]: E-post
+      - textbox "E-post" [active] [ref=f11e18]:
+        - /placeholder: navn@firma.no
+    - button "Send innloggingslenke" [ref=f11e19]
+    - generic [ref=f11e22]: eller
+    - button "Logg inn med LAFT-konto" [ref=f11e25]
+    - link "Send demo til noen" [ref=f11e26] [cursor=pointer]:
+      - /url: /demo
+  - generic [ref=f11e29]: © 2026 Plank

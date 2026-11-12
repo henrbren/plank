@@ -1,0 +1,49 @@
+- generic [ref=f4e356]:
+  - generic [ref=f4e357]: Plank
+  - list [ref=f4e364]:
+    - listitem [ref=f4e365]:
+      - generic [ref=f4e369]: Virksomhet
+    - listitem [ref=f4e370]:
+      - generic [ref=f4e375]: Bygg
+    - listitem [ref=f4e376]:
+      - generic [ref=f4e378]: "3"
+      - generic [ref=f4e379]: Dokumenter
+    - listitem [ref=f4e380]:
+      - generic [ref=f4e382]: "4"
+      - generic [ref=f4e383]: Videre
+  - generic [ref=f4e384]:
+    - paragraph [ref=f4e385]: Testveiviser AS
+    - heading "Byggene er inne" [level=1] [ref=f4e386]
+    - paragraph [ref=f4e387]: Dokumentene kommer inn etterpå, med nye forsøk hvis noe feiler. Du kan sette i gang agenten mens overføringen går.
+    - paragraph [ref=f4e388]: Du kan lukke nettleseren. Vi sender en e-post når dokumentene er overført.
+    - generic [ref=f4e389]:
+      - generic [ref=f4e390]:
+        - generic [ref=f4e391]: Bygg
+        - generic [ref=f4e396]: "2"
+      - generic [ref=f4e397]:
+        - generic [ref=f4e398]: I arkivet
+        - generic [ref=f4e402]: "3"
+      - generic [ref=f4e403]:
+        - generic [ref=f4e404]: Igjen
+        - generic [ref=f4e408]: "4"
+    - paragraph [ref=f4e411]: 1 dokument prøves på nytt, eller er lagt til side etter flere forsøk.
+    - generic [ref=f4e412]:
+      - generic [ref=f4e413]: Fra Boligmappa
+      - list [ref=f4e414]:
+        - listitem [ref=f4e415]:
+          - generic [ref=f4e421]:
+            - generic [ref=f4e422]: Storgata 1
+            - generic [ref=f4e423]: Storgata 1, Oslo · 2 bygg · 8 dokumenter
+          - generic [ref=f4e424]: Inne
+    - generic [ref=f4e427]:
+      - generic [ref=f4e428]: Videre oppsett
+      - heading "La agenten ta neste steg" [level=2] [ref=f4e432]
+      - paragraph [ref=f4e433]: FDV-assistent kan lese byggene mens dokumentene fortsatt kommer inn.
+      - list [ref=f4e434]:
+        - listitem [ref=f4e435]: FDV-assistent
+        - listitem [ref=f4e436]: Dokumentkontroll
+        - listitem [ref=f4e437]: Vedlikeholdsplan
+      - button "Spør FDV-assistent" [ref=f4e439]
+      - paragraph [ref=f4e442]: Agentene har tilgang til Boligmappa.
+    - link "Gå til arbeidsflaten" [ref=f4e444] [cursor=pointer]:
+      - /url: /o/org_wizardtest

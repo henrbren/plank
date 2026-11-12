@@ -77,7 +77,7 @@ export const BRANDS: Record<BrandId, Brand> = {
   naeringsmappa: {
     id: "naeringsmappa",
     name: "Næringsmappa",
-    tagline: "Levert av LAFT, i samarbeid med Boligmappa",
+    tagline: "Utviklet av LAFT i samarbeid med Boligmappa",
     loginTitle: "Inn i Næringsmappa",
     loginLead: "Logg inn med Vipps eller Næringsmappa-kontoen din. Byggene og dokumentene kommer med.",
     showcaseKicker: "Dokumentarkiv for næringseiendom",
@@ -99,18 +99,18 @@ export const BRANDS: Record<BrandId, Brand> = {
   },
   sameie: {
     id: "sameie",
-    name: "LAFT Sameie",
-    tagline: "Dokumentarkiv for sameier, levert av LAFT",
-    loginTitle: "Inn i LAFT Sameie",
+    name: "LAFT Sameie & Borettslag",
+    tagline: "Dokumentarkiv for sameier og borettslag, levert av LAFT",
+    loginTitle: "Inn i LAFT Sameie & Borettslag",
     loginLead: "Logg inn med Vipps eller kontoen din. Dokumentene følger bygget når styret skiftes.",
-    showcaseKicker: "Sameie og boligselskap",
+    showcaseKicker: "Sameie og borettslag",
     showcaseTitle: "Dokumentasjonen blir værende i bygget.",
     showcaseLead: "Hent mappe og dokumenter, og la agentene minne styret på det som forfaller.",
     accountLabel: "LAFT-konto",
     chooserBody: "Samme arkiv, eget merke for sameier og borettslag.",
     logo: "/brands/laft_sameie.png",
-    copyright: "LAFT Sameie",
-    emailFromName: "LAFT Sameie",
+    copyright: "LAFT Sameie & Borettslag",
+    emailFromName: "LAFT Sameie & Borettslag",
     accent: "#466084",
     accentHover: "#324660",
     accentSoft: "#e6eaf0",
@@ -136,10 +136,13 @@ export function isLaftHost(host: string | null | undefined): boolean {
   return id === "naeringsmappa" || id === "sameie";
 }
 
-/** På LAFT-domenene velger brukeren selv mellom Næringsmappa og LAFT Sameie. Plank og Leie følger vertsnavnet. */
+/**
+ * På sameie.laft.io kan brukeren velge Næringsmappa. mappa.laft.io og mappa2.laft.io
+ * er alltid Næringsmappa, også om et eldre valg ligger lagret. Plank og Leie følger vertsnavnet.
+ */
 export function resolveBrand(host: string | null | undefined, chosen?: string | null): Brand {
   const fromHost = brandFromHost(host);
-  if (fromHost.id === "plank" || fromHost.id === "leie") return fromHost;
+  if (fromHost.id === "plank" || fromHost.id === "leie" || fromHost.id === "naeringsmappa") return fromHost;
   if (chosen === "naeringsmappa" || chosen === "sameie") return BRANDS[chosen];
   return fromHost;
 }

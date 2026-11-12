@@ -1,0 +1,332 @@
+- generic [ref=f23e6]:
+  - complementary [ref=f23e7]:
+    - generic [ref=f23e8]:
+      - button "A. WESTRE AS Plank" [ref=f23e12]:
+        - generic [ref=f23e19]:
+          - generic [ref=f23e20]: A. WESTRE AS
+          - generic [ref=f23e21]: Plank
+      - button "Søk … ⌘K" [ref=f23e26]:
+        - generic [ref=f23e30]: Søk …
+        - generic [ref=f23e31]: ⌘K
+      - navigation [ref=f23e32]:
+        - link "Oversikt" [ref=f23e33] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq
+        - link "Kart" [ref=f23e39] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/kart
+        - link "Dokumenter" [ref=f23e44] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents
+      - generic [ref=f23e50]:
+        - generic [ref=f23e51]: Portefølje
+        - button "Legg til" [ref=f23e55]
+      - generic [ref=f23e57]:
+        - link "1520/49/9/0/0 0" [ref=f23e60] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4yfqqiumpbfnu
+        - generic [ref=f23e66]:
+          - generic [ref=f23e67]:
+            - button "Skjul" [ref=f23e68]
+            - link "Industrivegen" [ref=f23e71] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4y4m1p96tkxdu
+          - link "Industrivegen" [ref=f23e79] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/buildings/bld_0mvkxh4y9kfljugztdp
+        - generic [ref=f23e86]:
+          - generic [ref=f23e87]:
+            - button "Skjul" [ref=f23e88]
+            - link "Ukjent" [ref=f23e91] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4ybt23gqviydb
+          - link "Ukjent" [ref=f23e99] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/buildings/bld_0mvkxh4ycbghnv6ggsb
+      - button "AI-bruk 0 %" [ref=f23e108]:
+        - generic [ref=f23e109]: AI-bruk
+        - generic [ref=f23e110]: 0 %
+      - generic [ref=f23e111]:
+        - button "Inviter" [ref=f23e112]
+        - button "T Test Testesen" [ref=f23e118]:
+          - generic [ref=f23e119]: T
+          - generic [ref=f23e120]: Test Testesen
+  - main [ref=f23e121]:
+    - generic [ref=f23e122]:
+      - generic [ref=f23e124]:
+        - generic [ref=f23e125]:
+          - generic [ref=f23e126]: Spør agenten om porteføljen
+          - generic [ref=f23e127]: Ett spørsmål om de 2 byggene er nok. Da ser du hva agenten finner.
+        - button "Spør nå" [ref=f23e128]
+      - generic [ref=f23e131]:
+        - generic [ref=f23e133]:
+          - generic [ref=f23e139]:
+            - heading "Dokumenter" [level=1] [ref=f23e140]
+            - generic [ref=f23e141]: FDV-dokumentasjon, produktdatablad, tegninger, rapporter og IFC-modeller. Tekst hentes ut og indekseres automatisk.
+          - button "Last opp" [ref=f23e143]
+        - paragraph [ref=f23e147]:
+          - text: Teksten i dokumentene blir søkbar for agenten. Abonnementet er det som gir den en fast pott AI-bruk hver måned.
+          - link "Se planene" [ref=f23e148] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/abonnement
+        - generic [ref=f23e149]:
+          - searchbox "Søk på navn, adresse eller nummer" [ref=f23e151]
+          - combobox [ref=f23e152]:
+            - option "Bygg og eiendommer" [selected]
+            - option "Bare bygg"
+            - option "Bare eiendommer"
+          - textbox "Søk i innholdet …" [ref=f23e157]
+        - paragraph [ref=f23e158]: 2 bygg · 3 eiendommer
+        - generic [ref=f23e159]:
+          - button "Bygg 70 dokumenter Industrivegen Industrivegen, 6155 ØRSTA OTJ8442" [ref=f23e160] [cursor=pointer]:
+            - generic [ref=f23e161]:
+              - generic [ref=f23e162]: Bygg
+              - generic [ref=f23e163]: 70 dokumenter
+            - generic [ref=f23e164]: Industrivegen
+            - generic [ref=f23e165]: Industrivegen, 6155 ØRSTA
+            - generic [ref=f23e166]: OTJ8442
+          - button "Bygg 0 dokumenter Ukjent UOZ3770" [ref=f23e167] [cursor=pointer]:
+            - generic [ref=f23e168]:
+              - generic [ref=f23e169]: Bygg
+              - generic [ref=f23e170]: 0 dokumenter
+            - generic [ref=f23e171]: Ukjent
+            - generic [ref=f23e172]: UOZ3770
+          - button "Eiendom 0 dokumenter 1520/49/9/0/0 0 1520/49/9/0/0 0, 0000 gnr 49 / bnr 9" [ref=f23e173] [cursor=pointer]:
+            - generic [ref=f23e174]:
+              - generic [ref=f23e175]: Eiendom
+              - generic [ref=f23e176]: 0 dokumenter
+            - generic [ref=f23e177]: 1520/49/9/0/0 0
+            - generic [ref=f23e178]: 1520/49/9/0/0 0, 0000
+            - generic [ref=f23e179]: gnr 49 / bnr 9
+          - button "Eiendom 70 dokumenter Industrivegen Industrivegen, 6155 ØRSTA" [ref=f23e180] [cursor=pointer]:
+            - generic [ref=f23e181]:
+              - generic [ref=f23e182]: Eiendom
+              - generic [ref=f23e183]: 70 dokumenter
+            - generic [ref=f23e184]: Industrivegen
+            - generic [ref=f23e185]: Industrivegen, 6155 ØRSTA
+          - button "Eiendom 0 dokumenter Ukjent UOZ3770" [ref=f23e186] [cursor=pointer]:
+            - generic [ref=f23e187]:
+              - generic [ref=f23e188]: Eiendom
+              - generic [ref=f23e189]: 0 dokumenter
+            - generic [ref=f23e190]: Ukjent
+            - generic [ref=f23e191]: UOZ3770
+        - dialog "Industrivegen" [ref=f23e197]:
+          - generic [ref=f23e198]:
+            - button "Tilbake" [ref=f23e199]
+            - generic [ref=f23e200]:
+              - generic [ref=f23e201]: Industrivegen
+              - generic [ref=f23e202]: Bygg · OTJ8442 · 70 dokumenter
+            - generic [ref=f23e203]:
+              - link "Åpne" [ref=f23e204] [cursor=pointer]:
+                - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhztbdmtwxxl5nx
+              - link "Last ned" [ref=f23e205] [cursor=pointer]:
+                - /url: /api/orgs/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhztbdmtwxxl5nx/file?download=1
+          - generic [ref=f23e209]:
+            - generic [ref=f23e210]:
+              - textbox "Filtrer i listen" [ref=f23e212]
+              - generic [active] [ref=f23e213]:
+                - button "NHO 5 Sikre Samsvarserklæring .pdf 23. okt. 2026" [ref=f23e214]:
+                  - generic [ref=f23e215]: NHO 5 Sikre Samsvarserklæring .pdf
+                  - generic [ref=f23e216]: 23. okt. 2026
+                - button "NHO Rapport fra risiko. og slutt .pdf 23. okt. 2026" [ref=f23e217]:
+                  - generic [ref=f23e218]: NHO Rapport fra risiko. og slutt .pdf
+                  - generic [ref=f23e219]: 23. okt. 2026
+                - button "NHO 5 Sikre Sluttkontroll (Bytte av tavle).pdf 23. okt. 2026" [ref=f23e220]:
+                  - generic [ref=f23e221]: NHO 5 Sikre Sluttkontroll (Bytte av tavle).pdf
+                  - generic [ref=f23e222]: 23. okt. 2026
+                - button "Risikovurdering Bedriftsintern (Tavlebytte).pdf 23. okt. 2026" [ref=f23e223]:
+                  - generic [ref=f23e224]: Risikovurdering Bedriftsintern (Tavlebytte).pdf
+                  - generic [ref=f23e225]: 23. okt. 2026
+                - button "NHO 5 Sikre Samsvarserklæring (Plugg og tilkobling på kompressor).pdf 23. okt. 2026" [ref=f23e226]:
+                  - generic [ref=f23e227]: NHO 5 Sikre Samsvarserklæring (Plugg og tilkobling på kompressor).pdf
+                  - generic [ref=f23e228]: 23. okt. 2026
+                - button "NHO 5 Sikre Samsvarserklæring (Ny stikkontakt ved eltemaskine.).pdf 23. okt. 2026" [ref=f23e229]:
+                  - generic [ref=f23e230]: NHO 5 Sikre Samsvarserklæring (Ny stikkontakt ved eltemaskine.).pdf
+                  - generic [ref=f23e231]: 23. okt. 2026
+                - button "Samsvarserklæring – utskifting av ledninger på ventilasjonsanlegg pga. varmgang 23. okt. 2026" [ref=f23e232]:
+                  - generic [ref=f23e233]: Samsvarserklæring – utskifting av ledninger på ventilasjonsanlegg pga. varmgang
+                  - generic [ref=f23e234]: 23. okt. 2026
+                - button "TUSSA risikovurdering forenklet – ordre 22180, A. Westre AS, Ørsta 23. okt. 2026" [ref=f23e235]:
+                  - generic [ref=f23e236]: TUSSA risikovurdering forenklet – ordre 22180, A. Westre AS, Ørsta
+                  - generic [ref=f23e237]: 23. okt. 2026
+                - button "Varmekabel fryserom – samsvarserklæring og dokumentasjon for varmesystem (DEVI) 23. okt. 2026" [ref=f23e238]:
+                  - generic [ref=f23e239]: Varmekabel fryserom – samsvarserklæring og dokumentasjon for varmesystem (DEVI)
+                  - generic [ref=f23e240]: 23. okt. 2026
+                - button "Samsvarserklæring – frostsikring med varmekabel under mellomgulv i fryserom, A. Westre AS 23. okt. 2026" [ref=f23e241]:
+                  - generic [ref=f23e242]: Samsvarserklæring – frostsikring med varmekabel under mellomgulv i fryserom, A. Westre AS
+                  - generic [ref=f23e243]: 23. okt. 2026
+                - button "TUSSA risikovurdering forenklet – ordre 22256, A. Westre AS, Industrivegen 12, Ørsta 23. okt. 2026" [ref=f23e244]:
+                  - generic [ref=f23e245]: TUSSA risikovurdering forenklet – ordre 22256, A. Westre AS, Industrivegen 12, Ørsta
+                  - generic [ref=f23e246]: 23. okt. 2026
+                - button "TUSSA forenklet risikovurdering – ordre 21475, Industrivegen 12, Ørsta 23. okt. 2026" [ref=f23e247]:
+                  - generic [ref=f23e248]: TUSSA forenklet risikovurdering – ordre 21475, Industrivegen 12, Ørsta
+                  - generic [ref=f23e249]: 23. okt. 2026
+                - button "TUSSA – Samsvarserklæring for remontering av lampar i bakeri, Ørsta 23. okt. 2026" [ref=f23e250]:
+                  - generic [ref=f23e251]: TUSSA – Samsvarserklæring for remontering av lampar i bakeri, Ørsta
+                  - generic [ref=f23e252]: 23. okt. 2026
+                - button "ELK04 Samsvarserklæring – endring av elektrisk anlegg, A. Westre AS, ordre 16385 23. okt. 2026" [ref=f23e253]:
+                  - generic [ref=f23e254]: ELK04 Samsvarserklæring – endring av elektrisk anlegg, A. Westre AS, ordre 16385
+                  - generic [ref=f23e255]: 23. okt. 2026
+                - button "Sluttkontroll – endring av lysarmatur/driver over vaskemaskin, Industrivegen 12, Ørsta 23. okt. 2026" [ref=f23e256]:
+                  - generic [ref=f23e257]: Sluttkontroll – endring av lysarmatur/driver over vaskemaskin, Industrivegen 12, Ørsta
+                  - generic [ref=f23e258]: 23. okt. 2026
+                - button "Garantiskjema varmekabel – garderobe herrar, A. Westre AS, Ørsta 23. okt. 2026" [ref=f23e259]:
+                  - generic [ref=f23e260]: Garantiskjema varmekabel – garderobe herrar, A. Westre AS, Ørsta
+                  - generic [ref=f23e261]: 23. okt. 2026
+                - button "Garantiskjema varmekabel – Bad herregarderobe, Ørsta (Nexans, ordre 8691) 23. okt. 2026" [ref=f23e262]:
+                  - generic [ref=f23e263]: Garantiskjema varmekabel – Bad herregarderobe, Ørsta (Nexans, ordre 8691)
+                  - generic [ref=f23e264]: 23. okt. 2026
+                - button "Garantiskjema varmekabel – WC herregarderobe, A. Westre AS (Nexans TQXP/2R 400/17) 23. okt. 2026" [ref=f23e265]:
+                  - generic [ref=f23e266]: Garantiskjema varmekabel – WC herregarderobe, A. Westre AS (Nexans TQXP/2R 400/17)
+                  - generic [ref=f23e267]: 23. okt. 2026
+                - button "Garantiskjema varmekabel – Sluse herregarderobe, Westre AS (Nexans TQXP/2R 200/17) 23. okt. 2026" [ref=f23e268]:
+                  - generic [ref=f23e269]: Garantiskjema varmekabel – Sluse herregarderobe, Westre AS (Nexans TQXP/2R 200/17)
+                  - generic [ref=f23e270]: 23. okt. 2026
+                - button "Garantiskjema varmekabel, garderobe herrar – Nexans TQXP/2R, Ørsta 23. okt. 2026" [ref=f23e271]:
+                  - generic [ref=f23e272]: Garantiskjema varmekabel, garderobe herrar – Nexans TQXP/2R, Ørsta
+                  - generic [ref=f23e273]: 23. okt. 2026
+                - button "Sluttkontroll herregarderobe – dokumentasjon av elektrisk anlegg (NEK 400:2022) 23. okt. 2026" [ref=f23e274]:
+                  - generic [ref=f23e275]: Sluttkontroll herregarderobe – dokumentasjon av elektrisk anlegg (NEK 400:2022)
+                  - generic [ref=f23e276]: 23. okt. 2026
+                - button "Garantiskjema varmekabel – Bad herregarderobe, Ørsta (Nexans, Tussa Installasjon) 23. okt. 2026" [ref=f23e277]:
+                  - generic [ref=f23e278]: Garantiskjema varmekabel – Bad herregarderobe, Ørsta (Nexans, Tussa Installasjon)
+                  - generic [ref=f23e279]: 23. okt. 2026
+                - button "Garantiskjema varmekabel – WC herregarderobe, A. Westre AS (ordre 8691) 23. okt. 2026" [ref=f23e280]:
+                  - generic [ref=f23e281]: Garantiskjema varmekabel – WC herregarderobe, A. Westre AS (ordre 8691)
+                  - generic [ref=f23e282]: 23. okt. 2026
+                - button "Garantiskjema varmekabel – sluse herregarderobe, Nexans TQXP/2R 200/17 23. okt. 2026" [ref=f23e283]:
+                  - generic [ref=f23e284]: Garantiskjema varmekabel – sluse herregarderobe, Nexans TQXP/2R 200/17
+                  - generic [ref=f23e285]: 23. okt. 2026
+                - button "Sluttkontroll herregarderobe – elektrisk anlegg, Westre AS, ordre 8691 23. okt. 2026" [ref=f23e286]:
+                  - generic [ref=f23e287]: Sluttkontroll herregarderobe – elektrisk anlegg, Westre AS, ordre 8691
+                  - generic [ref=f23e288]: 23. okt. 2026
+                - button "Bilde av produktemballasje med delvis synlig tekst \"Pro\" 23. okt. 2026" [ref=f23e289]:
+                  - generic [ref=f23e290]: Bilde av produktemballasje med delvis synlig tekst "Pro"
+                  - generic [ref=f23e291]: 23. okt. 2026
+                - button "Gulvvarmeanlegg med PEX-rør og fordelerventiler – byggefoto 23. okt. 2026" [ref=f23e292]:
+                  - generic [ref=f23e293]: Gulvvarmeanlegg med PEX-rør og fordelerventiler – byggefoto
+                  - generic [ref=f23e294]: 23. okt. 2026
+                - button "Foto av gulvvarmerør lagt på betongdekke 23. okt. 2026" [ref=f23e295]:
+                  - generic [ref=f23e296]: Foto av gulvvarmerør lagt på betongdekke
+                  - generic [ref=f23e297]: 23. okt. 2026
+                - button "Foto av gulvvarmerør på betongflate med målestokk og trekonstruksjon 23. okt. 2026" [ref=f23e298]:
+                  - generic [ref=f23e299]: Foto av gulvvarmerør på betongflate med målestokk og trekonstruksjon
+                  - generic [ref=f23e300]: 23. okt. 2026
+                - button "Foto av gulv med varmekabler, trebjelker og isolasjon 23. okt. 2026" [ref=f23e301]:
+                  - generic [ref=f23e302]: Foto av gulv med varmekabler, trebjelker og isolasjon
+                  - generic [ref=f23e303]: 23. okt. 2026
+                - button "1706600957991.jpeg 23. okt. 2026" [ref=f23e304]:
+                  - generic [ref=f23e305]: 1706600957991.jpeg
+                  - generic [ref=f23e306]: 23. okt. 2026
+                - button "Bilde av gulvvarmeanlegg med PEX-slanger på betonggulv under utlegging 23. okt. 2026" [ref=f23e307]:
+                  - generic [ref=f23e308]: Bilde av gulvvarmeanlegg med PEX-slanger på betonggulv under utlegging
+                  - generic [ref=f23e309]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Rep av milkshakeblender) 23. okt. 2026" [ref=f23e310]:
+                  - generic [ref=f23e311]: NELFO Samsvarserklæring (Rep av milkshakeblender)
+                  - generic [ref=f23e312]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Bytta plugg på støvsugar) 23. okt. 2026" [ref=f23e313]:
+                  - generic [ref=f23e314]: NELFO Samsvarserklæring (Bytta plugg på støvsugar)
+                  - generic [ref=f23e315]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Feilsøk på ovn utsalg amfi) 23. okt. 2026" [ref=f23e316]:
+                  - generic [ref=f23e317]: NELFO Samsvarserklæring (Feilsøk på ovn utsalg amfi)
+                  - generic [ref=f23e318]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Bytte 2 motorar på fordampar inne på fryserom konditor avd.) 23. okt. 2026" [ref=f23e319]:
+                  - generic [ref=f23e320]: NELFO Samsvarserklæring (Bytte 2 motorar på fordampar inne på fryserom konditor avd.)
+                  - generic [ref=f23e321]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Bygge stikk og plugg på mjølstrøar) 23. okt. 2026" [ref=f23e322]:
+                  - generic [ref=f23e323]: NELFO Samsvarserklæring (Bygge stikk og plugg på mjølstrøar)
+                  - generic [ref=f23e324]: 23. okt. 2026
+                - button "NELFO Sluttkontroll R1 (Bytte lys i kjølediskar) 23. okt. 2026" [ref=f23e325]:
+                  - generic [ref=f23e326]: NELFO Sluttkontroll R1 (Bytte lys i kjølediskar)
+                  - generic [ref=f23e327]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Bytte lys i kjølediskar) 23. okt. 2026" [ref=f23e328]:
+                  - generic [ref=f23e329]: NELFO Samsvarserklæring (Bytte lys i kjølediskar)
+                  - generic [ref=f23e330]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Feilsøk lys på konditor kjøle og frys) 23. okt. 2026" [ref=f23e331]:
+                  - generic [ref=f23e332]: NELFO Samsvarserklæring (Feilsøk lys på konditor kjøle og frys)
+                  - generic [ref=f23e333]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Frilsøk smultkokar, ombygging av nødstopp på deigdelar) 23. okt. 2026" [ref=f23e334]:
+                  - generic [ref=f23e335]: NELFO Samsvarserklæring (Frilsøk smultkokar, ombygging av nødstopp på deigdelar)
+                  - generic [ref=f23e336]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Rep av lys i kombidampar) 23. okt. 2026" [ref=f23e337]:
+                  - generic [ref=f23e338]: NELFO Samsvarserklæring (Rep av lys i kombidampar)
+                  - generic [ref=f23e339]: 23. okt. 2026
+                - button "Sluttkontr. Samsvarserkl. forenklet 23. okt. 2026" [ref=f23e340]:
+                  - generic [ref=f23e341]: Sluttkontr. Samsvarserkl. forenklet
+                  - generic [ref=f23e342]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Oppussing av personal-kjøkken) 23. okt. 2026" [ref=f23e343]:
+                  - generic [ref=f23e344]: NELFO Samsvarserklæring (Oppussing av personal-kjøkken)
+                  - generic [ref=f23e345]: 23. okt. 2026
+                - button "NELFO Sluttkontroll R1 (Oppussing av kjøkken og personalrom) 23. okt. 2026" [ref=f23e346]:
+                  - generic [ref=f23e347]: NELFO Sluttkontroll R1 (Oppussing av kjøkken og personalrom)
+                  - generic [ref=f23e348]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Bytte brytar for ringeklokke) 23. okt. 2026" [ref=f23e349]:
+                  - generic [ref=f23e350]: NELFO Samsvarserklæring (Bytte brytar for ringeklokke)
+                  - generic [ref=f23e351]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Opplegg for karmvarme i vinduparti Sunn og God) 23. okt. 2026" [ref=f23e352]:
+                  - generic [ref=f23e353]: NELFO Samsvarserklæring (Opplegg for karmvarme i vinduparti Sunn og God)
+                  - generic [ref=f23e354]: 23. okt. 2026
+                - button "NELFO Rapport fra risiko. og slutt. (Opplegg for karmvarme i vinduparti Sunn og God) 23. okt. 2026" [ref=f23e355]:
+                  - generic [ref=f23e356]: NELFO Rapport fra risiko. og slutt. (Opplegg for karmvarme i vinduparti Sunn og God)
+                  - generic [ref=f23e357]: 23. okt. 2026
+                - button "NELFO Sluttkontroll R1 (Oppgradering Westrs sunn og god) 23. okt. 2026" [ref=f23e358]:
+                  - generic [ref=f23e359]: NELFO Sluttkontroll R1 (Oppgradering Westrs sunn og god)
+                  - generic [ref=f23e360]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Oppgradering Westres sunn og god) 23. okt. 2026" [ref=f23e361]:
+                  - generic [ref=f23e362]: NELFO Samsvarserklæring (Oppgradering Westres sunn og god)
+                  - generic [ref=f23e363]: 23. okt. 2026
+                - button "NELFO Risikovurdering S3 bedriftsintern (Risikovurdering) 23. okt. 2026" [ref=f23e364]:
+                  - generic [ref=f23e365]: NELFO Risikovurdering S3 bedriftsintern (Risikovurdering)
+                  - generic [ref=f23e366]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Feilsøk varmeskap) 23. okt. 2026" [ref=f23e367]:
+                  - generic [ref=f23e368]: NELFO Samsvarserklæring (Feilsøk varmeskap)
+                  - generic [ref=f23e369]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Feilsøk smultringkokar) 23. okt. 2026" [ref=f23e370]:
+                  - generic [ref=f23e371]: NELFO Samsvarserklæring (Feilsøk smultringkokar)
+                  - generic [ref=f23e372]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Feilsøk FN Aerotherm ovn. Bytta brytar på eltemaskin) 23. okt. 2026" [ref=f23e373]:
+                  - generic [ref=f23e374]: NELFO Samsvarserklæring (Feilsøk FN Aerotherm ovn. Bytta brytar på eltemaskin)
+                  - generic [ref=f23e375]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Bytta sikkerheitstermostat på steinovn utsalg Alti) 23. okt. 2026" [ref=f23e376]:
+                  - generic [ref=f23e377]: NELFO Samsvarserklæring (Bytta sikkerheitstermostat på steinovn utsalg Alti)
+                  - generic [ref=f23e378]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Bytte av termostat på steinovn) 23. okt. 2026" [ref=f23e379]:
+                  - generic [ref=f23e380]: NELFO Samsvarserklæring (Bytte av termostat på steinovn)
+                  - generic [ref=f23e381]: 23. okt. 2026
+                - button "NELFO Sluttkontroll R1 (Bytte termostat på steinovn) 23. okt. 2026" [ref=f23e382]:
+                  - generic [ref=f23e383]: NELFO Sluttkontroll R1 (Bytte termostat på steinovn)
+                  - generic [ref=f23e384]: 23. okt. 2026
+                - button "NELFO Rapport fra risiko. og slutt. 23. okt. 2026" [ref=f23e385]:
+                  - generic [ref=f23e386]: NELFO Rapport fra risiko. og slutt.
+                  - generic [ref=f23e387]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring 23. okt. 2026" [ref=f23e388]:
+                  - generic [ref=f23e389]: NELFO Samsvarserklæring
+                  - generic [ref=f23e390]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Bytte grep på brytera i hurtigport) 23. okt. 2026" [ref=f23e391]:
+                  - generic [ref=f23e392]: NELFO Samsvarserklæring (Bytte grep på brytera i hurtigport)
+                  - generic [ref=f23e393]: 23. okt. 2026
+                - button "NELFO Rapport fra risiko. og slutt. (remontering lampe v/ inngang) 23. okt. 2026" [ref=f23e394]:
+                  - generic [ref=f23e395]: NELFO Rapport fra risiko. og slutt. (remontering lampe v/ inngang)
+                  - generic [ref=f23e396]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (omkobling av kaffetraktar) 23. okt. 2026" [ref=f23e397]:
+                  - generic [ref=f23e398]: NELFO Samsvarserklæring (omkobling av kaffetraktar)
+                  - generic [ref=f23e399]: 23. okt. 2026
+                - button "NELFO Rapport fra risiko. og slutt. (Div omlegging av inst. i forbindelse med oppussing av tørrvarelager) 23. okt. 2026" [ref=f23e400]:
+                  - generic [ref=f23e401]: NELFO Rapport fra risiko. og slutt. (Div omlegging av inst. i forbindelse med oppussing av tørrvarelager)
+                  - generic [ref=f23e402]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Div omlegging av inst. i forbindelse med oppussing av tørrvarelager) 23. okt. 2026" [ref=f23e403]:
+                  - generic [ref=f23e404]: NELFO Samsvarserklæring (Div omlegging av inst. i forbindelse med oppussing av tørrvarelager)
+                  - generic [ref=f23e405]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring 23. okt. 2026" [ref=f23e406]:
+                  - generic [ref=f23e407]: NELFO Samsvarserklæring
+                  - generic [ref=f23e408]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (skjøyta kabel på ryggekamera) 23. okt. 2026" [ref=f23e409]:
+                  - generic [ref=f23e410]: NELFO Samsvarserklæring (skjøyta kabel på ryggekamera)
+                  - generic [ref=f23e411]: 23. okt. 2026
+                - button "NELFO Sluttkontroll R1 (bytta vk i avløp fryserom) 23. okt. 2026" [ref=f23e412]:
+                  - generic [ref=f23e413]: NELFO Sluttkontroll R1 (bytta vk i avløp fryserom)
+                  - generic [ref=f23e414]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (bytta vk i avløp fryserom.) 23. okt. 2026" [ref=f23e415]:
+                  - generic [ref=f23e416]: NELFO Samsvarserklæring (bytta vk i avløp fryserom.)
+                  - generic [ref=f23e417]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring 23. okt. 2026" [ref=f23e418]:
+                  - generic [ref=f23e419]: NELFO Samsvarserklæring
+                  - generic [ref=f23e420]: 23. okt. 2026
+                - button "NELFO Samsvarserklæring (Opprydding av div kablar. kontakter. lysstyring. utelys) 23. okt. 2026" [ref=f23e421]:
+                  - generic [ref=f23e422]: NELFO Samsvarserklæring (Opprydding av div kablar. kontakter. lysstyring. utelys)
+                  - generic [ref=f23e423]: 23. okt. 2026
+            - iframe [ref=f23e425]
+  - button "Spør en agent ⌘J" [ref=f23e192]:
+    - text: Spør en agent
+    - generic [ref=f23e196]: ⌘J

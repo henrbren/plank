@@ -1,0 +1,60 @@
+- generic [ref=f10e6]:
+  - complementary [ref=f10e7]:
+    - generic [ref=f10e8]:
+      - button "A. WESTRE AS Plank" [ref=f10e12]:
+        - generic [ref=f10e19]:
+          - generic [ref=f10e20]: A. WESTRE AS
+          - generic [ref=f10e21]: Plank
+      - button "Søk … ⌘K" [ref=f10e26]:
+        - generic [ref=f10e30]: Søk …
+        - generic [ref=f10e31]: ⌘K
+      - navigation [ref=f10e32]:
+        - link "Oversikt" [ref=f10e33] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq
+        - link "Kart" [ref=f10e39] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/kart
+        - link "Dokumenter" [ref=f10e44] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents
+      - generic [ref=f10e50]:
+        - generic [ref=f10e51]: Portefølje
+        - button "Legg til" [ref=f10e55]
+      - generic [ref=f10e57]:
+        - link "1520/49/9/0/0 0" [ref=f10e60] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4yfqqiumpbfnu
+        - generic [ref=f10e66]:
+          - generic [ref=f10e67]:
+            - button "Skjul" [ref=f10e68]
+            - link "Industrivegen" [ref=f10e71] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4y4m1p96tkxdu
+          - link "Industrivegen" [ref=f10e79] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/buildings/bld_0mvkxh4y9kfljugztdp
+        - generic [ref=f10e86]:
+          - generic [ref=f10e87]:
+            - button "Skjul" [ref=f10e88]
+            - link "Ukjent" [ref=f10e91] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4ybt23gqviydb
+          - link "Ukjent" [ref=f10e99] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/buildings/bld_0mvkxh4ycbghnv6ggsb
+      - button "AI-bruk 0 %" [ref=f10e108]:
+        - generic [ref=f10e109]: AI-bruk
+        - generic [ref=f10e110]: 0 %
+      - generic [ref=f10e111]:
+        - button "Inviter" [ref=f10e112]
+        - button "T Test Testesen" [ref=f10e118]:
+          - generic [ref=f10e119]: T
+          - generic [ref=f10e120]: Test Testesen
+  - main [ref=f10e121]:
+    - generic [ref=f10e122]:
+      - button "Meny" [ref=f10e123]
+      - generic [ref=f10e125]: Plank
+      - button "Søk" [ref=f10e132]
+      - button "Agent" [ref=f10e136]
+    - generic [ref=f10e141]:
+      - generic [ref=f10e145]:
+        - heading "Hei, Test" [level=1] [ref=f10e146]
+        - generic [ref=f10e147]: A. WESTRE AS · fredag 6. november
+      - generic [ref=f10e148]:
+        - heading "Spør agenten om porteføljen" [level=2] [ref=f10e149]
+        - paragraph [ref=f10e150]: Ett spørsmål om de 2 byggene er nok. Da ser du hva agenten finner.
+        - button "Spør nå" [ref=f10e151]
+      - paragraph [ref=f10e154]: 2 bygg og 70 dokumenter er inne.

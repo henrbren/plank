@@ -1,0 +1,208 @@
+- generic [ref=f23e6]:
+  - complementary [ref=f23e7]:
+    - generic [ref=f23e8]:
+      - button "A. WESTRE AS Plank" [ref=f23e12]:
+        - generic [ref=f23e19]:
+          - generic [ref=f23e20]: A. WESTRE AS
+          - generic [ref=f23e21]: Plank
+      - button "Søk … ⌘K" [ref=f23e26]:
+        - generic [ref=f23e30]: Søk …
+        - generic [ref=f23e31]: ⌘K
+      - navigation [ref=f23e32]:
+        - link "Oversikt" [ref=f23e33] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq
+        - link "Kart" [ref=f23e39] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/kart
+        - link "Dokumenter" [ref=f23e44] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents
+      - generic [ref=f23e50]:
+        - generic [ref=f23e51]: Portefølje
+        - button "Legg til" [ref=f23e55]
+      - generic [ref=f23e57]:
+        - link "1520/49/9/0/0 0" [ref=f23e60] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4yfqqiumpbfnu
+        - generic [ref=f23e66]:
+          - generic [ref=f23e67]:
+            - button "Skjul" [ref=f23e68]
+            - link "Industrivegen" [ref=f23e71] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4y4m1p96tkxdu
+          - link "Industrivegen" [ref=f23e79] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/buildings/bld_0mvkxh4y9kfljugztdp
+        - generic [ref=f23e86]:
+          - generic [ref=f23e87]:
+            - button "Skjul" [ref=f23e88]
+            - link "Ukjent" [ref=f23e91] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4ybt23gqviydb
+          - link "Ukjent" [ref=f23e99] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/buildings/bld_0mvkxh4ycbghnv6ggsb
+      - button "AI-bruk 0 %" [ref=f23e108]:
+        - generic [ref=f23e109]: AI-bruk
+        - generic [ref=f23e110]: 0 %
+      - generic [ref=f23e111]:
+        - button "Inviter" [ref=f23e112]
+        - button "T Test Testesen" [ref=f23e118]:
+          - generic [ref=f23e119]: T
+          - generic [ref=f23e120]: Test Testesen
+  - main [ref=f23e121]:
+    - generic [ref=f23e122]:
+      - generic [ref=f23e124]:
+        - generic [ref=f23e125]:
+          - generic [ref=f23e126]: Spør agenten om porteføljen
+          - generic [ref=f23e127]: Ett spørsmål om de 2 byggene er nok. Da ser du hva agenten finner.
+        - button "Spør nå" [ref=f23e128]
+      - generic [ref=f23e131]:
+        - generic [ref=f23e133]:
+          - generic [ref=f23e139]:
+            - heading "Dokumenter" [level=1] [ref=f23e140]
+            - generic [ref=f23e141]: FDV-dokumentasjon, produktdatablad, tegninger, rapporter og IFC-modeller. Tekst hentes ut og indekseres automatisk.
+          - button "Last opp" [ref=f23e143]
+        - paragraph [ref=f23e147]:
+          - text: Teksten i dokumentene blir søkbar for agenten. Abonnementet er det som gir den en fast pott AI-bruk hver måned.
+          - link "Se planene" [ref=f23e148] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/abonnement
+        - generic [ref=f23e149]:
+          - searchbox "Søk på navn, adresse eller nummer" [ref=f23e151]
+          - combobox [ref=f23e152]:
+            - option "Bygg og eiendommer" [selected]
+            - option "Bare bygg"
+            - option "Bare eiendommer"
+          - textbox "Søk i innholdet …" [active] [ref=f23e157]: varmekabel
+        - paragraph [ref=f23e158]: 2 bygg · 3 eiendommer
+        - generic [ref=f23e656]:
+          - 'link "Garantiskjema varmekabel, garderobe herrar – Nexans TQXP/2R, Ørsta Kontroll / servicerapport Industrivegen … Det er utvist forsiktighet under støpearbeidene og tatt hensyn til varmekabelen. | Støpemasse benyttet | | |---|---| | Støpetykkelse (ca) | | | Dato | | | Initialer | | ## Anleggseier - [ ] Garantiskjema og brukerveiledning er mottatt, gjennomgått … # Garantiskjema Varmekabel - Nexans Norway AS **Garderobe herrar.** ## OPPDRAGSGIVER/KUNDE | Felt | Verdi | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted … … skal også angis. ## Installatør - [x] Varmekabelanlegget er montert i henhold til Nexans Norway''s monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger …" [ref=f23e657] [cursor=pointer]':
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhrhn6jrbce93gk
+            - generic [ref=f23e658]:
+              - generic [ref=f23e662]: Garantiskjema varmekabel, garderobe herrar – Nexans TQXP/2R, Ørsta
+              - generic [ref=f23e663]: Kontroll / servicerapport
+              - generic [ref=f23e664]: Industrivegen
+            - paragraph [ref=f23e665]:
+              - text: … Det er utvist forsiktighet under støpearbeidene og tatt hensyn til
+              - mark [ref=f23e666]: varmekabelen
+              - text: ". | Støpemasse benyttet | | |---|---| | Støpetykkelse (ca) | | | Dato | | | Initialer | | ## Anleggseier - [ ] Garantiskjema og brukerveiledning er mottatt, gjennomgått … # Garantiskjema"
+              - mark [ref=f23e667]: Varmekabel
+              - text: "- Nexans Norway AS **Garderobe herrar.** ## OPPDRAGSGIVER/KUNDE | Felt | Verdi | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted … … skal også angis. ## Installatør - [x]"
+              - mark [ref=f23e668]: Varmekabelanlegget
+              - text: er montert i henhold til Nexans Norway's monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger …
+          - 'link "Garantiskjema varmekabel – Bad herregarderobe, Ørsta (Nexans, Tussa Installasjon) Kontroll / servicerapport Industrivegen … Det er utvist forsiktighet under støpearbeidene og tatt hensyn til varmekabelen. | Felt | Verdi | |---|---| | Støpemasse benyttet | | | Støpetykkelse (ca) | | | Dato | | | Initialer | | ## Anleggseier - [ ] Garantiskjema og brukerveiledning er … # Garantiskjema Varmekabel - Nexans Norway AS **Bad herregarderobe** ## Oppdragsgiver/kunde | Felt | Verdi | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted … … skal også angis. ## Installatør - [x] Varmekabelanlegget er montert i henhold til Nexans Norway''s monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger …" [ref=f23e669] [cursor=pointer]':
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhqidr9turs1yfq
+            - generic [ref=f23e670]:
+              - generic [ref=f23e674]: Garantiskjema varmekabel – Bad herregarderobe, Ørsta (Nexans, Tussa Installasjon)
+              - generic [ref=f23e675]: Kontroll / servicerapport
+              - generic [ref=f23e676]: Industrivegen
+            - paragraph [ref=f23e677]:
+              - text: … Det er utvist forsiktighet under støpearbeidene og tatt hensyn til
+              - mark [ref=f23e678]: varmekabelen
+              - text: ". | Felt | Verdi | |---|---| | Støpemasse benyttet | | | Støpetykkelse (ca) | | | Dato | | | Initialer | | ## Anleggseier - [ ] Garantiskjema og brukerveiledning er … # Garantiskjema"
+              - mark [ref=f23e679]: Varmekabel
+              - text: "- Nexans Norway AS **Bad herregarderobe** ## Oppdragsgiver/kunde | Felt | Verdi | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted … … skal også angis. ## Installatør - [x]"
+              - mark [ref=f23e680]: Varmekabelanlegget
+              - text: er montert i henhold til Nexans Norway's monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger …
+          - 'link "Garantiskjema varmekabel – garderobe herrar, A. Westre AS, Ørsta Kontroll / servicerapport Industrivegen … Det er utvist forsiktighet under støpearbeidene og tatt hensyn til varmekabelen. | Felt | Verdi | |---|---| | Støpemasse benyttet | | | Støpetykkelse (ca) | | | Dato | | | Initialer | | ## Anleggseier - [ ] Garantiskjema og brukerveiledning er … # Garantiskjema Varmekabel - Nexans Norway AS Garderobe herrar. ## OPPDRAGSGIVER/KUNDE | Felt | Verdi | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted … … skal også angis. ## Installatør - [x] Varmekabelanlegget er montert i henhold til Nexans Norway''s monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger …" [ref=f23e681] [cursor=pointer]':
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhtd92z2yzr3dja
+            - generic [ref=f23e682]:
+              - generic [ref=f23e686]: Garantiskjema varmekabel – garderobe herrar, A. Westre AS, Ørsta
+              - generic [ref=f23e687]: Kontroll / servicerapport
+              - generic [ref=f23e688]: Industrivegen
+            - paragraph [ref=f23e689]:
+              - text: … Det er utvist forsiktighet under støpearbeidene og tatt hensyn til
+              - mark [ref=f23e690]: varmekabelen
+              - text: ". | Felt | Verdi | |---|---| | Støpemasse benyttet | | | Støpetykkelse (ca) | | | Dato | | | Initialer | | ## Anleggseier - [ ] Garantiskjema og brukerveiledning er … # Garantiskjema"
+              - mark [ref=f23e691]: Varmekabel
+              - text: "- Nexans Norway AS Garderobe herrar. ## OPPDRAGSGIVER/KUNDE | Felt | Verdi | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted … … skal også angis. ## Installatør - [x]"
+              - mark [ref=f23e692]: Varmekabelanlegget
+              - text: er montert i henhold til Nexans Norway's monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger …
+          - 'link "Garantiskjema varmekabel – WC herregarderobe, A. Westre AS (ordre 8691) Kontroll / servicerapport Industrivegen … skal også angis. ## Installatør - [ ] Varmekabelanlegget er montert i henhold til Nexans Norway''s monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger som … - [ ] Garantiskjema og brukerveiledning er mottatt, gjennomgått og lest ## Anleggseier Dato: Skriv inn teksten din her ## Bilder # Garantiskjema Varmekabel - Nexans Norway AS ## OPPDRAGSGIVER/KUNDE | | | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted | 6155, Ørsta | | Telefon | 70048270 … Ledermotstand (-5 / +10 Nom verdi Ohm) | Før installasjon | 131,7 | INFO | |---|---|---| | Før innstøping | 131,5 | | | Før tilkobling | 131,6 | | | Dato og initiale | 22.02 …" [ref=f23e693] [cursor=pointer]':
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhq39h2qirizc5r
+            - generic [ref=f23e694]:
+              - generic [ref=f23e698]: Garantiskjema varmekabel – WC herregarderobe, A. Westre AS (ordre 8691)
+              - generic [ref=f23e699]: Kontroll / servicerapport
+              - generic [ref=f23e700]: Industrivegen
+            - paragraph [ref=f23e701]:
+              - text: "… skal også angis. ## Installatør - [ ]"
+              - mark [ref=f23e702]: Varmekabelanlegget
+              - text: "er montert i henhold til Nexans Norway's monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger som … - [ ] Garantiskjema og brukerveiledning er mottatt, gjennomgått og lest ## Anleggseier Dato: Skriv inn teksten din her ## Bilder # Garantiskjema"
+              - mark [ref=f23e703]: Varmekabel
+              - text: "- Nexans Norway AS ## OPPDRAGSGIVER/KUNDE | | | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted | 6155, Ørsta | | Telefon | 70048270 … Ledermotstand (-5 / +10 Nom verdi Ohm) | Før installasjon | 131,7 | INFO | |---|---|---| | Før innstøping | 131,5 | | | Før tilkobling | 131,6 | | | Dato og initiale | 22.02 …"
+          - 'link "Garantiskjema varmekabel – WC herregarderobe, A. Westre AS (Nexans TQXP/2R 400/17) Kontroll / servicerapport Industrivegen … skal også angis. ## Installatør - [ ] Varmekabelanlegget er montert i henhold til Nexans Norway''s monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger som … # Garantiskjema Varmekabel - Nexans Norway AS ## OPPDRAGSGIVER/KUNDE | | | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted | 6155, Ørsta | | Telefon | 70048270 … - [ ] Garantiskjema og brukerveiledning er mottatt, gjennomgått og lest ## Anleggseier Dato: Skriv inn teksten din her ## Bilder Ledermotstand (-5 / +10 Nom verdi Ohm) | Før installasjon | 131,7 | INFO | |---|---|---| | Før innstøping | 131,5 | | | Før tilkobling | 131,6 | | | Dato og initiale | 22.02 …" [ref=f23e704] [cursor=pointer]':
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhshpgtsu9bxd3u
+            - generic [ref=f23e705]:
+              - generic [ref=f23e709]: Garantiskjema varmekabel – WC herregarderobe, A. Westre AS (Nexans TQXP/2R 400/17)
+              - generic [ref=f23e710]: Kontroll / servicerapport
+              - generic [ref=f23e711]: Industrivegen
+            - paragraph [ref=f23e712]:
+              - text: "… skal også angis. ## Installatør - [ ]"
+              - mark [ref=f23e713]: Varmekabelanlegget
+              - text: "er montert i henhold til Nexans Norway's monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger som … # Garantiskjema"
+              - mark [ref=f23e714]: Varmekabel
+              - text: "- Nexans Norway AS ## OPPDRAGSGIVER/KUNDE | | | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted | 6155, Ørsta | | Telefon | 70048270 … - [ ] Garantiskjema og brukerveiledning er mottatt, gjennomgått og lest ## Anleggseier Dato: Skriv inn teksten din her ## Bilder Ledermotstand (-5 / +10 Nom verdi Ohm) | Før installasjon | 131,7 | INFO | |---|---|---| | Før innstøping | 131,5 | | | Før tilkobling | 131,6 | | | Dato og initiale | 22.02 …"
+          - 'link "Garantiskjema varmekabel – sluse herregarderobe, Nexans TQXP/2R 200/17 Kontroll / servicerapport Industrivegen … skal også angis. ### Installatør - [x] Varmekabelanlegget er montert i henhold til Nexans Norway''s monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger … - [ ] Garantiskjema og brukerveiledning er mottatt, gjennomgått og lest ### Anleggseier Dato: Skriv inn teksten din her ### Bilder # Sluse herregarderobe ## Garantiskjema Varmekabel - Nexans Norway AS ### OPPDRAGSGIVER/KUNDE | | | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted | 6155, Ørsta … Ledermotstand (-5 / +10 Nom verdi Ohm) | **Før installasjon** | **268,1** | **INFO** | |---|---|---| | Før innstøping | 268 | | | Før tilkobling | 267 | | | Dato og initiale | 22.02.24 Bok …" [ref=f23e715] [cursor=pointer]':
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhpoc0nrehobeci
+            - generic [ref=f23e716]:
+              - generic [ref=f23e720]: Garantiskjema varmekabel – sluse herregarderobe, Nexans TQXP/2R 200/17
+              - generic [ref=f23e721]: Kontroll / servicerapport
+              - generic [ref=f23e722]: Industrivegen
+            - paragraph [ref=f23e723]:
+              - text: "… skal også angis. ### Installatør - [x]"
+              - mark [ref=f23e724]: Varmekabelanlegget
+              - text: "er montert i henhold til Nexans Norway's monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger … - [ ] Garantiskjema og brukerveiledning er mottatt, gjennomgått og lest ### Anleggseier Dato: Skriv inn teksten din her ### Bilder # Sluse herregarderobe ## Garantiskjema"
+              - mark [ref=f23e725]: Varmekabel
+              - text: "- Nexans Norway AS ### OPPDRAGSGIVER/KUNDE | | | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted | 6155, Ørsta … Ledermotstand (-5 / +10 Nom verdi Ohm) | **Før installasjon** | **268,1** | **INFO** | |---|---|---| | Før innstøping | 268 | | | Før tilkobling | 267 | | | Dato og initiale | 22.02.24 Bok …"
+          - 'link "Garantiskjema varmekabel – Bad herregarderobe, Ørsta (Nexans, ordre 8691) Kontroll / servicerapport Industrivegen … skal også angis. ## Installatør ☑ Varmekabelanlegget er montert i henhold til Nexans Norway''s monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger som … # Garantiskjema Varmekabel - Nexans Norway AS **Bad herregarderobe** ## OPPDRAGSGIVER/KUNDE | | | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted | 6155, Ørsta … | | | |---|---| | Støpemasse benyttet | | | Støpetykkelse (ca) | | | Dato | | | Initialer | | ## Anleggseier ☐ Garantiskjema og brukerveiledning er mottatt, gjennomgått og lest ## Anleggseier Dato: Skriv inn teksten din her ## Bilder" [ref=f23e726] [cursor=pointer]':
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhsylba1nod5121
+            - generic [ref=f23e727]:
+              - generic [ref=f23e731]: Garantiskjema varmekabel – Bad herregarderobe, Ørsta (Nexans, ordre 8691)
+              - generic [ref=f23e732]: Kontroll / servicerapport
+              - generic [ref=f23e733]: Industrivegen
+            - paragraph [ref=f23e734]:
+              - text: "… skal også angis. ## Installatør ☑"
+              - mark [ref=f23e735]: Varmekabelanlegget
+              - text: "er montert i henhold til Nexans Norway's monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger som … # Garantiskjema"
+              - mark [ref=f23e736]: Varmekabel
+              - text: "- Nexans Norway AS **Bad herregarderobe** ## OPPDRAGSGIVER/KUNDE | | | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted | 6155, Ørsta … | | | |---|---| | Støpemasse benyttet | | | Støpetykkelse (ca) | | | Dato | | | Initialer | | ## Anleggseier ☐ Garantiskjema og brukerveiledning er mottatt, gjennomgått og lest ## Anleggseier Dato: Skriv inn teksten din her ## Bilder"
+          - 'link "Garantiskjema varmekabel – Sluse herregarderobe, Westre AS (Nexans TQXP/2R 200/17) Kontroll / servicerapport Industrivegen … skal også angis. ### Installatør - [x] Varmekabelanlegget er montert i henhold til Nexans Norway''s monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger … - [ ] Garantiskjema og brukerveiledning er mottatt, gjennomgått og lest ### Anleggseier Dato: Skriv inn teksten din her ### Bilder # Sluse herregarderobe ## Garantiskjema Varmekabel - Nexans Norway AS ### Oppdragsgiver/kunde | Felt | Verdi | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted … ### Kontrollmåling Ledermotstand (-5 / +10 Nom verdi Ohm) | Måling | Verdi | |---|---| | Før installasjon | 268,1 | | Før innstøping | 268 | | Før tilkobling | 267 | | Dato og initiale | 22.02 …" [ref=f23e737] [cursor=pointer]':
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhrw3zwlgrl128i
+            - generic [ref=f23e738]:
+              - generic [ref=f23e742]: Garantiskjema varmekabel – Sluse herregarderobe, Westre AS (Nexans TQXP/2R 200/17)
+              - generic [ref=f23e743]: Kontroll / servicerapport
+              - generic [ref=f23e744]: Industrivegen
+            - paragraph [ref=f23e745]:
+              - text: "… skal også angis. ### Installatør - [x]"
+              - mark [ref=f23e746]: Varmekabelanlegget
+              - text: "er montert i henhold til Nexans Norway's monteringsanvisning, og anleggseier er opplyst om hvilke forholdsregler og begrensninger … - [ ] Garantiskjema og brukerveiledning er mottatt, gjennomgått og lest ### Anleggseier Dato: Skriv inn teksten din her ### Bilder # Sluse herregarderobe ## Garantiskjema"
+              - mark [ref=f23e747]: Varmekabel
+              - text: "- Nexans Norway AS ### Oppdragsgiver/kunde | Felt | Verdi | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | Arnt | | Adresse | Industrivegen 12 | | Postboks | | | Postnr/Sted … ### Kontrollmåling Ledermotstand (-5 / +10 Nom verdi Ohm) | Måling | Verdi | |---|---| | Før installasjon | 268,1 | | Før innstøping | 268 | | Før tilkobling | 267 | | Dato og initiale | 22.02 …"
+          - 'link "Varmekabel fryserom – samsvarserklæring og dokumentasjon for varmesystem (DEVI) Sertifikat / samsvarserklæring Industrivegen # Varmekabel fryserom ## Samsvarserklæring Beskrivelse og dokumentasjon av varmesystemer for inne-/uteanlegg ### OPPDRAGSGIVER/KUNDE | Felt | Verdi | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | | | Adresse | Industrivegen 12 … Eier av anlegget er ansvarlig for å overlevere brukerveiledning og dokumentasjon om oppvarmingssystemet til alle brukerne av dette. ## Installatør Varmesystemet er montert i henhold … ### Beskrivelse og omfang av varmeanlegget | Antall | Type kabler, matter, folie | Effekt | Ohm-verdi | Volt | CC | W/m | W/m2 | |---|---|---|---|---|---|---|---| | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | ### Beskrivelse og omfang av varmeanlegget …" [ref=f23e748] [cursor=pointer]':
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhw3w0wqk0p2bkf
+            - generic [ref=f23e749]:
+              - generic [ref=f23e753]: Varmekabel fryserom – samsvarserklæring og dokumentasjon for varmesystem (DEVI)
+              - generic [ref=f23e754]: Sertifikat / samsvarserklæring
+              - generic [ref=f23e755]: Industrivegen
+            - paragraph [ref=f23e756]:
+              - text: "#"
+              - mark [ref=f23e757]: Varmekabel
+              - text: "fryserom ## Samsvarserklæring Beskrivelse og dokumentasjon av varmesystemer for inne-/uteanlegg ### OPPDRAGSGIVER/KUNDE | Felt | Verdi | |---|---| | Firma/Navn | A. Westre AS | | Kontaktperson | | | Adresse | Industrivegen 12 … Eier av anlegget er ansvarlig for å overlevere brukerveiledning og dokumentasjon om oppvarmingssystemet til alle brukerne av dette. ## Installatør Varmesystemet er montert i henhold … ### Beskrivelse og omfang av varmeanlegget | Antall | Type kabler, matter, folie | Effekt | Ohm-verdi | Volt | CC | W/m | W/m2 | |---|---|---|---|---|---|---|---| | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | ### Beskrivelse og omfang av varmeanlegget …"
+          - 'link "Samsvarserklæring – frostsikring med varmekabel under mellomgulv i fryserom, A. Westre AS Sertifikat / samsvarserklæring Industrivegen … 2022 - ☐ Annet **Utgave (NEK 400):** 2022 - ☐ Prosjektering - ☒ Utførelse **Type installasjon:** Andre næringsbygg **Norm (Annet):** Ingen ### BESKRIVELSE/KOMMENTAR - Lagt varmekabel for frostsikring innellomgulv under fryseromt … # TUSSA Installasjon ## Samsvarserklæring - Frostsikring mellomgulv fryserom. ## Dokumentasjon av det elektriske anlegget Erklæring om samsvar i henhold til forskrift om elektriske lavspenningsanlegg ### OPPDRAGSGIVER/KUNDE | | | |---|---| | **Firma …" [ref=f23e758] [cursor=pointer]':
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhvq1z9k8o9fpsp
+            - generic [ref=f23e759]:
+              - generic [ref=f23e763]: Samsvarserklæring – frostsikring med varmekabel under mellomgulv i fryserom, A. Westre AS
+              - generic [ref=f23e764]: Sertifikat / samsvarserklæring
+              - generic [ref=f23e765]: Industrivegen
+            - paragraph [ref=f23e766]:
+              - text: "… 2022 - ☐ Annet **Utgave (NEK 400):** 2022 - ☐ Prosjektering - ☒ Utførelse **Type installasjon:** Andre næringsbygg **Norm (Annet):** Ingen ### BESKRIVELSE/KOMMENTAR - Lagt"
+              - mark [ref=f23e767]: varmekabel
+              - text: "for frostsikring innellomgulv under fryseromt … # TUSSA Installasjon ## Samsvarserklæring - Frostsikring mellomgulv fryserom. ## Dokumentasjon av det elektriske anlegget Erklæring om samsvar i henhold til forskrift om elektriske lavspenningsanlegg ### OPPDRAGSGIVER/KUNDE | | | |---|---| | **Firma …"
+          - 'link "ELK04 Samsvarserklæring – endring av elektrisk anlegg, A. Westre AS, ordre 16385 Sertifikat / samsvarserklæring Industrivegen … Sted** | 6155, Ørsta | | **Husnr/Bokstav** | | | | | | **Boligmappa-ID** | | | | | ## ORDREOPPLYSNINGER | | | |---|---| | **Ordrebeskrivelse** | Lage til varmekabel på vassrør 3m | | **Ordrenummer** | **Påbegynt dato** | **Avsluttet dato/ Planlagt ferdig** | |---|---|---| | 16385 | | | ## UTARBEIDET … … det tyde på overbelastning - Tildekking av gulv med skjult varmesystem (folie/varmekabel) kan føre til overoppheting av gulvet og i verste fall føre til …" [ref=f23e768] [cursor=pointer]':
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhu78kuvlsu16ft
+            - generic [ref=f23e769]:
+              - generic [ref=f23e773]: ELK04 Samsvarserklæring – endring av elektrisk anlegg, A. Westre AS, ordre 16385
+              - generic [ref=f23e774]: Sertifikat / samsvarserklæring
+              - generic [ref=f23e775]: Industrivegen
+            - paragraph [ref=f23e776]:
+              - text: "… Sted** | 6155, Ørsta | | **Husnr/Bokstav** | | | | | | **Boligmappa-ID** | | | | | ## ORDREOPPLYSNINGER | | | |---|---| | **Ordrebeskrivelse** | Lage til"
+              - mark [ref=f23e777]: varmekabel
+              - text: "på vassrør 3m | | **Ordrenummer** | **Påbegynt dato** | **Avsluttet dato/ Planlagt ferdig** | |---|---|---| | 16385 | | | ## UTARBEIDET … … det tyde på overbelastning - Tildekking av gulv med skjult varmesystem (folie/"
+              - mark [ref=f23e778]: varmekabel
+              - text: ) kan føre til overoppheting av gulvet og i verste fall føre til …
+  - button "Spør en agent ⌘J" [ref=f23e192]:
+    - text: Spør en agent
+    - generic [ref=f23e196]: ⌘J

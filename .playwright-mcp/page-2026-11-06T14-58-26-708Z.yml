@@ -1,0 +1,12 @@
+- generic [ref=f18e7]:
+  - generic [ref=f18e8]: Plank
+  - generic [ref=f18e15]:
+    - paragraph [ref=f18e16]: Test
+    - heading "Organisasjonen er klar" [level=1] [ref=f18e17]
+    - paragraph [ref=f18e18]: Det er ikke startet noen henting fra Boligmappa. Du kan legge inn eiendommer selv, eller koble til senere.
+    - generic [ref=f18e20] [cursor=pointer]:
+      - checkbox "Varsle meg når det kommer nye dokumenter E-post når det senere kommer nye dokumenter. Den første e-posten, når overføringen er ferdig, sender vi uansett." [ref=f18e21]
+      - generic [ref=f18e22]:
+        - generic [ref=f18e23]: Varsle meg når det kommer nye dokumenter
+        - generic [ref=f18e24]: E-post når det senere kommer nye dokumenter. Den første e-posten, når overføringen er ferdig, sender vi uansett.
+    - button "Legg inn selv" [ref=f18e25]

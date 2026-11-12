@@ -58,7 +58,7 @@ boligmappa.get("/transfer", async (c) => c.json(await transferStatus(c.env, c.ge
 boligmappa.post("/transfer", async (c) => {
   requireAdmin(c);
   const u = c.get("user");
-  await retryBoligmappaTransfer(c.env, c.get("orgId"), { type: "user", id: u.id, name: u.name ?? u.email });
+  await retryBoligmappaTransfer(c.env, c.get("orgId"), { type: "user", id: u.id, name: u.name ?? u.email }, c.executionCtx);
   return c.json(await transferStatus(c.env, c.get("orgId")));
 });
 

@@ -1,0 +1,24 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]: Plank
+    - generic [ref=e12]: Logger inn …
+    - generic [ref=e16]: © 2026 Plank
+  - generic [ref=e19]:
+    - generic [ref=e20]: FDV med AI-agenter
+    - heading "Arbeidsflaten der agentene kjenner byggene dine." [level=2] [ref=e21]
+    - paragraph [ref=e22]: Last opp FDV-dokumentasjon og IFC-modeller, sett opp agenter som jobber for deg, og lag egne sider med levende data – for hver eiendom, hvert bygg og hver etasje.
+    - generic [ref=e23]:
+      - generic [ref=e24]: Plank-assistent
+      - generic [ref=e29]: Når må vi bytte filter på ventilasjonsaggregatet i Hovedbygg?
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - generic [ref=e36]: Søker i dokumenter etter «filterbytte»
+          - generic [ref=e37]: 3 treff
+        - generic [ref=e38]: Leser Nordluft NL-4000 – drifts- og vedlikeholdsinstruks
+        - generic [ref=e44]:
+          - generic [ref=e51]: Bygger siden «Servicestatus»
+          - generic [ref=e52]: v1
+        - generic [ref=e53]:
+          - generic [ref=e58]: Spør BIM-modellen (IFCSPACE)
+          - generic [ref=e59]: 42 rom
+      - generic [ref=e60]: Filteret skal byttes hver 6. måned, eller ved trykkfall over 150 Pa. Siste service var for 200 dager siden – den er altså på overtid.

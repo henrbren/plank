@@ -1,0 +1,164 @@
+- generic [ref=f4e3]:
+  - complementary [ref=f4e4]:
+    - generic [ref=f4e5]:
+      - button "Testveiviser AS Plank" [ref=f4e9]:
+        - generic [ref=f4e16]:
+          - generic [ref=f4e17]: Testveiviser AS
+          - generic [ref=f4e18]: Plank
+      - button "Søk … ⌘K" [ref=f4e23]:
+        - generic [ref=f4e27]: Søk …
+        - generic [ref=f4e28]: ⌘K
+      - navigation [ref=f4e29]:
+        - link "Oversikt" [ref=f4e30] [cursor=pointer]:
+          - /url: /o/org_wizardtest
+        - link "Oppgaver" [ref=f4e36] [cursor=pointer]:
+          - /url: /o/org_wizardtest/tasks
+        - link "Dokumenter" [ref=f4e42] [cursor=pointer]:
+          - /url: /o/org_wizardtest/documents
+        - link "FDV-register" [ref=f4e48] [cursor=pointer]:
+          - /url: /o/org_wizardtest/components
+        - link "Agenter" [ref=f4e53] [cursor=pointer]:
+          - /url: /o/org_wizardtest/agents
+        - link "Sider" [ref=f4e59] [cursor=pointer]:
+          - /url: /o/org_wizardtest/artifacts
+        - link "Hjelp" [ref=f4e67] [cursor=pointer]:
+          - /url: /o/org_wizardtest/hjelp
+      - generic [ref=f4e73]:
+        - generic [ref=f4e74]: Portefølje
+        - button "Legg til" [ref=f4e77]
+      - generic [ref=f4e80]:
+        - generic [ref=f4e81]:
+          - button "Skjul" [ref=f4e82]
+          - link "Storgata 1" [ref=f4e85] [cursor=pointer]:
+            - /url: /o/org_wizardtest/properties/prop_wizardtest
+        - link "Storgata 1" [ref=f4e93] [cursor=pointer]:
+          - /url: /o/org_wizardtest/buildings/bld_wizard_a
+        - link "Storgata 1B" [ref=f4e102] [cursor=pointer]:
+          - /url: /o/org_wizardtest/buildings/bld_wizard_b
+      - generic [ref=f4e109]:
+        - link "Henter dokumenter 3" [ref=f4e110] [cursor=pointer]:
+          - /url: /velkommen/org_wizardtest
+          - generic [ref=f4e113]: Henter dokumenter
+          - generic [ref=f4e114]: "3"
+        - button "AI-bruk 0 %" [ref=f4e116]:
+          - generic [ref=f4e117]: AI-bruk
+          - generic [ref=f4e118]: 0 %
+      - button "d demo.mottaker@example.com" [ref=f4e122]:
+        - generic [ref=f4e123]: d
+        - generic [ref=f4e124]: demo.mottaker@example.com
+  - main [ref=f4e125]:
+    - generic [ref=f4e127]:
+      - generic [ref=f4e129]:
+        - generic [ref=f4e131]:
+          - heading "Hei" [level=1] [ref=f4e132]
+          - generic [ref=f4e133]: Testveiviser AS · torsdag 29. oktober
+        - generic [ref=f4e134]:
+          - button "Last opp" [ref=f4e135]
+          - button "Hva bør jeg prioritere?" [ref=f4e139]
+      - generic [ref=f4e143]:
+        - list [ref=f4e145]:
+          - listitem [ref=f4e146]:
+            - generic [ref=f4e150]: Inn
+          - listitem [ref=f4e151]:
+            - generic [ref=f4e155]: Bygg
+          - listitem [ref=f4e156]:
+            - generic [ref=f4e157]: "3"
+            - generic [ref=f4e159]: Spør
+          - listitem [ref=f4e160]:
+            - generic [ref=f4e161]: "4"
+            - generic [ref=f4e163]: Betal
+        - generic [ref=f4e164]:
+          - heading "Spør agenten om porteføljen" [level=2] [ref=f4e165]
+          - paragraph [ref=f4e166]: Ett spørsmål om de 2 byggene er nok. Da ser du hva agenten finner, før du bestemmer deg for å betale.
+          - button "Spør nå" [ref=f4e168]
+      - generic [ref=f4e171]:
+        - generic [ref=f4e172]:
+          - generic [ref=f4e173]: Bygg
+          - generic [ref=f4e174]: "2"
+          - generic [ref=f4e175]: 1 eiendommer
+        - link "Åpne oppgaver 0" [ref=f4e176] [cursor=pointer]:
+          - /url: /o/org_wizardtest/tasks
+          - generic [ref=f4e177]: Åpne oppgaver
+          - generic [ref=f4e178]: "0"
+        - link "Service på overtid 0 0 innen 60 dager" [ref=f4e179] [cursor=pointer]:
+          - /url: /o/org_wizardtest/components
+          - generic [ref=f4e180]: Service på overtid
+          - generic [ref=f4e181]: "0"
+          - generic [ref=f4e182]: 0 innen 60 dager
+        - link "Dokumenter 3 0 komponenter" [ref=f4e183] [cursor=pointer]:
+          - /url: /o/org_wizardtest/documents
+          - generic [ref=f4e184]: Dokumenter
+          - generic [ref=f4e185]: "3"
+          - generic [ref=f4e186]: 0 komponenter
+      - generic [ref=f4e187]:
+        - generic [ref=f4e188]:
+          - generic [ref=f4e189]:
+            - generic [ref=f4e190]:
+              - heading [level=3] [ref=f4e191]
+              - link "Alle oppgaver" [ref=f4e196] [cursor=pointer]:
+                - /url: /o/org_wizardtest/tasks
+            - generic [ref=f4e197]: Ingen åpne oppgaver.
+          - generic [ref=f4e198]:
+            - generic [ref=f4e199]:
+              - heading [level=3] [ref=f4e200]
+              - link "FDV-register" [ref=f4e204] [cursor=pointer]:
+                - /url: /o/org_wizardtest/components
+            - generic [ref=f4e205]: Ingen service forfaller de neste 60 dagene.
+          - generic [ref=f4e206]:
+            - generic [ref=f4e207]:
+              - heading [level=3] [ref=f4e208]
+              - link "Alle dokumenter" [ref=f4e213] [cursor=pointer]:
+                - /url: /o/org_wizardtest/documents
+            - list [ref=f4e214]:
+              - listitem [ref=f4e215]:
+                - link "Tegning plan 1 29. okt. 2025" [ref=f4e216] [cursor=pointer]:
+                  - /url: /o/org_wizardtest/documents/doc_w3
+                  - generic [ref=f4e220]: Tegning plan 1
+                  - generic [ref=f4e221]: 29. okt. 2025
+              - listitem [ref=f4e222]:
+                - link "FDV-perm 29. okt. 2025" [ref=f4e223] [cursor=pointer]:
+                  - /url: /o/org_wizardtest/documents/doc_w2
+                  - generic [ref=f4e227]: FDV-perm
+                  - generic [ref=f4e228]: 29. okt. 2025
+              - listitem [ref=f4e229]:
+                - link "Brannkonsept 29. okt. 2025" [ref=f4e230] [cursor=pointer]:
+                  - /url: /o/org_wizardtest/documents/doc_w1
+                  - generic [ref=f4e234]: Brannkonsept
+                  - generic [ref=f4e235]: 29. okt. 2025
+        - generic [ref=f4e236]:
+          - generic [ref=f4e237]:
+            - generic [ref=f4e238]:
+              - heading [level=3] [ref=f4e239]
+              - link "Administrer" [ref=f4e244] [cursor=pointer]:
+                - /url: /o/org_wizardtest/agents
+            - generic [ref=f4e245]:
+              - button "FDV-assistent" [ref=f4e246]:
+                - generic "Prikken" [ref=f4e247]
+              - button "Dokumentkontroll" [ref=f4e257]:
+                - generic "Prikken" [ref=f4e258]
+              - button "Vedlikeholdsplan" [ref=f4e268]:
+                - generic "Prikken" [ref=f4e269]
+            - button "Ny agent" [ref=f4e279]
+          - generic [ref=f4e281]:
+            - heading [level=3] [ref=f4e283]
+            - generic [ref=f4e287]: Ingen aktivitet ennå.
+  - complementary [ref=f4e288]:
+    - generic [ref=f4e289]:
+      - button "FDV-assistent" [ref=f4e292]:
+        - generic "Prikken" [ref=f4e293]
+      - button "Historikk" [ref=f4e304]
+      - button "Ny samtale" [ref=f4e309]
+      - button "Lukk panel (⌘J)" [ref=f4e311]
+    - generic [ref=f4e316]:
+      - generic [ref=f4e317]:
+        - generic "Prikken" [ref=f4e318]
+        - generic [ref=f4e326]: FDV-assistent
+      - generic [ref=f4e327]:
+        - button "Hva bør jeg prioritere denne uken?" [ref=f4e328]
+        - button "Hvilke komponenter har service på overtid?" [ref=f4e329]
+        - button "Lag et dashboard over åpne avvik og oppgaver" [ref=f4e330]
+    - generic [ref=f4e332]:
+      - textbox "Spør FDV-assistent …" [ref=f4e333]
+      - generic [ref=f4e334]:
+        - generic [ref=f4e335]: Enter sender · Shift+Enter ny linje
+        - button "Send" [disabled] [ref=f4e336]

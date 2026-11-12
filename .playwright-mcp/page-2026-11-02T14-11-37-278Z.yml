@@ -1,0 +1,96 @@
+- generic [ref=f37e6]:
+  - complementary [ref=f37e7]:
+    - generic [ref=f37e8]:
+      - button "Test Plank" [ref=f37e12]:
+        - generic [ref=f37e19]:
+          - generic [ref=f37e20]: Test
+          - generic [ref=f37e21]: Plank
+      - button "Søk … ⌘K" [ref=f37e26]:
+        - generic [ref=f37e30]: Søk …
+        - generic [ref=f37e31]: ⌘K
+      - navigation [ref=f37e32]:
+        - link "Oversikt" [ref=f37e33] [cursor=pointer]:
+          - /url: /o/org_localtest
+        - link "Oppgaver" [ref=f37e39] [cursor=pointer]:
+          - /url: /o/org_localtest/tasks
+        - link "Dokumenter" [ref=f37e45] [cursor=pointer]:
+          - /url: /o/org_localtest/documents
+        - link "FDV-register" [ref=f37e51] [cursor=pointer]:
+          - /url: /o/org_localtest/components
+        - link "Agenter" [ref=f37e56] [cursor=pointer]:
+          - /url: /o/org_localtest/agents
+        - link "Sider" [ref=f37e62] [cursor=pointer]:
+          - /url: /o/org_localtest/artifacts
+        - generic [ref=f37e70]:
+          - generic [ref=f37e71]: Mine sider
+          - link "Eiendomspuls – tilstand, oppgaver og dokumentasjon" [ref=f37e73] [cursor=pointer]:
+            - /url: /o/org_localtest/artifacts/art_0mv17y53dob3xyaplek
+      - generic [ref=f37e81]:
+        - generic [ref=f37e82]: Portefølje
+        - button "Legg til" [ref=f37e86]
+      - generic [ref=f37e88]:
+        - generic [ref=f37e89]:
+          - generic [ref=f37e90]:
+            - button "Skjul" [ref=f37e91]
+            - link "Elvebakken borettslag (demo)" [ref=f37e94] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y526q8hzz4oabu
+          - generic [ref=f37e101]:
+            - button "Vis" [ref=f37e102]
+            - link "Blokk 1" [ref=f37e105] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y5266xh2e21l0p
+        - generic [ref=f37e112]:
+          - generic [ref=f37e113]:
+            - button "Skjul" [ref=f37e114]
+            - link "Sagbruket kontorpark (demo)" [ref=f37e117] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y525si45dvzten
+          - generic [ref=f37e124]:
+            - button "Vis" [ref=f37e125]
+            - link "Hovedbygg" [ref=f37e128] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+          - generic [ref=f37e136]:
+            - button "Vis" [ref=f37e137]
+            - link "Lagerhall" [ref=f37e140] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525xfez0xmsi5
+      - button "AI-bruk 0 %" [ref=f37e149]:
+        - generic [ref=f37e150]: AI-bruk
+        - generic [ref=f37e151]: 0 %
+      - button "H Henrik" [ref=f37e155]:
+        - generic [ref=f37e156]: H
+        - generic [ref=f37e157]: Henrik
+  - main [ref=f37e158]:
+    - generic [ref=f37e159]:
+      - generic [ref=f37e161]:
+        - generic [ref=f37e162]:
+          - generic [ref=f37e163]: 3 komponenter har service på overtid
+          - generic [ref=f37e164]: Se hva som bør gjøres først.
+        - link "Se service" [ref=f37e165] [cursor=pointer]:
+          - /url: /o/org_localtest/components?forfalt=1
+      - generic [ref=f37e168]:
+        - generic [ref=f37e170]:
+          - generic [ref=f37e176]:
+            - heading "Dokumenter" [level=1] [ref=f37e177]
+            - generic [ref=f37e178]: FDV-dokumentasjon, produktdatablad, tegninger, rapporter og IFC-modeller. Tekst hentes ut og indekseres automatisk.
+          - button "Last opp" [ref=f37e180]
+        - generic [ref=f37e184]:
+          - searchbox "Søk på navn, adresse eller nummer" [ref=f37e186]
+          - combobox [ref=f37e187]:
+            - option "Bygg og eiendommer" [selected]
+            - option "Bare bygg"
+            - option "Bare eiendommer"
+          - textbox "Søk i innholdet …" [ref=f37e192]: brannalarm
+        - paragraph [ref=f37e193]: 3 bygg · 2 eiendommer
+        - 'link "Brannalarmanlegg Hovedbygg – FDV-dokumentasjon FDV-dokumentasjon Hovedbygg # Brannalarmanlegg – Hovedbygg ## Anleggsbeskrivelse Adresserbart brannalarmanlegg Vaktsikker VS-8 med 214 detektorpunkter fordelt på 4 sløyfer. Sentral i resepsjon (rom 1-001), brannpanel ved hovedinngang …" [ref=f37e404] [cursor=pointer]':
+          - /url: /o/org_localtest/documents/doc_0mv17y52z3bw7ldy8zc
+          - generic [ref=f37e405]:
+            - generic [ref=f37e409]: Brannalarmanlegg Hovedbygg – FDV-dokumentasjon
+            - generic [ref=f37e410]: FDV-dokumentasjon
+            - generic [ref=f37e411]: Hovedbygg
+          - paragraph [ref=f37e412]:
+            - text: "#"
+            - mark [ref=f37e413]: Brannalarmanlegg
+            - text: "– Hovedbygg ## Anleggsbeskrivelse Adresserbart"
+            - mark [ref=f37e414]: brannalarmanlegg
+            - text: Vaktsikker VS-8 med 214 detektorpunkter fordelt på 4 sløyfer. Sentral i resepsjon (rom 1-001), brannpanel ved hovedinngang …
+  - button "Spør en agent ⌘J" [ref=f37e398]:
+    - text: Spør en agent
+    - generic [ref=f37e402]: ⌘J

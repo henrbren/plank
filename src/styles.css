@@ -27,7 +27,7 @@
   --info-soft: #e0ecf5;
   --shadow: 0 1px 2px rgb(29 27 24 / 0.06), 0 4px 16px rgb(29 27 24 / 0.06);
   --shadow-lg: 0 8px 40px rgb(29 27 24 / 0.16);
-  /* Sidebaren følger flaten. Sameie og Næringsmappa bytter til LAFT-blå under. */
+  /* Sidebaren følger flaten. Sameie bytter til LAFT-blå under. Næringsmappa beholder denne. */
   --nav: var(--panel);
   --nav-ink: var(--ink);
   --nav-ink-2: var(--ink-2);
@@ -66,27 +66,23 @@
     --shadow-lg: 0 8px 40px rgb(0 0 0 / 0.5);
   }
 }
-/* LAFT-blå fra laft-app/laft-web. Sidebaren i laft-web er Laft 600 (#4E5E89). Sameie ligger ett trinn mørkere, Laft 700. */
+/* LAFT-blå innholdsfarge fra laft-app/laft-web. Næringsmappa bruker Planks papirsidebar. Sameie beholder Laft 700 (#3C4969). */
 :root[data-brand="naeringsmappa"],
 :root[data-brand="sameie"] {
   --accent: #466084;
   --accent-hover: #324660;
   --accent-ink: #ffffff;
   --accent-soft: #e6eaf0;
+}
+:root[data-brand="sameie"] {
+  --nav: #3c4969;
+  --nav-active: #2a334a;
   --nav-ink: #ffffff;
   --nav-ink-2: rgb(255 255 255 / 0.9);
   --nav-muted: rgb(255 255 255 / 0.72);
   --nav-hover: rgb(255 255 255 / 0.12);
   --nav-line: rgb(255 255 255 / 0.16);
   --nav-field: rgb(255 255 255 / 0.08);
-}
-:root[data-brand="naeringsmappa"] {
-  --nav: #4e5e89;
-  --nav-active: #3c4969;
-}
-:root[data-brand="sameie"] {
-  --nav: #3c4969;
-  --nav-active: #2a334a;
 }
 /* Leie: grønn pult, ikke Plank-kobber og ikke LAFT-navy. Sidebaren inverterer ikke i mørk modus. */
 :root[data-brand="leie"] {

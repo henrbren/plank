@@ -1,0 +1,123 @@
+- generic [ref=f6e6]:
+  - complementary [ref=f6e7]:
+    - generic [ref=f6e8]:
+      - button "Test LAFT Sameie" [ref=f6e12]:
+        - generic [ref=f6e14]:
+          - generic [ref=f6e15]: Test
+          - generic [ref=f6e16]: LAFT Sameie
+      - button "Søk … ⌘K" [ref=f6e21]:
+        - generic [ref=f6e25]: Søk …
+        - generic [ref=f6e26]: ⌘K
+      - navigation [ref=f6e27]:
+        - link "Oversikt" [ref=f6e28] [cursor=pointer]:
+          - /url: /o/org_localtest
+        - link "Oppgaver" [ref=f6e34] [cursor=pointer]:
+          - /url: /o/org_localtest/tasks
+        - link "Dokumenter" [ref=f6e40] [cursor=pointer]:
+          - /url: /o/org_localtest/documents
+        - link "FDV-register" [ref=f6e46] [cursor=pointer]:
+          - /url: /o/org_localtest/components
+        - link "Agenter" [ref=f6e51] [cursor=pointer]:
+          - /url: /o/org_localtest/agents
+        - link "Sider" [ref=f6e57] [cursor=pointer]:
+          - /url: /o/org_localtest/artifacts
+        - link "Hjelp" [ref=f6e65] [cursor=pointer]:
+          - /url: /o/org_localtest/hjelp
+        - generic [ref=f6e71]:
+          - generic [ref=f6e72]: Mine sider
+          - link "Eiendomspuls – tilstand, oppgaver og dokumentasjon" [ref=f6e73] [cursor=pointer]:
+            - /url: /o/org_localtest/artifacts/art_0mv17y53dob3xyaplek
+      - generic [ref=f6e81]:
+        - generic [ref=f6e82]: Portefølje
+        - button "Legg til" [ref=f6e85]
+      - generic [ref=f6e87]:
+        - generic [ref=f6e88]:
+          - generic [ref=f6e89]:
+            - button "Skjul" [ref=f6e90]
+            - link "Elvebakken borettslag (demo)" [ref=f6e93] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y526q8hzz4oabu
+          - generic [ref=f6e100]:
+            - button "Vis" [ref=f6e101]
+            - link "Blokk 1" [ref=f6e104] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y5266xh2e21l0p
+        - generic [ref=f6e111]:
+          - generic [ref=f6e112]:
+            - button "Skjul" [ref=f6e113]
+            - link "Sagbruket kontorpark (demo)" [ref=f6e116] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y525si45dvzten
+          - generic [ref=f6e123]:
+            - button "Vis" [ref=f6e124]
+            - link "Hovedbygg" [ref=f6e127] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+          - generic [ref=f6e135]:
+            - button "Vis" [ref=f6e136]
+            - link "Lagerhall" [ref=f6e139] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525xfez0xmsi5
+      - button "AI-bruk 0 %" [ref=f6e148]:
+        - generic [ref=f6e149]: AI-bruk
+        - generic [ref=f6e150]: 0 %
+      - button "H Henrik" [ref=f6e154]:
+        - generic [ref=f6e155]: H
+        - generic [ref=f6e156]: Henrik
+  - main [ref=f6e157]:
+    - generic [ref=f6e158]:
+      - generic [ref=f6e160]:
+        - list [ref=f6e161]:
+          - listitem [ref=f6e162]:
+            - generic [ref=f6e166]: Inn
+          - listitem [ref=f6e167]:
+            - generic [ref=f6e171]: Bygg
+          - listitem [ref=f6e172]:
+            - generic [ref=f6e176]: Spør
+          - listitem [ref=f6e177]:
+            - generic [ref=f6e178]: "4"
+            - generic [ref=f6e180]: Betal
+        - generic [ref=f6e181]:
+          - generic [ref=f6e182]: Start abonnementet
+          - generic [ref=f6e183]: Standard 990 kr/mnd med 300 kr AI-bruk, eller Pro 3 000 kr/mnd med 1 200 kr. Inkl. mva.
+        - button "Velg plan" [ref=f6e184]
+      - generic [ref=f6e187]:
+        - generic [ref=f6e189]:
+          - generic [ref=f6e195]:
+            - heading "Elvebakken borettslag (demo)" [level=1] [ref=f6e196]
+            - generic [ref=f6e197]: Elvebakken 10 · 1960 Løken · gnr. 88/bnr. 12
+          - generic [ref=f6e198]:
+            - button "Statusoversikt" [ref=f6e199]
+            - button "Nytt bygg" [ref=f6e203]
+            - button "Mer" [ref=f6e207]
+        - button "Legg til bilde av eiendommen" [ref=f6e213]
+        - heading "Bygg" [level=2] [ref=f6e219]
+        - link "Blokk 1 Bolig · 1985 · 2 600 m² 4 etasjer 0 dokumenter 0 åpne oppgaver" [ref=f6e221] [cursor=pointer]:
+          - /url: /o/org_localtest/buildings/bld_0mv17y5266xh2e21l0p
+          - generic [ref=f6e227]:
+            - generic [ref=f6e228]:
+              - generic [ref=f6e229]: Blokk 1
+              - generic [ref=f6e230]: Bolig · 1985 · 2 600 m²
+            - generic [ref=f6e231]:
+              - generic [ref=f6e232]: 4 etasjer
+              - generic [ref=f6e233]: 0 dokumenter
+              - generic [ref=f6e234]: 0 åpne oppgaver
+  - complementary [ref=f6e235]:
+    - generic [ref=f6e236]:
+      - button "Hjelp" [ref=f6e239]:
+        - generic "Gnisten" [ref=f6e240]
+      - button "Historikk" [ref=f6e251]
+      - button "Ny samtale" [ref=f6e256]
+      - button "Lukk panel (⌘J)" [ref=f6e258]
+    - generic [ref=f6e263]:
+      - generic [ref=f6e264]:
+        - generic "Gnisten" [ref=f6e265]
+        - generic [ref=f6e273]: Hjelp
+        - generic [ref=f6e274]: Forklarer hvordan Plank brukes, og holder hjelpesenteret oppdatert med skjermbilder.
+      - generic [ref=f6e275]:
+        - button "Hvordan laster jeg opp FDV-dokumentasjon?" [ref=f6e276]
+        - button "Hvordan registrerer jeg et avvik?" [ref=f6e277]
+        - button "Hvor ser jeg service som forfaller?" [ref=f6e278]
+    - generic [ref=f6e280]:
+      - generic [ref=f6e282]:
+        - generic [ref=f6e286]: Elvebakken borettslag (demo)
+        - button "Fjern kontekst" [ref=f6e287]
+      - textbox "Spør Hjelp …" [ref=f6e291]
+      - generic [ref=f6e292]:
+        - generic [ref=f6e293]: Enter sender · Shift+Enter ny linje
+        - button "Send" [disabled] [ref=f6e294]

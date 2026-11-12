@@ -1,0 +1,49 @@
+- generic [ref=f9e3]:
+  - complementary [ref=f9e4]:
+    - generic [ref=f9e5]:
+      - button "Test Plank" [ref=f9e9]:
+        - generic [ref=f9e16]:
+          - generic [ref=f9e17]: Test
+          - generic [ref=f9e18]: Plank
+      - button "Søk … ⌘K" [ref=f9e23]:
+        - generic [ref=f9e27]: Søk …
+        - generic [ref=f9e28]: ⌘K
+      - navigation [ref=f9e29]:
+        - link "Oversikt" [ref=f9e30] [cursor=pointer]:
+          - /url: /o/org_localtest
+        - link "Kart" [ref=f9e36] [cursor=pointer]:
+          - /url: /o/org_localtest/kart
+        - link "Dokumenter" [ref=f9e41] [cursor=pointer]:
+          - /url: /o/org_localtest/documents
+        - link "Sider" [ref=f9e47] [cursor=pointer]:
+          - /url: /o/org_localtest/artifacts
+        - generic [ref=f9e55]:
+          - generic [ref=f9e56]: Mine sider
+          - generic [ref=f9e57]:
+            - link "Eiendomspuls – tilstand, oppgaver og dokumentasjon" [ref=f9e58] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mv17y53dob3xyaplek
+            - link "Leverandører" [ref=f9e66] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mw4yuvtcloa0ijjfte
+      - generic [ref=f9e74]:
+        - generic [ref=f9e75]: Portefølje
+        - button "Legg til" [ref=f9e79]
+      - button "H Henrik" [ref=f9e86]:
+        - generic [ref=f9e87]: H
+        - generic [ref=f9e88]: Henrik
+  - main [ref=f9e89]:
+    - generic [ref=f9e90]: Laster …
+  - complementary [ref=f9e94]:
+    - generic [ref=f9e95]:
+      - button "Velg agent" [ref=f9e98]
+      - button "Historikk" [ref=f9e104]
+      - button "Ny samtale" [ref=f9e109]
+      - button "Lukk panel (⌘J)" [ref=f9e111]
+    - generic [ref=f9e117]:
+      - button "Hva bør jeg prioritere denne uken?" [ref=f9e118]
+      - button "Hvilke komponenter har service på overtid?" [ref=f9e119]
+      - button "Lag et dashboard over åpne avvik og oppgaver" [ref=f9e120]
+    - generic [ref=f9e122]:
+      - textbox "Skriv en melding …" [ref=f9e123]
+      - generic [ref=f9e124]:
+        - generic [ref=f9e125]: Enter sender · Shift+Enter ny linje
+        - button "Send" [disabled] [ref=f9e126]

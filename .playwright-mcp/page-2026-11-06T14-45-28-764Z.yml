@@ -1,0 +1,194 @@
+- generic [ref=f12e6]:
+  - complementary [ref=f12e7]:
+    - generic [ref=f12e8]:
+      - button "Test Plank" [ref=f12e12]:
+        - generic [ref=f12e19]:
+          - generic [ref=f12e20]: Test
+          - generic [ref=f12e21]: Plank
+      - button "Søk … ⌘K" [ref=f12e26]:
+        - generic [ref=f12e30]: Søk …
+        - generic [ref=f12e31]: ⌘K
+      - navigation [ref=f12e32]:
+        - link "Oversikt" [ref=f12e33] [cursor=pointer]:
+          - /url: /o/org_localtest
+        - link "Kart" [ref=f12e39] [cursor=pointer]:
+          - /url: /o/org_localtest/kart
+        - link "Oppgaver" [ref=f12e44] [cursor=pointer]:
+          - /url: /o/org_localtest/tasks
+        - link "Dokumenter" [ref=f12e50] [cursor=pointer]:
+          - /url: /o/org_localtest/documents
+        - link "Komponenter" [ref=f12e56] [cursor=pointer]:
+          - /url: /o/org_localtest/components
+        - link "Sider" [ref=f12e61] [cursor=pointer]:
+          - /url: /o/org_localtest/artifacts
+        - generic [ref=f12e69]:
+          - generic [ref=f12e70]: Mine sider
+          - generic [ref=f12e71]:
+            - link "Eiendomspuls – tilstand, oppgaver og dokumentasjon" [ref=f12e72] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mv17y53dob3xyaplek
+            - link "Leverandører" [ref=f12e80] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mw4yuvtcloa0ijjfte
+      - generic [ref=f12e88]:
+        - generic [ref=f12e89]: Portefølje
+        - button "Legg til" [ref=f12e93]
+      - generic [ref=f12e95]:
+        - generic [ref=f12e96]:
+          - generic [ref=f12e97]:
+            - button "Skjul" [ref=f12e98]
+            - link "Elvebakken borettslag (demo)" [ref=f12e101] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y526q8hzz4oabu
+          - generic [ref=f12e108]:
+            - button "Vis" [ref=f12e109]
+            - link "Blokk 1" [ref=f12e112] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y5266xh2e21l0p
+        - generic [ref=f12e119]:
+          - generic [ref=f12e120]:
+            - button "Skjul" [ref=f12e121]
+            - link "Sagbruket kontorpark (demo)" [ref=f12e124] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y525si45dvzten
+          - generic [ref=f12e131]:
+            - button "Vis" [ref=f12e132]
+            - link "Hovedbygg" [ref=f12e135] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+          - generic [ref=f12e143]:
+            - button "Vis" [ref=f12e144]
+            - link "Lagerhall" [ref=f12e147] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525xfez0xmsi5
+      - button "AI-bruk 0 %" [ref=f12e156]:
+        - generic [ref=f12e157]: AI-bruk
+        - generic [ref=f12e158]: 0 %
+      - button "H Henrik" [ref=f12e162]:
+        - generic [ref=f12e163]: H
+        - generic [ref=f12e164]: Henrik
+  - main [ref=f12e165]:
+    - generic [ref=f12e166]:
+      - generic [ref=f12e168]:
+        - generic [ref=f12e169]:
+          - generic [ref=f12e170]: 3 komponenter har service på overtid
+          - generic [ref=f12e171]: Se hva som bør gjøres først.
+        - link "Se service" [ref=f12e172] [cursor=pointer]:
+          - /url: /o/org_localtest/components?forfalt=1
+      - generic [ref=f12e175]:
+        - generic [ref=f12e177]:
+          - generic [ref=f12e182]:
+            - heading "Komponenter" [level=1] [ref=f12e183]
+            - generic [ref=f12e184]: Tekniske anlegg og utstyr, med leverandør, NS 3451, serviceintervaller og tilstand.
+          - button "Ny komponent" [ref=f12e186]
+        - generic [ref=f12e188]:
+          - textbox "Søk på navn, leverandør, produsent eller TFM …" [ref=f12e193]
+          - combobox [ref=f12e194]:
+            - option "Alle bygg" [selected]
+            - option "Blokk 1"
+            - option "Hovedbygg"
+            - option "Lagerhall"
+          - combobox [ref=f12e195]:
+            - option "All service" [selected]
+            - option "På overtid"
+            - option "Innen 30 dager"
+            - option "Innen 90 dager"
+        - table [ref=f12e197]:
+          - rowgroup [ref=f12e198]:
+            - row [ref=f12e199]:
+              - columnheader "Komponent" [ref=f12e200]
+              - columnheader "NS 3451" [ref=f12e201]
+              - columnheader "Leverandør" [ref=f12e202]
+              - columnheader "Plassering" [ref=f12e203]
+              - columnheader "Tilstand" [ref=f12e204]
+              - columnheader "Neste service" [ref=f12e205]
+          - rowgroup [ref=f12e206]:
+            - row [ref=f12e207] [cursor=pointer]:
+              - cell "Oljekjel (utfaset) Ukjent" [ref=f12e208]:
+                - generic [ref=f12e209]: Oljekjel (utfaset)
+                - generic [ref=f12e210]: Ukjent
+              - cell "32" [ref=f12e211]
+              - cell "–" [ref=f12e212]
+              - cell "Lagerhall › 1. etasje › Fyrrom" [ref=f12e213]
+              - cell "TG3" [ref=f12e214]
+              - cell "–" [ref=f12e216]
+            - row [ref=f12e217] [cursor=pointer]:
+              - cell "Væske-vann varmepumpe VP01 Varmepro · VP-120" [ref=f12e218]:
+                - generic [ref=f12e219]: Væske-vann varmepumpe VP01
+                - generic [ref=f12e220]: Varmepro · VP-120
+              - cell "32 =320.001" [ref=f12e221]:
+                - text: "32"
+                - generic [ref=f12e222]: =320.001
+              - cell "–" [ref=f12e223]
+              - cell "Hovedbygg › Kjeller (U1) › Teknisk rom ventilasjon" [ref=f12e224]
+              - cell "TG1" [ref=f12e225]
+              - cell "13 d over" [ref=f12e227]
+            - row [ref=f12e230] [cursor=pointer]:
+              - cell "Sprinklersentral Aquaguard" [ref=f12e231]:
+                - generic [ref=f12e232]: Sprinklersentral
+                - generic [ref=f12e233]: Aquaguard
+              - cell "33 =332.001" [ref=f12e234]:
+                - text: "33"
+                - generic [ref=f12e235]: =332.001
+              - cell "–" [ref=f12e236]
+              - cell "Hovedbygg › Kjeller (U1) › Teknisk rom ventilasjon" [ref=f12e237]
+              - cell "TG0" [ref=f12e238]
+              - cell "30. aug. 2027" [ref=f12e240]
+            - row [ref=f12e243] [cursor=pointer]:
+              - cell "Ventilasjonsaggregat VA01 Nordluft · NL-4000 Roterende" [ref=f12e244]:
+                - generic [ref=f12e245]: Ventilasjonsaggregat VA01
+                - generic [ref=f12e246]: Nordluft · NL-4000 Roterende
+              - cell "36 =360.001" [ref=f12e247]:
+                - text: "36"
+                - generic [ref=f12e248]: =360.001
+              - cell "Byggteknikk Øst AS" [ref=f12e249]
+              - cell "Hovedbygg › Kjeller (U1) › Teknisk rom ventilasjon" [ref=f12e250]
+              - cell "TG1" [ref=f12e251]
+              - cell "44 d over" [ref=f12e253]
+            - row [ref=f12e256] [cursor=pointer]:
+              - cell "Hovedfordeling (hovedtavle) Tavlebygg Nord" [ref=f12e257]:
+                - generic [ref=f12e258]: Hovedfordeling (hovedtavle)
+                - generic [ref=f12e259]: Tavlebygg Nord
+              - cell "43 =433.001" [ref=f12e260]:
+                - text: "43"
+                - generic [ref=f12e261]: =433.001
+              - cell "–" [ref=f12e262]
+              - cell "Hovedbygg › Kjeller (U1) › Hovedtavlerom" [ref=f12e263]
+              - cell "TG1" [ref=f12e264]
+              - cell "1. juli 2027" [ref=f12e266]
+            - row [ref=f12e269] [cursor=pointer]:
+              - cell "Brannalarmsentral Vaktsikker · VS-8 Adresserbar" [ref=f12e270]:
+                - generic [ref=f12e271]: Brannalarmsentral
+                - generic [ref=f12e272]: Vaktsikker · VS-8 Adresserbar
+              - cell "54 =542.001" [ref=f12e273]:
+                - text: "54"
+                - generic [ref=f12e274]: =542.001
+              - cell "–" [ref=f12e275]
+              - cell "Hovedbygg › 1. etasje › Resepsjon" [ref=f12e276]
+              - cell "TG0" [ref=f12e277]
+              - cell "Om 7 d" [ref=f12e279]
+            - row [ref=f12e282] [cursor=pointer]:
+              - cell "Personheis H1 Liftverk · LV-630 MRL" [ref=f12e283]:
+                - generic [ref=f12e284]: Personheis H1
+                - generic [ref=f12e285]: Liftverk · LV-630 MRL
+              - cell "62 =621.001" [ref=f12e286]:
+                - text: "62"
+                - generic [ref=f12e287]: =621.001
+              - cell "–" [ref=f12e288]
+              - cell "Hovedbygg › 1. etasje › Heissjakt" [ref=f12e289]
+              - cell "TG0" [ref=f12e290]
+              - cell "10 d over" [ref=f12e292]
+  - complementary [ref=f12e295]:
+    - generic [ref=f12e296]:
+      - button "Hjelp" [ref=f12e299]:
+        - generic "Gnisten" [ref=f12e300]
+      - button "Historikk" [ref=f12e311]
+      - button "Ny samtale" [ref=f12e316]
+      - button "Lukk panel (⌘J)" [ref=f12e318]
+    - generic [ref=f12e323]:
+      - generic [ref=f12e324]:
+        - generic "Gnisten" [ref=f12e325]
+        - generic [ref=f12e333]: Hjelp
+        - generic [ref=f12e334]: Forklarer hvordan Plank brukes, og holder hjelpesenteret oppdatert med skjermbilder.
+      - generic [ref=f12e335]:
+        - button "Hvordan laster jeg opp FDV-dokumentasjon?" [ref=f12e336]
+        - button "Hvordan registrerer jeg et avvik?" [ref=f12e337]
+        - button "Hvor ser jeg service som forfaller?" [ref=f12e338]
+    - generic [ref=f12e340]:
+      - textbox "Spør Hjelp …" [ref=f12e341]
+      - generic [ref=f12e342]:
+        - generic [ref=f12e343]: Enter sender · Shift+Enter ny linje
+        - button "Send" [disabled] [ref=f12e344]

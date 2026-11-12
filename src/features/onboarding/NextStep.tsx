@@ -24,7 +24,7 @@ export interface NextAction {
 const ASK = "Hva bør jeg prioritere i porteføljen denne uken? Se på byggene, dokumentene og service som forfaller.";
 
 const nok = (n: number) => `${n.toLocaleString("nb-NO")} kr`;
-const PLAN_SUMMARY = `Standard ${nok(PLANS.standard.priceNok)}/mnd med ${nok(PLANS.standard.includedAiNok)} AI-bruk, eller Pro ${nok(PLANS.pro.priceNok)}/mnd med ${nok(PLANS.pro.includedAiNok)}. Inkl. mva.`;
+const PLAN_SUMMARY = `Basis ${nok(PLANS.basis.priceNok)}/mnd med ${nok(PLANS.basis.includedAiNok)} AI-bruk, Standard ${nok(PLANS.standard.priceNok)}/mnd med ${nok(PLANS.standard.includedAiNok)}, eller Pro ${nok(PLANS.pro.priceNok)}/mnd med ${nok(PLANS.pro.includedAiNok)}. Inkl. mva.`;
 
 export function nextAction(a: Activation, isAdmin: boolean): NextAction | null {
   if (a.buildings === 0) {

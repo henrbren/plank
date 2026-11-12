@@ -1,0 +1,24 @@
+- generic [ref=f7e3]:
+  - complementary [ref=f7e4]:
+    - generic [ref=f7e5]:
+      - button "A. WESTRE AS Plank" [ref=f7e9]:
+        - generic [ref=f7e16]:
+          - generic [ref=f7e17]: A. WESTRE AS
+          - generic [ref=f7e18]: Plank
+      - button "Søk … ⌘K" [ref=f7e23]:
+        - generic [ref=f7e27]: Søk …
+        - generic [ref=f7e28]: ⌘K
+      - navigation [ref=f7e29]:
+        - link "Oversikt" [ref=f7e30] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq
+      - generic [ref=f7e36]:
+        - generic [ref=f7e37]: Portefølje
+        - button "Legg til" [ref=f7e41]
+      - button "T Test Testesen" [ref=f7e48]:
+        - generic [ref=f7e49]: T
+        - generic [ref=f7e50]: Test Testesen
+  - main [ref=f7e51]:
+    - generic [ref=f7e52]: Laster …
+  - button "Spør en agent ⌘J" [ref=f7e56]:
+    - text: Spør en agent
+    - generic [ref=f7e60]: ⌘J

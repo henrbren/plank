@@ -1,0 +1,166 @@
+- generic [ref=f2e6]:
+  - complementary [ref=f2e7]:
+    - generic [ref=f2e8]:
+      - button "Test Plank" [ref=f2e12]:
+        - generic [ref=f2e19]:
+          - generic [ref=f2e20]: Test
+          - generic [ref=f2e21]: Plank
+      - button "Søk … ⌘K" [ref=f2e26]:
+        - generic [ref=f2e30]: Søk …
+        - generic [ref=f2e31]: ⌘K
+      - navigation [ref=f2e32]:
+        - link "Oversikt" [ref=f2e33] [cursor=pointer]:
+          - /url: /o/org_localtest
+        - link "Kart" [ref=f2e39] [cursor=pointer]:
+          - /url: /o/org_localtest/kart
+        - link "Oppgaver" [ref=f2e44] [cursor=pointer]:
+          - /url: /o/org_localtest/tasks
+        - link "Dokumenter" [ref=f2e50] [cursor=pointer]:
+          - /url: /o/org_localtest/documents
+        - link "FDV-register" [ref=f2e56] [cursor=pointer]:
+          - /url: /o/org_localtest/components
+        - link "Sider" [ref=f2e61] [cursor=pointer]:
+          - /url: /o/org_localtest/artifacts
+        - generic [ref=f2e69]:
+          - generic [ref=f2e70]: Mine sider
+          - generic [ref=f2e71]:
+            - link "Eiendomspuls – tilstand, oppgaver og dokumentasjon" [ref=f2e72] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mv17y53dob3xyaplek
+            - link "Leverandører" [ref=f2e80] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mw4yuvtcloa0ijjfte
+      - generic [ref=f2e88]:
+        - generic [ref=f2e89]: Portefølje
+        - button "Legg til" [ref=f2e93]
+      - generic [ref=f2e95]:
+        - generic [ref=f2e96]:
+          - generic [ref=f2e97]:
+            - button "Skjul" [ref=f2e98]
+            - link "Elvebakken borettslag (demo)" [ref=f2e101] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y526q8hzz4oabu
+          - generic [ref=f2e108]:
+            - button "Vis" [ref=f2e109]
+            - link "Blokk 1" [ref=f2e112] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y5266xh2e21l0p
+        - generic [ref=f2e119]:
+          - generic [ref=f2e120]:
+            - button "Skjul" [ref=f2e121]
+            - link "Sagbruket kontorpark (demo)" [ref=f2e124] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y525si45dvzten
+          - generic [ref=f2e131]:
+            - button "Vis" [ref=f2e132]
+            - link "Hovedbygg" [ref=f2e135] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+          - generic [ref=f2e143]:
+            - button "Vis" [ref=f2e144]
+            - link "Lagerhall" [ref=f2e147] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525xfez0xmsi5
+      - button "AI-bruk 0 %" [ref=f2e156]:
+        - generic [ref=f2e157]: AI-bruk
+        - generic [ref=f2e158]: 0 %
+      - button "H Henrik" [ref=f2e162]:
+        - generic [ref=f2e163]: H
+        - generic [ref=f2e164]: Henrik
+  - main [ref=f2e165]:
+    - generic [ref=f2e166]:
+      - generic [ref=f2e168]:
+        - generic [ref=f2e169]:
+          - generic [ref=f2e170]: 3 komponenter har service på overtid
+          - generic [ref=f2e171]: Se hva som bør gjøres først.
+        - link "Se service" [ref=f2e172] [cursor=pointer]:
+          - /url: /o/org_localtest/components?forfalt=1
+      - generic [ref=f2e175]:
+        - heading "Innstillinger" [level=1] [ref=f2e184]
+        - generic [ref=f2e185]:
+          - generic [ref=f2e186]:
+            - heading "Din profil" [level=3] [ref=f2e188]
+            - generic [ref=f2e189]:
+              - generic [ref=f2e190]:
+                - generic [ref=f2e191]: Navn
+                - textbox "Navn" [ref=f2e192]: Henrik
+              - generic [ref=f2e193]:
+                - generic [ref=f2e194]: E-post
+                - textbox "E-post" [disabled] [ref=f2e195]: henrik@vixon.no
+              - button "Lagre" [ref=f2e196]
+          - generic [ref=f2e197]:
+            - heading "Organisasjon" [level=3] [ref=f2e199]
+            - generic [ref=f2e200]:
+              - generic [ref=f2e201]:
+                - generic [ref=f2e202]: Navn
+                - textbox "Navn" [ref=f2e203]: Test
+              - button "Lagre" [ref=f2e204]
+          - generic [ref=f2e205]:
+            - heading "Varsler" [level=3] [ref=f2e207]
+            - generic [ref=f2e209] [cursor=pointer]:
+              - checkbox "Varsle meg når det kommer nye dokumenter E-post når Boligmappa får nye dokumenter etter den første overføringen. Vi sjekker omtrent én gang i døgnet. Den første e-posten sender vi uansett." [ref=f2e210]
+              - generic [ref=f2e211]:
+                - generic [ref=f2e212]: Varsle meg når det kommer nye dokumenter
+                - generic [ref=f2e213]: E-post når Boligmappa får nye dokumenter etter den første overføringen. Vi sjekker omtrent én gang i døgnet. Den første e-posten sender vi uansett.
+          - generic [ref=f2e214]:
+            - generic [ref=f2e215]:
+              - heading "Abonnement" [level=3] [ref=f2e216]
+              - link "Abonnement og bruk" [ref=f2e220] [cursor=pointer]:
+                - /url: /o/org_localtest/abonnement
+            - paragraph [ref=f2e223]:
+              - text: Abonnementet er inkludert, med kvote på
+              - generic [ref=f2e224]: 50 bygg
+              - text: . 3 er i bruk. AI-bruk på denne kontoen faktureres ikke.
+            - generic [ref=f2e353]:
+              - generic [ref=f2e354]: Abonnementet er aktivt
+              - generic [ref=f2e355]: Betaling skjer via Stripe.
+          - generic [ref=f2e233]:
+            - heading "Datakilder" [level=3] [ref=f2e235]
+            - paragraph [ref=f2e236]: Her henter du bygg og dokumenter inn i Plank. Agentene bruker det samme.
+            - generic [ref=f2e237]:
+              - link "LAFT Bygg, arbeidsordrer og dokumentarkiv" [ref=f2e238] [cursor=pointer]:
+                - /url: /o/org_localtest/laft
+                - generic [ref=f2e242]:
+                  - generic [ref=f2e243]: LAFT
+                  - generic [ref=f2e244]: Bygg, arbeidsordrer og dokumentarkiv
+              - link "Boligmappa Bygg og dokumenter på organisasjonsnummer" [ref=f2e245] [cursor=pointer]:
+                - /url: /o/org_localtest/boligmappa
+                - generic [ref=f2e251]:
+                  - generic [ref=f2e252]: Boligmappa
+                  - generic [ref=f2e253]: Bygg og dokumenter på organisasjonsnummer
+          - generic [ref=f2e254]:
+            - generic [ref=f2e255]:
+              - heading "Brukere og tilganger" [level=3] [ref=f2e256]
+              - link "Inviter og styr tilganger" [ref=f2e263] [cursor=pointer]:
+                - /url: /o/org_localtest/tilganger
+            - generic [ref=f2e267]:
+              - generic [ref=f2e268]:
+                - generic "Henrik" [ref=f2e269]: H
+                - generic "leser@example.no" [ref=f2e270]: l
+                - generic "styret@example.no" [ref=f2e271]: s
+              - paragraph [ref=f2e272]: 3 brukere. Gi tilgang til hele porteføljen eller bare til utvalgte eiendommer og bygg, med lese- eller redigeringstilgang og sluttdato.
+          - generic [ref=f2e273]:
+            - heading "Systemstatus" [level=3] [ref=f2e275]
+            - generic [ref=f2e360]:
+              - generic [ref=f2e361]: Claude API
+              - generic [ref=f2e362]: Agentene er klare.
+            - generic [ref=f2e367]:
+              - generic [ref=f2e368]: E-post (Resend)
+              - generic [ref=f2e369]: Innloggingslenker, invitasjoner og rapporter sendes på e-post.
+            - generic [ref=f2e374]:
+              - generic [ref=f2e375]: Workers AI
+              - generic [ref=f2e376]: Brukes til å hente ut tekst fra PDF, Office-filer og bilder.
+  - complementary [ref=f2e297]:
+    - generic [ref=f2e298]:
+      - button "Hjelp" [ref=f2e301]:
+        - generic "Gnisten" [ref=f2e302]
+      - button "Historikk" [ref=f2e313]
+      - button "Ny samtale" [ref=f2e318]
+      - button "Lukk panel (⌘J)" [ref=f2e320]
+    - generic [ref=f2e325]:
+      - generic [ref=f2e326]:
+        - generic "Gnisten" [ref=f2e327]
+        - generic [ref=f2e335]: Hjelp
+        - generic [ref=f2e336]: Forklarer hvordan Plank brukes, og holder hjelpesenteret oppdatert med skjermbilder.
+      - generic [ref=f2e337]:
+        - button "Hvordan laster jeg opp FDV-dokumentasjon?" [ref=f2e338]
+        - button "Hvordan registrerer jeg et avvik?" [ref=f2e339]
+        - button "Hvor ser jeg service som forfaller?" [ref=f2e340]
+    - generic [ref=f2e342]:
+      - textbox "Spør Hjelp …" [ref=f2e343]
+      - generic [ref=f2e344]:
+        - generic [ref=f2e345]: Enter sender · Shift+Enter ny linje
+        - button "Send" [disabled] [ref=f2e346]

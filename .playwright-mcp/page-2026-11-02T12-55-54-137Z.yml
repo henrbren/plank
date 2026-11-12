@@ -1,0 +1,57 @@
+- generic [ref=f25e3]:
+  - complementary [ref=f25e4]:
+    - generic [ref=f25e5]:
+      - button "Demoportefølje Plank" [ref=f25e9]:
+        - generic [ref=f25e16]:
+          - generic [ref=f25e17]: Demoportefølje
+          - generic [ref=f25e18]: Plank
+      - button "Søk … ⌘K" [ref=f25e23]:
+        - generic [ref=f25e27]: Søk …
+        - generic [ref=f25e28]: ⌘K
+      - navigation [ref=f25e29]:
+        - link "Oversikt" [ref=f25e30] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl
+        - link "Oppgaver" [ref=f25e36] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/tasks
+        - link "Dokumenter" [ref=f25e42] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/documents
+        - link "FDV-register" [ref=f25e48] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/components
+        - link "Agenter" [ref=f25e53] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/agents
+        - link "Sider" [ref=f25e59] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/artifacts
+      - generic [ref=f25e67]:
+        - generic [ref=f25e68]: Portefølje
+        - button "Legg til" [ref=f25e72]
+      - button "d demo.mottaker@example.com" [ref=f25e79]:
+        - generic [ref=f25e80]: d
+        - generic [ref=f25e81]: demo.mottaker@example.com
+  - main [ref=f25e82]:
+    - generic [ref=f25e84]:
+      - generic [ref=f25e86]:
+        - generic [ref=f25e92]:
+          - heading "Dokumenter" [level=1] [ref=f25e93]
+          - generic [ref=f25e94]: FDV-dokumentasjon, produktdatablad, tegninger, rapporter og IFC-modeller. Tekst hentes ut og indekseres automatisk.
+        - button "Last opp" [ref=f25e96]
+      - generic [ref=f25e100]:
+        - textbox "Søk i innholdet i dokumentene …" [ref=f25e105]
+        - combobox [ref=f25e106]:
+          - option "Alle typer" [selected]
+          - option "FDV-dokumentasjon"
+          - option "Produktdatablad"
+          - option "Bruks- og vedlikeholdsanvisning"
+          - option "Tegning"
+          - option "IFC-modell (BIM)"
+          - option "Sertifikat / samsvarserklæring"
+          - option "Rapport / tilstandsanalyse"
+          - option "Kontroll / servicerapport"
+          - option "Avtale / kontrakt"
+          - option "Bilde"
+          - option "Annet"
+        - combobox [ref=f25e107]:
+          - option "Alle bygg" [selected]
+      - generic [ref=f25e108]: Laster …
+  - button "Spør en agent ⌘J" [ref=f25e111]:
+    - text: Spør en agent
+    - generic [ref=f25e115]: ⌘J

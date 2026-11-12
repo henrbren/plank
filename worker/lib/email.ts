@@ -170,6 +170,7 @@ export function boligmappaReadyEmail(opts: {
 }): { subject: string; html: string; text: string } {
   const org = escapeHtml(opts.orgName);
   const n = (v: number) => v.toLocaleString("nb-NO");
+  const missed = !opts.stopped && !opts.empty && opts.documents === 0 && opts.failed > 0;
   const lines = opts.stopped
     ? [
         `Hentingen fra Boligmappa for ${opts.orgName} stoppet fordi tjenesten ikke svarte.`,
@@ -180,27 +181,35 @@ export function boligmappaReadyEmail(opts: {
           `Vi slo opp ${opts.orgName} i Boligmappa, men fant ingen bygg på organisasjonsnummeret.`,
           "Du kan legge inn eiendommer selv, eller prøve hentingen på nytt senere.",
         ]
-      : [
-          `Vi har overført ${n(opts.documents)} dokumenter fra ${n(opts.buildings)} bygg i ${opts.orgName}.`,
-          opts.failed > 0
-            ? `${n(opts.failed)} dokumenter lot seg ikke hente. Du kan prøve dem på nytt fra Boligmappa-siden.`
-            : "Alt som var tilgjengelig, ligger nå i arkivet.",
-          ...(opts.quotaNote ? [opts.quotaNote] : []),
-          "Agenten kan lese det som er inne og hjelpe deg videre med oppsettet.",
-        ];
+      : missed
+        ? [
+            `Vi fikk ikke hentet dokumentene fra Boligmappa for ${opts.orgName}.`,
+            `${n(opts.failed)} dokumenter lot seg ikke hente, og ingenting er lagt i arkivet.`,
+            "Åpne arbeidsflaten og trykk Prøv igjen. Vi henter filene på nytt, og det som allerede er inne blir liggende.",
+          ]
+        : [
+            `Vi har overført ${n(opts.documents)} dokumenter fra ${n(opts.buildings)} bygg i ${opts.orgName}.`,
+            opts.failed > 0
+              ? `${n(opts.failed)} dokumenter lot seg ikke hente. Du kan prøve dem på nytt fra Boligmappa-siden.`
+              : "Alt som var tilgjengelig, ligger nå i arkivet.",
+            ...(opts.quotaNote ? [opts.quotaNote] : []),
+            "Agenten kan lese det som er inne og hjelpe deg videre med oppsettet.",
+          ];
   const subject = opts.stopped
     ? `Hentingen fra Boligmappa stoppet for ${opts.orgName}`
     : opts.empty
       ? `Ingen bygg i Boligmappa for ${opts.orgName}`
-      : `Dokumentene til ${opts.orgName} er inne`;
-  const title = opts.stopped ? "Hentingen stoppet" : opts.empty ? "Ingen bygg i Boligmappa" : "Dokumentene er overført";
+      : missed
+        ? `Dokumentene til ${opts.orgName} kom ikke inn fra Boligmappa`
+        : `Dokumentene til ${opts.orgName} er inne`;
+  const title = opts.stopped ? "Hentingen stoppet" : opts.empty ? "Ingen bygg i Boligmappa" : missed ? "Dokumentene kom ikke inn" : "Dokumentene er overført";
   return {
     subject,
     html: emailLayout({
       brand: opts.brand,
       title,
       bodyHtml: lines.map((line) => `<p>${escapeHtml(line).replace(escapeHtml(opts.orgName), `<b>${org}</b>`)}</p>`).join(""),
-      cta: { label: opts.stopped ? "Prøv igjen" : `Åpne ${opts.brand}`, url: opts.url },
+      cta: { label: opts.stopped || missed ? "Prøv igjen" : `Åpne ${opts.brand}`, url: opts.url },
       footer: "Du får denne e-posten fordi du startet hentingen. Den sendes én gang.",
     }),
     text: [...lines, "", opts.url].join("\n"),

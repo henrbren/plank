@@ -1,0 +1,154 @@
+- generic [ref=f39e6]:
+  - complementary [ref=f39e7]:
+    - generic [ref=f39e8]:
+      - button "Test Plank" [ref=f39e12]:
+        - generic [ref=f39e19]:
+          - generic [ref=f39e20]: Test
+          - generic [ref=f39e21]: Plank
+      - button "Søk … ⌘K" [ref=f39e26]:
+        - generic [ref=f39e30]: Søk …
+        - generic [ref=f39e31]: ⌘K
+      - navigation [ref=f39e32]:
+        - link "Oversikt" [ref=f39e33] [cursor=pointer]:
+          - /url: /o/org_localtest
+        - link "Oppgaver" [ref=f39e39] [cursor=pointer]:
+          - /url: /o/org_localtest/tasks
+        - link "Dokumenter" [ref=f39e45] [cursor=pointer]:
+          - /url: /o/org_localtest/documents
+        - link "FDV-register" [ref=f39e51] [cursor=pointer]:
+          - /url: /o/org_localtest/components
+        - link "Agenter" [ref=f39e56] [cursor=pointer]:
+          - /url: /o/org_localtest/agents
+        - link "Sider" [ref=f39e62] [cursor=pointer]:
+          - /url: /o/org_localtest/artifacts
+        - generic [ref=f39e70]:
+          - generic [ref=f39e71]: Mine sider
+          - link "Eiendomspuls – tilstand, oppgaver og dokumentasjon" [ref=f39e73] [cursor=pointer]:
+            - /url: /o/org_localtest/artifacts/art_0mv17y53dob3xyaplek
+      - generic [ref=f39e81]:
+        - generic [ref=f39e82]: Portefølje
+        - button "Legg til" [ref=f39e86]
+      - generic [ref=f39e88]:
+        - generic [ref=f39e89]:
+          - generic [ref=f39e90]:
+            - button "Skjul" [ref=f39e91]
+            - link "Elvebakken borettslag (demo)" [ref=f39e94] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y526q8hzz4oabu
+          - generic [ref=f39e101]:
+            - button "Vis" [ref=f39e102]
+            - link "Blokk 1" [ref=f39e105] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y5266xh2e21l0p
+        - generic [ref=f39e112]:
+          - generic [ref=f39e113]:
+            - button "Skjul" [ref=f39e114]
+            - link "Sagbruket kontorpark (demo)" [ref=f39e117] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y525si45dvzten
+          - generic [ref=f39e124]:
+            - button "Vis" [ref=f39e125]
+            - link "Hovedbygg" [ref=f39e128] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+          - generic [ref=f39e136]:
+            - button "Vis" [ref=f39e137]
+            - link "Lagerhall" [ref=f39e140] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525xfez0xmsi5
+      - button "AI-bruk 0 %" [ref=f39e149]:
+        - generic [ref=f39e150]: AI-bruk
+        - generic [ref=f39e151]: 0 %
+      - button "H Henrik" [ref=f39e155]:
+        - generic [ref=f39e156]: H
+        - generic [ref=f39e157]: Henrik
+  - main [ref=f39e158]:
+    - generic [ref=f39e159]:
+      - button "Meny" [ref=f39e160]
+      - generic [ref=f39e162]: Plank
+      - button "Søk" [ref=f39e169]
+      - button "Agent" [ref=f39e173]
+    - generic [ref=f39e177]:
+      - generic [ref=f39e179]:
+        - generic [ref=f39e180]:
+          - generic [ref=f39e181]: 3 komponenter har service på overtid
+          - generic [ref=f39e182]: Se hva som bør gjøres først.
+        - link "Se service" [ref=f39e183] [cursor=pointer]:
+          - /url: /o/org_localtest/components?forfalt=1
+      - generic [ref=f39e186]:
+        - generic [ref=f39e188]:
+          - generic [ref=f39e194]:
+            - heading "Dokumenter" [level=1] [ref=f39e195]
+            - generic [ref=f39e196]: FDV-dokumentasjon, produktdatablad, tegninger, rapporter og IFC-modeller. Tekst hentes ut og indekseres automatisk.
+          - button "Last opp" [ref=f39e198]
+        - generic [ref=f39e202]:
+          - searchbox "Søk på navn, adresse eller nummer" [ref=f39e204]
+          - combobox [ref=f39e205]:
+            - option "Bygg og eiendommer" [selected]
+            - option "Bare bygg"
+            - option "Bare eiendommer"
+          - textbox "Søk i innholdet …" [ref=f39e210]
+        - paragraph [ref=f39e211]: 3 bygg · 2 eiendommer
+        - generic [ref=f39e212]:
+          - button "Bygg 0 dokumenter Blokk 1 Elvebakken 10, 1960 Løken" [ref=f39e214] [cursor=pointer]:
+            - generic [ref=f39e215]:
+              - generic [ref=f39e216]: Bygg
+              - generic [ref=f39e217]: 0 dokumenter
+            - generic [ref=f39e218]: Blokk 1
+            - generic [ref=f39e219]: Elvebakken 10, 1960 Løken
+          - generic [ref=f39e220]:
+            - button "Bygg 5 dokumenter Hovedbygg Sagbruksveien 4, 0473 Oslo 300112233" [expanded] [ref=f39e221] [cursor=pointer]:
+              - generic [ref=f39e222]:
+                - generic [ref=f39e223]: Bygg
+                - generic [ref=f39e224]: 5 dokumenter
+              - generic [ref=f39e225]: Hovedbygg
+              - generic [ref=f39e226]: Sagbruksveien 4, 0473 Oslo
+              - generic [ref=f39e227]: "300112233"
+            - generic [ref=f39e253]:
+              - generic [ref=f39e254]:
+                - button "Tilbake" [ref=f39e255]
+                - generic [ref=f39e256]:
+                  - generic [ref=f39e257]: Hovedbygg
+                  - generic [ref=f39e258]: Bygg · 300112233
+                - generic [ref=f39e259]:
+                  - link "Åpne modellen" [ref=f39e260] [cursor=pointer]:
+                    - /url: /o/org_localtest/models/doc_0mv17y53as43tr4wzeh
+                  - link "Last ned" [ref=f39e261] [cursor=pointer]:
+                    - /url: /api/orgs/org_localtest/documents/doc_0mv17y53as43tr4wzeh/file?download=1
+              - generic [ref=f39e265]:
+                - generic [ref=f39e266]:
+                  - button "Hovedbygg – arkitektmodell (IFC) 9. okt. 2026" [ref=f39e267]:
+                    - generic [ref=f39e268]: Hovedbygg – arkitektmodell (IFC)
+                    - generic [ref=f39e269]: 9. okt. 2026
+                  - button "Liftverk LV-630 – serviceavtale og periodisk kontroll 9. okt. 2026" [ref=f39e270]:
+                    - generic [ref=f39e271]: Liftverk LV-630 – serviceavtale og periodisk kontroll
+                    - generic [ref=f39e272]: 9. okt. 2026
+                  - button "Tilstandsanalyse Sagbruket kontorpark 2025 (NS 3424) 9. okt. 2026" [ref=f39e273]:
+                    - generic [ref=f39e274]: Tilstandsanalyse Sagbruket kontorpark 2025 (NS 3424)
+                    - generic [ref=f39e275]: 9. okt. 2026
+                  - button "Brannalarmanlegg Hovedbygg – FDV-dokumentasjon 9. okt. 2026" [ref=f39e276]:
+                    - generic [ref=f39e277]: Brannalarmanlegg Hovedbygg – FDV-dokumentasjon
+                    - generic [ref=f39e278]: 9. okt. 2026
+                  - button "Nordluft NL-4000 – drifts- og vedlikeholdsinstruks 9. okt. 2026" [ref=f39e279]:
+                    - generic [ref=f39e280]: Nordluft NL-4000 – drifts- og vedlikeholdsinstruks
+                    - generic [ref=f39e281]: 9. okt. 2026
+                - generic [ref=f39e283]:
+                  - generic [ref=f39e284]: IFC-modellen åpnes i viseren.
+                  - link "Åpne modellen" [ref=f39e285] [cursor=pointer]:
+                    - /url: /o/org_localtest/models/doc_0mv17y53as43tr4wzeh
+          - button "Bygg 0 dokumenter Lagerhall Sagbruksveien 4, 0473 Oslo 300112234" [ref=f39e229] [cursor=pointer]:
+            - generic [ref=f39e230]:
+              - generic [ref=f39e231]: Bygg
+              - generic [ref=f39e232]: 0 dokumenter
+            - generic [ref=f39e233]: Lagerhall
+            - generic [ref=f39e234]: Sagbruksveien 4, 0473 Oslo
+            - generic [ref=f39e235]: "300112234"
+          - button "Eiendom 0 dokumenter Elvebakken borettslag (demo) Elvebakken 10, 1960 Løken gnr 88 / bnr 12" [ref=f39e237] [cursor=pointer]:
+            - generic [ref=f39e238]:
+              - generic [ref=f39e239]: Eiendom
+              - generic [ref=f39e240]: 0 dokumenter
+            - generic [ref=f39e241]: Elvebakken borettslag (demo)
+            - generic [ref=f39e242]: Elvebakken 10, 1960 Løken
+            - generic [ref=f39e243]: gnr 88 / bnr 12
+          - button "Eiendom 5 dokumenter Sagbruket kontorpark (demo) Sagbruksveien 4, 0473 Oslo gnr 220 / bnr 45" [ref=f39e245] [cursor=pointer]:
+            - generic [ref=f39e246]:
+              - generic [ref=f39e247]: Eiendom
+              - generic [ref=f39e248]: 5 dokumenter
+            - generic [ref=f39e249]: Sagbruket kontorpark (demo)
+            - generic [ref=f39e250]: Sagbruksveien 4, 0473 Oslo
+            - generic [ref=f39e251]: gnr 220 / bnr 45

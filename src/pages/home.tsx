@@ -8,6 +8,7 @@ import { entityPath, timeAgo } from "@/lib/format";
 import { AgentAvatar, DueDate, ENTITY_ICONS, ServiceBadge, TaskTypeBadge } from "@/components/domain";
 import { Button, Card, CardHeader, cn, ErrorState, Loading, PageHeader, Stat, useToast } from "@/components/ui";
 import { UploadModal } from "@/components/forms";
+import { TransferNotice } from "@/features/onboarding/Funnel";
 import { Journey, useNextAction } from "@/features/onboarding/NextStep";
 
 const AI_PAGES: { title: string; text: string; prompt?: string; suppliers?: boolean }[] = [
@@ -112,6 +113,8 @@ export function HomePage() {
           )
         }
       />
+
+      <TransferNotice />
 
       <Journey onDemo={isAdmin ? seed : undefined} seeding={seeding} />
 

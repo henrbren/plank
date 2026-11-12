@@ -1,0 +1,162 @@
+- generic [ref=f3e6]:
+  - complementary [ref=f3e7]:
+    - generic [ref=f3e8]:
+      - button "Test Plank" [ref=f3e12]:
+        - generic [ref=f3e19]:
+          - generic [ref=f3e20]: Test
+          - generic [ref=f3e21]: Plank
+      - button "Søk … ⌘K" [ref=f3e26]:
+        - generic [ref=f3e30]: Søk …
+        - generic [ref=f3e31]: ⌘K
+      - navigation [ref=f3e32]:
+        - link "Oversikt" [ref=f3e33] [cursor=pointer]:
+          - /url: /o/org_localtest
+        - link "Kart" [ref=f3e39] [cursor=pointer]:
+          - /url: /o/org_localtest/kart
+        - link "Oppgaver" [ref=f3e44] [cursor=pointer]:
+          - /url: /o/org_localtest/tasks
+        - link "Dokumenter" [ref=f3e50] [cursor=pointer]:
+          - /url: /o/org_localtest/documents
+        - link "FDV-register" [ref=f3e56] [cursor=pointer]:
+          - /url: /o/org_localtest/components
+        - link "Agenter" [ref=f3e61] [cursor=pointer]:
+          - /url: /o/org_localtest/agents
+        - link "Sider" [ref=f3e67] [cursor=pointer]:
+          - /url: /o/org_localtest/artifacts
+        - generic [ref=f3e75]:
+          - generic [ref=f3e76]: Mine sider
+          - generic [ref=f3e77]:
+            - link "Eiendomspuls – tilstand, oppgaver og dokumentasjon" [ref=f3e78] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mv17y53dob3xyaplek
+            - link "Leverandører" [ref=f3e86] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mw4ysqce00npy0a4zu
+            - link "Leverandører" [ref=f3e561] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mw4yuvtcloa0ijjfte
+      - generic [ref=f3e94]:
+        - generic [ref=f3e95]: Portefølje
+        - button "Legg til" [ref=f3e99]
+      - generic [ref=f3e101]:
+        - generic [ref=f3e102]:
+          - generic [ref=f3e103]:
+            - button "Skjul" [ref=f3e104]
+            - link "Elvebakken borettslag (demo)" [ref=f3e107] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y526q8hzz4oabu
+          - generic [ref=f3e114]:
+            - button "Vis" [ref=f3e115]
+            - link "Blokk 1" [ref=f3e118] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y5266xh2e21l0p
+        - generic [ref=f3e125]:
+          - generic [ref=f3e126]:
+            - button "Skjul" [ref=f3e127]
+            - link "Sagbruket kontorpark (demo)" [ref=f3e130] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y525si45dvzten
+          - generic [ref=f3e137]:
+            - button "Vis" [ref=f3e138]
+            - link "Hovedbygg" [ref=f3e141] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+          - generic [ref=f3e149]:
+            - button "Vis" [ref=f3e150]
+            - link "Lagerhall" [ref=f3e153] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525xfez0xmsi5
+      - button "AI-bruk 0 %" [ref=f3e162]:
+        - generic [ref=f3e163]: AI-bruk
+        - generic [ref=f3e164]: 0 %
+      - button "H Henrik" [ref=f3e168]:
+        - generic [ref=f3e169]: H
+        - generic [ref=f3e170]: Henrik
+  - main [ref=f3e171]:
+    - generic [ref=f3e172]:
+      - generic [ref=f3e174]:
+        - generic [ref=f3e175]:
+          - generic [ref=f3e176]: 3 komponenter har service på overtid
+          - generic [ref=f3e177]: Se hva som bør gjøres først.
+        - link "Se service" [ref=f3e178] [cursor=pointer]:
+          - /url: /o/org_localtest/components?forfalt=1
+      - generic [ref=f3e614]:
+        - generic [ref=f3e615]:
+          - navigation [ref=f3e616]:
+            - link "Dokumenter" [ref=f3e618] [cursor=pointer]:
+              - /url: /o/org_localtest/documents
+            - generic [ref=f3e619]:
+              - generic [ref=f3e620]: /
+              - link "Hovedbygg" [ref=f3e621] [cursor=pointer]:
+                - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+          - generic [ref=f3e622]:
+            - generic [ref=f3e628]:
+              - heading "Liftverk LV-630 – serviceavtale og periodisk kontroll" [level=1] [ref=f3e629]
+              - generic [ref=f3e631]:
+                - generic [ref=f3e632]: Avtale / kontrakt
+                - generic [ref=f3e633]: Indeksert
+                - generic [ref=f3e637]: heis-serviceavtale.md · 707 B
+            - generic [ref=f3e638]:
+              - link "Last ned" [ref=f3e639] [cursor=pointer]:
+                - /url: /api/orgs/org_localtest/documents/doc_0mv17y535diih4ctp85/file?download=1
+              - button "Oppsummer" [ref=f3e643]
+              - button "Mer" [ref=f3e649]
+        - generic [ref=f3e654]:
+          - generic [ref=f3e658]:
+            - heading "Serviceavtale – Personheis H1, Hovedbygg" [level=1] [ref=f3e659]
+            - paragraph [ref=f3e660]: "Leverandør: Liftverk AS. Heis: LV-630 MRL (maskinromsløs), 630 kg / 8 personer, 5 stopp (U1–3)."
+            - heading "Omfang" [level=2] [ref=f3e661]
+            - list [ref=f3e662]:
+              - listitem [ref=f3e663]: Månedlig forebyggende service inkl. smøring, justering av dører og test av nødtelefon.
+              - listitem [ref=f3e664]: Årlig periodisk kontroll av akkreditert kontrollorgan, jf. forskrift om løfteinnretninger. Kontrollrapport sendes eier.
+              - listitem [ref=f3e665]: Fri utrykning ved stans mellom etasjer innen 1 time (døgnvakt).
+            - heading "Eiers plikter" [level=2] [ref=f3e666]
+            - list [ref=f3e667]:
+              - listitem [ref=f3e668]: Sørge for at heissertifikat og siste kontrollrapport er tilgjengelig.
+              - listitem [ref=f3e669]: Melde fra om feil og skader umiddelbart.
+              - listitem [ref=f3e670]: Ikke tillate overlast.
+            - heading "Avtaleperiode" [level=2] [ref=f3e671]
+            - paragraph [ref=f3e672]: Avtalen løper i 3 år fra 1. juni 2024 med automatisk fornyelse, 6 måneders oppsigelse.
+          - generic [ref=f3e673]:
+            - generic [ref=f3e674]:
+              - generic [ref=f3e675]: Sammendrag
+              - paragraph [ref=f3e676]: Serviceavtale for personheis H1 med månedlig service og årlig periodisk kontroll.
+            - generic [ref=f3e678]:
+              - generic [ref=f3e679]:
+                - term [ref=f3e680]: Type
+                - definition [ref=f3e681]: Avtale / kontrakt
+              - generic [ref=f3e682]:
+                - term [ref=f3e683]: NS 3451
+                - definition [ref=f3e684]: "62"
+              - generic [ref=f3e685]:
+                - term [ref=f3e686]: Bygg
+                - definition [ref=f3e687]:
+                  - link "Hovedbygg" [ref=f3e688] [cursor=pointer]:
+                    - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+              - generic [ref=f3e689]:
+                - term [ref=f3e690]: Komponent
+                - definition [ref=f3e691]:
+                  - link "Åpne i FDV-registeret" [ref=f3e692] [cursor=pointer]:
+                    - /url: /o/org_localtest/components/cmp_0mv17y526uocgphq97n
+              - generic [ref=f3e693]:
+                - term [ref=f3e694]: Tegn
+                - definition [ref=f3e695]: "690"
+              - generic [ref=f3e696]:
+                - term [ref=f3e697]: Lastet opp
+                - definition [ref=f3e698]: 9. okt., 19:07
+  - complementary [ref=f3e509]:
+    - generic [ref=f3e510]:
+      - button "Hjelp" [ref=f3e513]:
+        - generic "Gnisten" [ref=f3e514]
+      - button "Historikk" [ref=f3e525]
+      - button "Ny samtale" [ref=f3e530]
+      - button "Lukk panel (⌘J)" [ref=f3e532]
+    - generic [ref=f3e537]:
+      - generic [ref=f3e538]:
+        - generic "Gnisten" [ref=f3e539]
+        - generic [ref=f3e547]: Hjelp
+        - generic [ref=f3e548]: Forklarer hvordan Plank brukes, og holder hjelpesenteret oppdatert med skjermbilder.
+      - generic [ref=f3e549]:
+        - button "Hvordan laster jeg opp FDV-dokumentasjon?" [ref=f3e550]
+        - button "Hvordan registrerer jeg et avvik?" [ref=f3e551]
+        - button "Hvor ser jeg service som forfaller?" [ref=f3e552]
+    - generic [ref=f3e554]:
+      - generic [ref=f3e603]:
+        - generic [ref=f3e609]: Liftverk LV-630 – serviceavtale og periodisk kontroll
+        - button "Fjern kontekst" [ref=f3e610]
+      - textbox "Spør Hjelp …" [ref=f3e555]
+      - generic [ref=f3e556]:
+        - generic [ref=f3e557]: Enter sender · Shift+Enter ny linje
+        - button "Send" [disabled] [ref=f3e558]

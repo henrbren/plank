@@ -1,0 +1,12 @@
+- generic [ref=f19e7]:
+  - generic [ref=f19e8]: Plank
+  - generic [ref=f19e16]:
+    - paragraph [ref=f19e17]: Kom i gang
+    - heading "Hvilken virksomhet skal inn?" [level=1] [ref=f19e18]
+    - paragraph [ref=f19e19]: Skriv organisasjonsnummeret. Vi henter byggene og dokumentene. Du kan lukke nettleseren etterpå.
+    - generic [ref=f19e20]:
+      - text: Organisasjonsnummer
+      - textbox "Organisasjonsnummer" [active] [ref=f19e22]:
+        - /placeholder: 123 456 789
+    - button "Hent byggene" [disabled] [ref=f19e23]
+    - button "Avbryt" [ref=f19e26]

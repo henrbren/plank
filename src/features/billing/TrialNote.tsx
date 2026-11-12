@@ -33,7 +33,7 @@ const kr = (n: number) => `${n.toLocaleString("nb-NO")} kr`;
 export function HomeTrialNote() {
   return (
     <TrialNote>
-      Det som er lagt inn, blir liggende. Standard er {kr(PLANS.standard.priceNok)}/mnd med {kr(PLANS.standard.includedAiNok)} AI-bruk og {PLANS.standard.buildings} bygg. Pro er {kr(PLANS.pro.priceNok)}/mnd med {kr(PLANS.pro.includedAiNok)} og {PLANS.pro.buildings} bygg, inkl. mva. <PlanLink>Se planene</PlanLink>
+      Det som er lagt inn, blir liggende. Basis er {kr(PLANS.basis.priceNok)}/mnd med {kr(PLANS.basis.includedAiNok)} AI-bruk og {PLANS.basis.buildings} bygg. Standard er {kr(PLANS.standard.priceNok)}/mnd med {kr(PLANS.standard.includedAiNok)} og {PLANS.standard.buildings} bygg. Pro er {kr(PLANS.pro.priceNok)}/mnd med {kr(PLANS.pro.includedAiNok)} og {PLANS.pro.buildings} bygg, inkl. mva. <PlanLink>Se planene</PlanLink>
     </TrialNote>
   );
 }

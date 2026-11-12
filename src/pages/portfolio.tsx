@@ -359,16 +359,17 @@ function PlaceDocumentsLead({
         <div className="overflow-hidden rounded-xl border border-line bg-panel">
           {rows.map((doc) => {
             const date = formatDate(doc.created_at);
+            const when = doc.incoming ? "Hentes fra Boligmappa" : [showBuilding ? doc.building_name : null, date !== "–" ? date : null].filter(Boolean).join(" · ");
             return (
               <Link
                 key={doc.id}
-                to={doc.kind === "ifc" ? `/o/${orgId}/models/${doc.id}` : `${archiveUrl}&dok=${doc.id}`}
+                to={doc.incoming ? archiveUrl : doc.kind === "ifc" ? `/o/${orgId}/models/${doc.id}` : `${archiveUrl}&dok=${doc.id}`}
                 className="flex items-center gap-3 border-b border-line px-4 py-3 last:border-b-0 hover:bg-panel-2"
               >
                 <FileText className="size-4 shrink-0 text-muted" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[14.5px] font-semibold">{doc.title}</span>
-                  <span className="block truncate text-[12.5px] text-muted">{[showBuilding ? doc.building_name : null, date !== "–" ? date : null].filter(Boolean).join(" · ")}</span>
+                  {when && <span className="block truncate text-[12.5px] text-muted">{when}</span>}
                 </span>
               </Link>
             );
@@ -396,7 +397,7 @@ function SectionHead({ title, action }: { title: string; action?: React.ReactNod
 function BuildingDocuments({ buildingId, propertyId, propertyName, count, onUpload }: { buildingId: string; propertyId: string; propertyName: string; count: number; onUpload: () => void }) {
   const { orgId, canEdit } = useOrg();
   const onProperty = useOrgQuery<DocumentBrief[]>(`/documents?brief=1&property_id=${propertyId}&limit=500`);
-  const elsewhere = (onProperty.data ?? []).filter((d) => d.building_id !== buildingId).length;
+  const elsewhere = (onProperty.data ?? []).filter((d) => d.building_id && d.building_id !== buildingId && !d.incoming).length;
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -414,7 +415,7 @@ function BuildingDocuments({ buildingId, propertyId, propertyName, count, onUplo
           </Link>
         </p>
       )}
-      <PlaceDocumentsLead orgId={orgId} count={count} query={`building_id=${buildingId}`} archive={`building:${buildingId}`} showBuilding={false} empty={canEdit ? <Button onClick={onUpload}>Last opp</Button> : undefined} />
+      <PlaceDocumentsLead orgId={orgId} count={count} query={`building_id=${buildingId}&include_property=1`} archive={`building:${buildingId}`} showBuilding={false} empty={canEdit ? <Button onClick={onUpload}>Last opp</Button> : undefined} />
     </>
   );
 }

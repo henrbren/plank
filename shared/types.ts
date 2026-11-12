@@ -34,7 +34,7 @@ export interface Me {
 
 export type BillingStatus = "none" | "demo" | "active" | "past_due" | "canceled";
 
-export type PlanId = "standard" | "pro";
+export type PlanId = "basis" | "standard" | "pro";
 
 /** Beløp er i kroner inkl. mva. includedAiNok er AI-bruken som følger med hver måned. */
 export interface Plan {
@@ -46,7 +46,9 @@ export interface Plan {
   blurb: string;
 }
 
+/** Rekkefølgen er rang: lavere indeks er en mindre pakke. Nye organisasjoner starter på standard. */
 export const PLANS: Record<PlanId, Plan> = {
+  basis: { id: "basis", name: "Basis", priceNok: 290, includedAiNok: 50, buildings: 3, blurb: "For den som starter med noen få bygg." },
   standard: { id: "standard", name: "Standard", priceNok: 990, includedAiNok: 300, buildings: 10, blurb: "For forvaltere som vil i gang med noen få bygg." },
   pro: { id: "pro", name: "Pro", priceNok: 3000, includedAiNok: 1200, buildings: 50, blurb: "For porteføljer der agentene jobber hver dag." },
 };
@@ -348,6 +350,8 @@ export interface DocumentBrief {
   status: DocumentStatus;
   created_at: number;
   building_name: string | null;
+  /** Listet fra Boligmappa, men filen er ikke kopiert inn ennå */
+  incoming?: boolean;
 }
 
 /** Eiendom eller bygg i dokumentoversikten, med antall dokumenter. */

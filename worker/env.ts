@@ -27,6 +27,8 @@ export interface Env {
 
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  /** Månedspris for Basis. Uten denne vises ikke Basis i kassen. */
+  STRIPE_PRICE_ID_BASIS?: string;
   /** Månedspris for Standard */
   STRIPE_PRICE_ID?: string;
   /** Månedspris for Pro */

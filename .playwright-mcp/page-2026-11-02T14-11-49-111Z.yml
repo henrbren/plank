@@ -1,0 +1,151 @@
+- generic [ref=f38e6]:
+  - complementary [ref=f38e7]:
+    - generic [ref=f38e8]:
+      - button "Test Plank" [ref=f38e12]:
+        - generic [ref=f38e19]:
+          - generic [ref=f38e20]: Test
+          - generic [ref=f38e21]: Plank
+      - button "Søk … ⌘K" [ref=f38e26]:
+        - generic [ref=f38e30]: Søk …
+        - generic [ref=f38e31]: ⌘K
+      - navigation [ref=f38e32]:
+        - link "Oversikt" [ref=f38e33] [cursor=pointer]:
+          - /url: /o/org_localtest
+        - link "Oppgaver" [ref=f38e39] [cursor=pointer]:
+          - /url: /o/org_localtest/tasks
+        - link "Dokumenter" [ref=f38e45] [cursor=pointer]:
+          - /url: /o/org_localtest/documents
+        - link "FDV-register" [ref=f38e51] [cursor=pointer]:
+          - /url: /o/org_localtest/components
+        - link "Agenter" [ref=f38e56] [cursor=pointer]:
+          - /url: /o/org_localtest/agents
+        - link "Sider" [ref=f38e62] [cursor=pointer]:
+          - /url: /o/org_localtest/artifacts
+        - generic [ref=f38e70]:
+          - generic [ref=f38e71]: Mine sider
+          - link "Eiendomspuls – tilstand, oppgaver og dokumentasjon" [ref=f38e73] [cursor=pointer]:
+            - /url: /o/org_localtest/artifacts/art_0mv17y53dob3xyaplek
+      - generic [ref=f38e81]:
+        - generic [ref=f38e82]: Portefølje
+        - button "Legg til" [ref=f38e86]
+      - generic [ref=f38e88]:
+        - generic [ref=f38e89]:
+          - generic [ref=f38e90]:
+            - button "Skjul" [ref=f38e91]
+            - link "Elvebakken borettslag (demo)" [ref=f38e94] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y526q8hzz4oabu
+          - generic [ref=f38e101]:
+            - button "Vis" [ref=f38e102]
+            - link "Blokk 1" [ref=f38e105] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y5266xh2e21l0p
+        - generic [ref=f38e112]:
+          - generic [ref=f38e113]:
+            - button "Skjul" [ref=f38e114]
+            - link "Sagbruket kontorpark (demo)" [ref=f38e117] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y525si45dvzten
+          - generic [ref=f38e124]:
+            - button "Vis" [ref=f38e125]
+            - link "Hovedbygg" [ref=f38e128] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+          - generic [ref=f38e136]:
+            - button "Vis" [ref=f38e137]
+            - link "Lagerhall" [ref=f38e140] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525xfez0xmsi5
+      - button "AI-bruk 0 %" [ref=f38e149]:
+        - generic [ref=f38e150]: AI-bruk
+        - generic [ref=f38e151]: 0 %
+      - button "H Henrik" [ref=f38e155]:
+        - generic [ref=f38e156]: H
+        - generic [ref=f38e157]: Henrik
+  - main [ref=f38e158]:
+    - generic [ref=f38e159]:
+      - generic [ref=f38e161]:
+        - generic [ref=f38e162]:
+          - generic [ref=f38e163]: 3 komponenter har service på overtid
+          - generic [ref=f38e164]: Se hva som bør gjøres først.
+        - link "Se service" [ref=f38e165] [cursor=pointer]:
+          - /url: /o/org_localtest/components?forfalt=1
+      - generic [ref=f38e168]:
+        - generic [ref=f38e169]:
+          - navigation [ref=f38e170]:
+            - link "Dokumenter" [ref=f38e172] [cursor=pointer]:
+              - /url: /o/org_localtest/documents
+            - generic [ref=f38e173]:
+              - generic [ref=f38e174]: /
+              - link "Hovedbygg" [ref=f38e175] [cursor=pointer]:
+                - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+          - generic [ref=f38e176]:
+            - generic [ref=f38e182]:
+              - heading "Brannalarmanlegg Hovedbygg – FDV-dokumentasjon" [level=1] [ref=f38e183]
+              - generic [ref=f38e185]:
+                - generic [ref=f38e186]: FDV-dokumentasjon
+                - generic [ref=f38e187]: Indeksert
+                - generic [ref=f38e191]: brannalarm-hovedbygg-fdv.md · 1 kB
+            - generic [ref=f38e192]:
+              - link "Last ned" [ref=f38e193] [cursor=pointer]:
+                - /url: /api/orgs/org_localtest/documents/doc_0mv17y52z3bw7ldy8zc/file?download=1
+              - button "Oppsummer" [ref=f38e197]
+              - button "Mer" [ref=f38e203]
+        - generic [ref=f38e208]:
+          - generic [ref=f38e212]:
+            - heading "Brannalarmanlegg – Hovedbygg" [level=1] [ref=f38e213]
+            - heading "Anleggsbeskrivelse" [level=2] [ref=f38e214]
+            - paragraph [ref=f38e215]: Adresserbart brannalarmanlegg Vaktsikker VS-8 med 214 detektorpunkter fordelt på 4 sløyfer. Sentral i resepsjon (rom 1-001), brannpanel ved hovedinngang. Anlegget er direktekoblet til 110-sentralen via alarmoverføring.
+            - heading "Soneinndeling" [level=2] [ref=f38e216]
+            - table [ref=f38e217]:
+              - rowgroup [ref=f38e218]:
+                - row [ref=f38e219]:
+                  - columnheader "Sone" [ref=f38e220]
+                  - columnheader "Område" [ref=f38e221]
+              - rowgroup [ref=f38e222]:
+                - row [ref=f38e223]:
+                  - cell "1" [ref=f38e224]
+                  - cell "Kjeller U1 inkl. teknisk rom og sykkelparkering" [ref=f38e225]
+                - row [ref=f38e226]:
+                  - cell "2" [ref=f38e227]
+                  - cell "1. etasje" [ref=f38e228]
+                - row [ref=f38e229]:
+                  - cell "3" [ref=f38e230]
+                  - cell "2. etasje" [ref=f38e231]
+                - row [ref=f38e232]:
+                  - cell "4" [ref=f38e233]
+                  - cell "3. etasje og tekniske rom på tak" [ref=f38e234]
+            - heading "Egenkontroll (eier/bruker)" [level=2] [ref=f38e235]
+            - list [ref=f38e236]:
+              - listitem [ref=f38e237]: "Månedlig: Kontroll av sentral (ingen feil eller utkoblinger), test av én detektor per sone etter rulleringsplan, kontroll av at manuelle meldere er uhindret."
+              - listitem [ref=f38e238]: "Kvartalsvis: Test av alarmoverføring til 110-sentral."
+              - listitem [ref=f38e239]: Loggføring i kontrollbok eller FDV-system.
+            - heading "Årlig kontroll" [level=2] [ref=f38e240]
+            - paragraph [ref=f38e241]: Anlegget skal kontrolleres årlig av sertifisert foretak iht. NS 3960. Kontrollrapport med eventuelle avvik skal arkiveres i FDV-dokumentasjonen. Avvik skal lukkes innen fristen i rapporten.
+            - heading "Utkobling" [level=2] [ref=f38e242]
+            - paragraph [ref=f38e243]: Ved varme arbeider skal berørt sone kobles ut og brannvakt etableres. Utkobling skal alltid loggføres med tidspunkt og ansvarlig.
+          - generic [ref=f38e244]:
+            - generic [ref=f38e245]:
+              - generic [ref=f38e246]: Sammendrag
+              - paragraph [ref=f38e247]: Beskrivelse av brannalarmanlegget, soneinndeling, egenkontroll og krav til årlig kontroll.
+            - generic [ref=f38e249]:
+              - generic [ref=f38e250]:
+                - term [ref=f38e251]: Type
+                - definition [ref=f38e252]: FDV-dokumentasjon
+              - generic [ref=f38e253]:
+                - term [ref=f38e254]: NS 3451
+                - definition [ref=f38e255]: "54"
+              - generic [ref=f38e256]:
+                - term [ref=f38e257]: Bygg
+                - definition [ref=f38e258]:
+                  - link "Hovedbygg" [ref=f38e259] [cursor=pointer]:
+                    - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+              - generic [ref=f38e260]:
+                - term [ref=f38e261]: Komponent
+                - definition [ref=f38e262]:
+                  - link "Åpne i FDV-registeret" [ref=f38e263] [cursor=pointer]:
+                    - /url: /o/org_localtest/components/cmp_0mv17y5267hitusqxk7
+              - generic [ref=f38e264]:
+                - term [ref=f38e265]: Tegn
+                - definition [ref=f38e266]: 1 096
+              - generic [ref=f38e267]:
+                - term [ref=f38e268]: Lastet opp
+                - definition [ref=f38e269]: 9. okt., 19:07
+  - button "Spør en agent ⌘J" [ref=f38e270]:
+    - text: Spør en agent
+    - generic [ref=f38e274]: ⌘J

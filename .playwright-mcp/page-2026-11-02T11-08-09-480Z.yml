@@ -1,0 +1,48 @@
+- generic [ref=f4e3]:
+  - complementary [ref=f4e4]:
+    - generic [ref=f4e5]:
+      - button "Test Plank" [ref=f4e9]:
+        - generic [ref=f4e16]:
+          - generic [ref=f4e17]: Test
+          - generic [ref=f4e18]: Plank
+      - button "Søk … ⌘K" [ref=f4e23]:
+        - generic [ref=f4e27]: Søk …
+        - generic [ref=f4e28]: ⌘K
+      - navigation [ref=f4e29]:
+        - link "Oversikt" [ref=f4e30] [cursor=pointer]:
+          - /url: /o/org_localtest
+        - link "Oppgaver" [ref=f4e36] [cursor=pointer]:
+          - /url: /o/org_localtest/tasks
+        - link "Dokumenter" [ref=f4e42] [cursor=pointer]:
+          - /url: /o/org_localtest/documents
+        - link "FDV-register" [ref=f4e48] [cursor=pointer]:
+          - /url: /o/org_localtest/components
+        - link "Agenter" [ref=f4e53] [cursor=pointer]:
+          - /url: /o/org_localtest/agents
+        - link "Sider" [ref=f4e59] [cursor=pointer]:
+          - /url: /o/org_localtest/artifacts
+        - link "Hjelp" [ref=f4e67] [cursor=pointer]:
+          - /url: /o/org_localtest/hjelp
+      - generic [ref=f4e73]:
+        - generic [ref=f4e74]: Portefølje
+        - button "Legg til" [ref=f4e77]
+      - button "H Henrik" [ref=f4e84]:
+        - generic [ref=f4e85]: H
+        - generic [ref=f4e86]: Henrik
+  - main [ref=f4e87]:
+    - generic [ref=f4e88]: Laster …
+  - complementary [ref=f4e92]:
+    - generic [ref=f4e93]:
+      - button "Velg agent" [ref=f4e96]
+      - button "Historikk" [ref=f4e102]
+      - button "Ny samtale" [ref=f4e107]
+      - button "Lukk panel (⌘J)" [ref=f4e109]
+    - generic [ref=f4e115]:
+      - button "Hva bør jeg prioritere denne uken?" [ref=f4e116]
+      - button "Hvilke komponenter har service på overtid?" [ref=f4e117]
+      - button "Lag et dashboard over åpne avvik og oppgaver" [ref=f4e118]
+    - generic [ref=f4e120]:
+      - textbox "Skriv en melding …" [ref=f4e121]
+      - generic [ref=f4e122]:
+        - generic [ref=f4e123]: Enter sender · Shift+Enter ny linje
+        - button "Send" [disabled] [ref=f4e124]

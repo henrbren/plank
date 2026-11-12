@@ -40,7 +40,7 @@ function visiblePlaces(items: DocumentPlace[], q: string, kind: "all" | "buildin
 
 function briefsFor(place: DocumentPlace, rows: DocumentBrief[]): DocumentBrief[] {
   if (place.kind === "loose") return rows.filter((d) => !d.property_id && !d.building_id);
-  if (place.kind === "building") return rows.filter((d) => d.building_id === place.id);
+  if (place.kind === "building") return rows.filter((d) => d.building_id === place.id || (!d.building_id && d.property_id === place.property_id));
   return rows.filter((d) => d.property_id === place.id);
 }
 
@@ -223,11 +223,12 @@ export function DocumentsPage() {
                   <span className={`inline-block rounded-full px-[0.45rem] py-[0.12rem] text-[11px] font-bold ${item.kind === "property" ? "bg-[#ede9fe] text-[#5b21b6]" : item.kind === "building" ? "bg-[#e8eef6] text-[#314866]" : "bg-[#f2f4f7] text-[#667085]"}`}>
                     {item.kind === "property" ? "Eiendom" : item.kind === "building" ? "Bygg" : "Uten plassering"}
                   </span>
-                  {!item.files_ready ? (
+                  {!item.files_ready && item.document_count === 0 ? (
                     <span className="rounded-full bg-[#fff7ed] px-2 py-[0.16rem] text-[11.5px] font-semibold whitespace-nowrap text-[#9a3412]">Hentes …</span>
                   ) : (
                     <span className={`rounded-full px-2 py-[0.16rem] text-[11.5px] whitespace-nowrap ${item.document_count > 0 ? "bg-[#dcfce7] font-extrabold text-[#166534]" : "bg-[#f2f4f7] font-semibold text-[#98a2b3]"}`}>
                       {docCountLabel(item.document_count)}
+                      {!item.files_ready ? " · hentes" : ""}
                     </span>
                   )}
                 </div>
@@ -358,9 +359,9 @@ function PlaceDocuments({
   useEffect(() => {
     if (!shown.length) return;
     setActiveId((cur) => {
-      if (cur && shown.some((d) => d.id === cur)) return cur;
-      if (initialId && shown.some((d) => d.id === initialId)) return initialId;
-      return shown[0]!.id;
+      if (cur && shown.some((d) => d.id === cur && !d.incoming)) return cur;
+      if (initialId && shown.some((d) => d.id === initialId && !d.incoming)) return initialId;
+      return shown.find((d) => !d.incoming)?.id ?? shown[0]!.id;
     });
   }, [place.kind, place.id, initialId, shown]);
 
@@ -376,7 +377,7 @@ function PlaceDocuments({
   }, [activeId]);
 
   const active = rows.find((d) => d.id === activeId) ?? null;
-  const detail = useOrgQuery<Document>(activeId ? `/documents/${activeId}` : null, {
+  const detail = useOrgQuery<Document>(active && !active.incoming ? `/documents/${active.id}` : null, {
     refetchInterval: (q) => ((q.state.data as Document | undefined)?.status === "processing" ? 2500 : false),
   });
   const railDoc = detail.data?.id === activeId ? detail.data : null;
@@ -426,7 +427,7 @@ function PlaceDocuments({
             {rows.length ? ` · ${docCountLabel(rows.length)}` : ""}
           </div>
         </div>
-        {active && (
+        {active && !active.incoming && (
           <div className="ml-auto flex gap-2">
             <Button size="sm" className="xl:hidden" aria-expanded={about} onClick={() => setAbout((open) => !open)}>
               Om filen
@@ -471,7 +472,7 @@ function PlaceDocuments({
                     className={`block w-full border-b border-line px-3.5 py-3 text-left ${doc.id === activeId ? "bg-panel-2" : "hover:bg-panel-2/70"}`}
                   >
                     <div className="text-[13.5px] font-semibold">{doc.title}</div>
-                    <div className="mt-0.5 text-[12px] text-muted">{[where, date !== "–" ? date : null].filter(Boolean).join(" · ")}</div>
+                    <div className="mt-0.5 text-[12px] text-muted">{doc.incoming ? "Hentes fra Boligmappa" : [where, date !== "–" ? date : null].filter(Boolean).join(" · ")}</div>
                   </button>
                 );
               })
@@ -480,15 +481,16 @@ function PlaceDocuments({
         </div>
         <div className="relative min-h-0 flex-1 bg-panel-2" onMouseDown={() => { previewArmed.current = true; }}>
           {!active && <div className="absolute inset-0 flex items-center justify-center p-8 text-center text-[13.5px] text-muted">Velg et dokument.</div>}
-          {active && active.kind === "ifc" && (
+          {active?.incoming && <div className="absolute inset-0 flex items-center justify-center p-8 text-center text-[13.5px] text-muted">Filen hentes fra Boligmappa. Den vises her når den er inne.</div>}
+          {active && !active.incoming && active.kind === "ifc" && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-8 text-center text-[13.5px] text-muted">
               <span>IFC-modellen åpnes i viseren.</span>
               <ButtonLink to={pageUrl} variant="primary" size="sm">Åpne modellen</ButtonLink>
             </div>
           )}
-          {active && active.kind !== "ifc" && (preview === "pdf" || preview === "text") && <HeldPreview key={preview} url={fileUrl} title={active.title} mode="frame" />}
-          {active && active.kind !== "ifc" && preview === "image" && <HeldPreview key="image" url={fileUrl} title={active.title} mode="image" />}
-          {active && active.kind !== "ifc" && !preview && (
+          {active && !active.incoming && active.kind !== "ifc" && (preview === "pdf" || preview === "text") && <HeldPreview key={preview} url={fileUrl} title={active.title} mode="frame" />}
+          {active && !active.incoming && active.kind !== "ifc" && preview === "image" && <HeldPreview key="image" url={fileUrl} title={active.title} mode="image" />}
+          {active && !active.incoming && active.kind !== "ifc" && !preview && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-8 text-center text-[13.5px] text-muted">
               <span>Dokumentet kan ikke vises her.</span>
               <ButtonLink to={pageUrl} size="sm">Åpne dokumentet</ButtonLink>

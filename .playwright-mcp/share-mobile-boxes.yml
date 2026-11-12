@@ -1,0 +1,20 @@
+- generic [ref=e6] [box=0,0,390,844]:
+  - banner [ref=e7] [box=0,0,390,48]:
+    - heading "Leverandører" [level=1] [ref=e14] [box=52,13,247,21]
+    - generic [ref=e15] [box=311,15,63,18]: Bare lesing
+  - iframe [active] [ref=e17] [box=0,48,390,796]:
+    - generic [ref=f1e2] [box=0,0,390,1133]:
+      - heading "Leverandører" [level=1] [ref=f1e3] [box=20,20,350,33]
+      - paragraph [ref=f1e4] [box=20,57,350,41]: Firma som har utført arbeid eller laget dokumentasjon, hentet automatisk fra dokumentene i Plank.
+      - generic [ref=f1e5] [box=20,118,350,310]:
+        - generic [ref=f1e6] [box=20,118,350,93]
+        - generic [ref=f1e9] [box=20,226,350,93]
+        - generic [ref=f1e12] [box=20,335,350,93]
+      - generic [ref=f1e15] [box=20,444,350,112]:
+        - searchbox "Søk etter leverandør, dokument eller arbeid" [ref=f1e16] [box=37,461,316,34]
+        - combobox [ref=f1e17] [box=37,505,112,34]
+        - tablist [ref=f1e18] [box=159,505,125,34]
+      - generic [ref=f1e21] [box=20,572,350,526]:
+        - generic [ref=f1e22] [box=20,572,350,200]
+        - generic [ref=f1e45] [box=20,788,350,142]
+        - generic [ref=f1e51] [box=37,962,316,118]

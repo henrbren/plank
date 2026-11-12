@@ -1,0 +1,169 @@
+- generic [ref=f3e6]:
+  - complementary [ref=f3e7]:
+    - generic [ref=f3e8]:
+      - button "A. WESTRE AS Plank" [ref=f3e12]:
+        - generic [ref=f3e19]:
+          - generic [ref=f3e20]: A. WESTRE AS
+          - generic [ref=f3e21]: Plank
+      - button "Søk … ⌘K" [ref=f3e26]:
+        - generic [ref=f3e30]: Søk …
+        - generic [ref=f3e31]: ⌘K
+      - navigation [ref=f3e32]:
+        - link "Oversikt" [ref=f3e33] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq
+        - link "Kart" [ref=f3e39] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/kart
+        - link "Dokumenter" [ref=f3e44] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents
+        - link "Sider" [ref=f3e50] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/artifacts
+      - generic [ref=f3e58]:
+        - generic [ref=f3e59]: Portefølje
+        - button "Legg til" [ref=f3e63]
+      - generic [ref=f3e65]:
+        - link "1520/49/9/0/0 0" [ref=f3e68] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4yfqqiumpbfnu
+        - generic [ref=f3e74]:
+          - generic [ref=f3e75]:
+            - button "Skjul" [ref=f3e76]
+            - link "Industrivegen" [ref=f3e79] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4y4m1p96tkxdu
+          - link "Industrivegen" [ref=f3e87] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/buildings/bld_0mvkxh4y9kfljugztdp
+        - generic [ref=f3e94]:
+          - generic [ref=f3e95]:
+            - button "Skjul" [ref=f3e96]
+            - link "Ukjent" [ref=f3e99] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4ybt23gqviydb
+          - link "Ukjent" [ref=f3e107] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/buildings/bld_0mvkxh4ycbghnv6ggsb
+      - button "AI-bruk 0 %" [ref=f3e116]:
+        - generic [ref=f3e117]: AI-bruk
+        - generic [ref=f3e118]: 0 %
+      - generic [ref=f3e119]:
+        - button "Inviter" [ref=f3e120]
+        - button "T Test Testesen" [ref=f3e126]:
+          - generic [ref=f3e127]: T
+          - generic [ref=f3e128]: Test Testesen
+  - main [ref=f3e129]:
+    - generic [ref=f3e502]:
+      - button "Meny" [active] [ref=f3e503]
+      - generic [ref=f3e505]: Plank
+      - button "Søk" [ref=f3e512]
+      - button "Agent" [ref=f3e516]
+    - generic [ref=f3e131]:
+      - generic [ref=f3e133]:
+        - generic [ref=f3e135]:
+          - heading "Hei, Test" [level=1] [ref=f3e136]
+          - generic [ref=f3e137]: A. WESTRE AS · fredag 6. november
+        - generic [ref=f3e138]:
+          - button "Last opp" [ref=f3e139]
+          - button "Hva bør jeg prioritere?" [ref=f3e143]
+      - generic [ref=f3e147]:
+        - list [ref=f3e149]:
+          - listitem [ref=f3e150]
+          - listitem [ref=f3e155]
+          - listitem [ref=f3e160]:
+            - generic [ref=f3e161]: "3"
+            - generic [ref=f3e163]: Spør
+          - listitem [ref=f3e164]:
+            - generic [ref=f3e165]: "4"
+        - generic [ref=f3e168]:
+          - heading "Spør agenten om porteføljen" [level=2] [ref=f3e169]
+          - paragraph [ref=f3e170]: Ett spørsmål om de 2 byggene er nok. Da ser du hva agenten finner, før du bestemmer deg for å betale.
+          - button "Spør nå" [ref=f3e172]
+      - generic [ref=f3e175]:
+        - heading "Siste som har skjedd" [level=3] [ref=f3e177]
+        - paragraph [ref=f3e181]: 2 hentinger.
+        - list [ref=f3e182]:
+          - listitem [ref=f3e183]:
+            - generic [ref=f3e189]:
+              - generic [ref=f3e190]: Hentet dokumenter fra Boligmappa
+              - generic [ref=f3e191]: Test Testesen · 23. okt. 2026
+          - listitem [ref=f3e192]:
+            - generic [ref=f3e198]:
+              - generic [ref=f3e199]: Hentet 2 bygg fra Boligmappa
+              - generic [ref=f3e200]: Test Testesen · 23. okt. 2026
+      - generic [ref=f3e201]:
+        - generic [ref=f3e202]:
+          - generic [ref=f3e203]: Bygg
+          - generic [ref=f3e204]: "2"
+          - generic [ref=f3e205]: 3 eiendommer
+        - link "Dokumenter 70" [ref=f3e206] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents
+          - generic [ref=f3e207]: Dokumenter
+          - generic [ref=f3e208]: "70"
+      - generic [ref=f3e209]:
+        - generic [ref=f3e210]:
+          - heading "Lag med AI" [level=3] [ref=f3e211]
+          - link "Kart over eiendommene" [ref=f3e216] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/kart
+        - generic [ref=f3e219]:
+          - button "Leverandører Firma i dokumentene, med tabell og 3D" [ref=f3e220]:
+            - generic [ref=f3e221]: Leverandører
+            - generic [ref=f3e222]: Firma i dokumentene, med tabell og 3D
+          - button "Service og oppgaver Forfall og åpne oppgaver per bygg" [ref=f3e223]:
+            - generic [ref=f3e224]: Service og oppgaver
+            - generic [ref=f3e225]: Forfall og åpne oppgaver per bygg
+          - button "Tilstand Komponenter fordelt på tilstandsgrad" [ref=f3e226]:
+            - generic [ref=f3e227]: Tilstand
+            - generic [ref=f3e228]: Komponenter fordelt på tilstandsgrad
+      - generic [ref=f3e229]:
+        - generic [ref=f3e231]:
+          - generic [ref=f3e232]:
+            - heading "Nylige dokumenter" [level=3] [ref=f3e233]
+            - link "Alle dokumenter" [ref=f3e238] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents
+          - list [ref=f3e239]:
+            - listitem [ref=f3e240]:
+              - link "NHO 5 Sikre Samsvarserklæring .pdf 23. okt. 2026" [ref=f3e241] [cursor=pointer]:
+                - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhztbdmtwxxl5nx
+                - generic [ref=f3e245]: NHO 5 Sikre Samsvarserklæring .pdf
+                - generic [ref=f3e246]: 23. okt. 2026
+            - listitem [ref=f3e247]:
+              - link "NHO Rapport fra risiko. og slutt .pdf 23. okt. 2026" [ref=f3e248] [cursor=pointer]:
+                - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhzet17l48xo4p6
+                - generic [ref=f3e252]: NHO Rapport fra risiko. og slutt .pdf
+                - generic [ref=f3e253]: 23. okt. 2026
+            - listitem [ref=f3e254]:
+              - link "NHO 5 Sikre Sluttkontroll (Bytte av tavle).pdf 23. okt. 2026" [ref=f3e255] [cursor=pointer]:
+                - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhywlef5xn9j8e9
+                - generic [ref=f3e259]: NHO 5 Sikre Sluttkontroll (Bytte av tavle).pdf
+                - generic [ref=f3e260]: 23. okt. 2026
+            - listitem [ref=f3e261]:
+              - link "Risikovurdering Bedriftsintern (Tavlebytte).pdf 23. okt. 2026" [ref=f3e262] [cursor=pointer]:
+                - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhydyupcqliuw4e
+                - generic [ref=f3e266]: Risikovurdering Bedriftsintern (Tavlebytte).pdf
+                - generic [ref=f3e267]: 23. okt. 2026
+            - listitem [ref=f3e268]:
+              - link "NHO 5 Sikre Samsvarserklæring (Plugg og tilkobling på kompressor).pdf 23. okt. 2026" [ref=f3e269] [cursor=pointer]:
+                - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhxvcs3b8784aoa
+                - generic [ref=f3e273]: NHO 5 Sikre Samsvarserklæring (Plugg og tilkobling på kompressor).pdf
+                - generic [ref=f3e274]: 23. okt. 2026
+            - listitem [ref=f3e275]:
+              - link "NHO 5 Sikre Samsvarserklæring (Ny stikkontakt ved eltemaskine.).pdf 23. okt. 2026" [ref=f3e276] [cursor=pointer]:
+                - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhxfsrh6rugos5v
+                - generic [ref=f3e280]: NHO 5 Sikre Samsvarserklæring (Ny stikkontakt ved eltemaskine.).pdf
+                - generic [ref=f3e281]: 23. okt. 2026
+        - generic [ref=f3e283]:
+          - generic [ref=f3e284]:
+            - heading "Agenter" [level=3] [ref=f3e285]
+            - link "Administrer" [ref=f3e290] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/agents
+          - generic [ref=f3e291]:
+            - button "FDV-assistent Allround-assistent som svarer på spørsmål om byggene, dokumentene og FDV-registeret." [ref=f3e292]:
+              - generic "Gnisten" [ref=f3e293]
+              - generic [ref=f3e301]:
+                - generic [ref=f3e302]: FDV-assistent
+                - generic [ref=f3e303]: Allround-assistent som svarer på spørsmål om byggene, dokumentene og FDV-registeret.
+            - button "Dokumentkontrollør Kontrollerer at FDV-dokumentasjonen er komplett og riktig klassifisert etter NS 3451." [ref=f3e304]:
+              - generic "Firkant" [ref=f3e305]
+              - generic [ref=f3e313]:
+                - generic [ref=f3e314]: Dokumentkontrollør
+                - generic [ref=f3e315]: Kontrollerer at FDV-dokumentasjonen er komplett og riktig klassifisert etter NS 3451.
+            - button "Vedlikeholdsplanlegger Lager vedlikeholdsplaner fra produktdokumentasjon og følger opp service som forfaller." [ref=f3e316]:
+              - generic "Hus" [ref=f3e317]
+              - generic [ref=f3e325]:
+                - generic [ref=f3e326]: Vedlikeholdsplanlegger
+                - generic [ref=f3e327]: Lager vedlikeholdsplaner fra produktdokumentasjon og følger opp service som forfaller.
+          - button "Ny agent" [ref=f3e328]

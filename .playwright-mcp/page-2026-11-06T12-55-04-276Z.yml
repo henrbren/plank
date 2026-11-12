@@ -1,0 +1,191 @@
+- generic [ref=e61]:
+  - complementary [ref=e62]:
+    - generic [ref=e63]:
+      - button "A. WESTRE AS Plank" [ref=e67]:
+        - generic [ref=e74]:
+          - generic [ref=e75]: A. WESTRE AS
+          - generic [ref=e76]: Plank
+      - button "Søk … ⌘K" [ref=e81]:
+        - generic [ref=e85]: Søk …
+        - generic [ref=e86]: ⌘K
+      - navigation [ref=e87]:
+        - link "Oversikt" [ref=e88] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq
+        - link "Kart" [ref=e94] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/kart
+        - link "Dokumenter" [ref=e99] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents
+        - link "Sider" [ref=e105] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/artifacts
+      - generic [ref=e113]:
+        - generic [ref=e114]: Portefølje
+        - button "Legg til" [ref=e118]
+      - generic [ref=e120]:
+        - link "1520/49/9/0/0 0" [ref=e123] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4yfqqiumpbfnu
+        - generic [ref=e129]:
+          - generic [ref=e130]:
+            - button "Skjul" [ref=e131]
+            - link "Industrivegen" [ref=e134] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4y4m1p96tkxdu
+          - link "Industrivegen" [ref=e142] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/buildings/bld_0mvkxh4y9kfljugztdp
+        - generic [ref=e149]:
+          - generic [ref=e150]:
+            - button "Skjul" [ref=e151]
+            - link "Ukjent" [ref=e154] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/properties/prp_0mvkxh4ybt23gqviydb
+          - link "Ukjent" [ref=e162] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/buildings/bld_0mvkxh4ycbghnv6ggsb
+      - button "AI-bruk 0 %" [ref=e171]:
+        - generic [ref=e172]: AI-bruk
+        - generic [ref=e173]: 0 %
+      - button "T Test Testesen" [ref=e177]:
+        - generic [ref=e178]: T
+        - generic [ref=e179]: Test Testesen
+  - main [ref=e180]:
+    - generic [ref=e182]:
+      - generic [ref=e184]:
+        - generic [ref=e186]:
+          - heading "Hei, Test" [level=1] [ref=e187]
+          - generic [ref=e188]: A. WESTRE AS · fredag 6. november
+        - generic [ref=e189]:
+          - button "Last opp" [ref=e190]
+          - button "Hva bør jeg prioritere?" [ref=e194]
+      - generic [ref=e198]:
+        - list [ref=e200]:
+          - listitem [ref=e201]:
+            - generic [ref=e205]: Inn
+          - listitem [ref=e206]:
+            - generic [ref=e210]: Bygg
+          - listitem [ref=e211]:
+            - generic [ref=e212]: "3"
+            - generic [ref=e214]: Spør
+          - listitem [ref=e215]:
+            - generic [ref=e216]: "4"
+            - generic [ref=e218]: Betal
+        - generic [ref=e219]:
+          - heading "Spør agenten om porteføljen" [level=2] [ref=e220]
+          - paragraph [ref=e221]: Ett spørsmål om de 2 byggene er nok. Da ser du hva agenten finner, før du bestemmer deg for å betale.
+          - button "Spør nå" [ref=e223]
+      - generic [ref=e226]:
+        - generic [ref=e227]:
+          - generic [ref=e228]: Bygg
+          - generic [ref=e229]: "2"
+          - generic [ref=e230]: 3 eiendommer
+        - link "Dokumenter 70" [ref=e231] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents
+          - generic [ref=e232]: Dokumenter
+          - generic [ref=e233]: "70"
+      - generic [ref=e234]:
+        - generic [ref=e235]:
+          - heading "Lag med AI" [level=3] [ref=e236]
+          - link "Kart over eiendommene" [ref=e241] [cursor=pointer]:
+            - /url: /o/org_0mvkxg4zg6dm8sx56sq/kart
+        - generic [ref=e244]:
+          - button "Leverandører Firma i dokumentene, med tabell og 3D" [ref=e245]:
+            - generic [ref=e246]: Leverandører
+            - generic [ref=e247]: Firma i dokumentene, med tabell og 3D
+          - button "Service og oppgaver Forfall og åpne oppgaver per bygg" [ref=e248]:
+            - generic [ref=e249]: Service og oppgaver
+            - generic [ref=e250]: Forfall og åpne oppgaver per bygg
+          - button "Tilstand Komponenter fordelt på tilstandsgrad" [ref=e251]:
+            - generic [ref=e252]: Tilstand
+            - generic [ref=e253]: Komponenter fordelt på tilstandsgrad
+      - generic [ref=e254]:
+        - generic [ref=e256]:
+          - generic [ref=e257]:
+            - heading "Nylige dokumenter" [level=3] [ref=e258]
+            - link "Alle dokumenter" [ref=e263] [cursor=pointer]:
+              - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents
+          - list [ref=e264]:
+            - listitem [ref=e265]:
+              - link "NHO 5 Sikre Samsvarserklæring .pdf 23. okt. 2026" [ref=e266] [cursor=pointer]:
+                - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhztbdmtwxxl5nx
+                - generic [ref=e270]: NHO 5 Sikre Samsvarserklæring .pdf
+                - generic [ref=e271]: 23. okt. 2026
+            - listitem [ref=e272]:
+              - link "NHO Rapport fra risiko. og slutt .pdf 23. okt. 2026" [ref=e273] [cursor=pointer]:
+                - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhzet17l48xo4p6
+                - generic [ref=e277]: NHO Rapport fra risiko. og slutt .pdf
+                - generic [ref=e278]: 23. okt. 2026
+            - listitem [ref=e279]:
+              - link "NHO 5 Sikre Sluttkontroll (Bytte av tavle).pdf 23. okt. 2026" [ref=e280] [cursor=pointer]:
+                - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhywlef5xn9j8e9
+                - generic [ref=e284]: NHO 5 Sikre Sluttkontroll (Bytte av tavle).pdf
+                - generic [ref=e285]: 23. okt. 2026
+            - listitem [ref=e286]:
+              - link "Risikovurdering Bedriftsintern (Tavlebytte).pdf 23. okt. 2026" [ref=e287] [cursor=pointer]:
+                - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhydyupcqliuw4e
+                - generic [ref=e291]: Risikovurdering Bedriftsintern (Tavlebytte).pdf
+                - generic [ref=e292]: 23. okt. 2026
+            - listitem [ref=e293]:
+              - link "NHO 5 Sikre Samsvarserklæring (Plugg og tilkobling på kompressor).pdf 23. okt. 2026" [ref=e294] [cursor=pointer]:
+                - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhxvcs3b8784aoa
+                - generic [ref=e298]: NHO 5 Sikre Samsvarserklæring (Plugg og tilkobling på kompressor).pdf
+                - generic [ref=e299]: 23. okt. 2026
+            - listitem [ref=e300]:
+              - link "NHO 5 Sikre Samsvarserklæring (Ny stikkontakt ved eltemaskine.).pdf 23. okt. 2026" [ref=e301] [cursor=pointer]:
+                - /url: /o/org_0mvkxg4zg6dm8sx56sq/documents/doc_0mvkxhxfsrh6rugos5v
+                - generic [ref=e305]: NHO 5 Sikre Samsvarserklæring (Ny stikkontakt ved eltemaskine.).pdf
+                - generic [ref=e306]: 23. okt. 2026
+        - generic [ref=e307]:
+          - generic [ref=e308]:
+            - generic [ref=e309]:
+              - heading "Agenter" [level=3] [ref=e310]
+              - link "Administrer" [ref=e315] [cursor=pointer]:
+                - /url: /o/org_0mvkxg4zg6dm8sx56sq/agents
+            - generic [ref=e316]:
+              - button "FDV-assistent Allround-assistent som svarer på spørsmål om byggene, dokumentene og FDV-registeret." [ref=e317]:
+                - generic "Gnisten" [ref=e318]
+                - generic [ref=e326]:
+                  - generic [ref=e327]: FDV-assistent
+                  - generic [ref=e328]: Allround-assistent som svarer på spørsmål om byggene, dokumentene og FDV-registeret.
+              - button "Dokumentkontrollør Kontrollerer at FDV-dokumentasjonen er komplett og riktig klassifisert etter NS 3451." [ref=e329]:
+                - generic "Firkant" [ref=e330]
+                - generic [ref=e338]:
+                  - generic [ref=e339]: Dokumentkontrollør
+                  - generic [ref=e340]: Kontrollerer at FDV-dokumentasjonen er komplett og riktig klassifisert etter NS 3451.
+              - button "Vedlikeholdsplanlegger Lager vedlikeholdsplaner fra produktdokumentasjon og følger opp service som forfaller." [ref=e341]:
+                - generic "Hus" [ref=e342]
+                - generic [ref=e350]:
+                  - generic [ref=e351]: Vedlikeholdsplanlegger
+                  - generic [ref=e352]: Lager vedlikeholdsplaner fra produktdokumentasjon og følger opp service som forfaller.
+            - button "Ny agent" [ref=e353]
+          - generic [ref=e355]:
+            - heading "Aktivitet" [level=3] [ref=e357]
+            - list [ref=e361]:
+              - listitem [ref=e362]:
+                - generic [ref=e368]:
+                  - text: Test Testesen Hentet dokumenter fra Boligmappa
+                  - generic [ref=e369]: 23. okt. 2026
+              - listitem [ref=e370]:
+                - generic [ref=e376]:
+                  - text: Test Testesen Hentet 2 bygg fra Boligmappa
+                  - generic [ref=e377]: 23. okt. 2026
+  - complementary [ref=e378]:
+    - generic [ref=e379]:
+      - button "FDV-assistent" [ref=e382]:
+        - generic "Gnisten" [ref=e383]
+      - button "Historikk" [ref=e394]
+      - button "Ny samtale" [ref=e399]
+      - button "Lukk panel (⌘J)" [ref=e401]
+    - generic [ref=e406]:
+      - generic [ref=e407]:
+        - generic "Gnisten" [ref=e408]
+        - generic [ref=e416]: FDV-assistent
+        - generic [ref=e417]: Allround-assistent som svarer på spørsmål om byggene, dokumentene og FDV-registeret.
+      - generic [ref=e418]:
+        - button "Hva bør jeg prioritere denne uken?" [ref=e419]
+        - button "Hvilke komponenter har service på overtid?" [ref=e420]
+        - button "Lag et dashboard over åpne avvik og oppgaver" [ref=e421]
+    - generic [ref=e422]:
+      - paragraph [ref=e423]:
+        - text: Spør fritt mens dere prøver. Abonnementet tar med AI-bruk hver måned.
+        - link "Se planene" [ref=e424] [cursor=pointer]:
+          - /url: /o/org_0mvkxg4zg6dm8sx56sq/abonnement
+      - generic [ref=e425]:
+        - textbox "Spør FDV-assistent …" [ref=e426]
+        - generic [ref=e427]:
+          - generic [ref=e428]: Enter sender · Shift+Enter ny linje
+          - button "Send" [disabled] [ref=e429]

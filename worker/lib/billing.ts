@@ -18,7 +18,14 @@ export function stripeReady(env: Env): boolean {
 }
 
 export function stripePriceFor(env: Env, plan: PlanId): string | null {
-  return (plan === "pro" ? env.STRIPE_PRICE_ID_PRO : env.STRIPE_PRICE_ID) || null;
+  switch (plan) {
+    case "basis":
+      return env.STRIPE_PRICE_ID_BASIS || null;
+    case "standard":
+      return env.STRIPE_PRICE_ID || null;
+    case "pro":
+      return env.STRIPE_PRICE_ID_PRO || null;
+  }
 }
 
 export function planForPrice(env: Env, priceId: string | null | undefined): PlanId | null {
@@ -107,11 +114,9 @@ export async function assertCanAddBuilding(env: Env, orgId: string): Promise<voi
   const count = await buildingCount(env, orgId);
   if (count < limit) return;
   if (limit > plan.buildings) throw badRequest(`Kvoten er ${limit} bygg, og de er i bruk.`);
-  throw badRequest(
-    plan.id === "standard"
-      ? `Standard dekker ${limit} bygg, og alle er i bruk. Pro dekker ${PLANS.pro.buildings} bygg.`
-      : `${plan.name} dekker ${limit} bygg, og alle er i bruk. Ta kontakt for flere bygg.`,
-  );
+  const next = PLAN_IDS.map((id) => PLANS[id]).find((candidate) => rank(candidate) > rank(plan));
+  const more = next ? `${next.name} dekker ${next.buildings} bygg.` : "Ta kontakt for flere bygg.";
+  throw badRequest(`${plan.name} dekker ${limit} bygg, og alle er i bruk. ${more}`);
 }
 
 export function billingLabel(status: BillingStatus): string {

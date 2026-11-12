@@ -1,0 +1,181 @@
+- generic [ref=f12e6]:
+  - complementary [ref=f12e7]:
+    - generic [ref=f12e8]:
+      - button "Test Plank" [ref=f12e12]:
+        - generic [ref=f12e19]:
+          - generic [ref=f12e20]: Test
+          - generic [ref=f12e21]: Plank
+      - button "Søk … ⌘K" [ref=f12e26]:
+        - generic [ref=f12e30]: Søk …
+        - generic [ref=f12e31]: ⌘K
+      - navigation [ref=f12e32]:
+        - link "Oversikt" [ref=f12e33] [cursor=pointer]:
+          - /url: /o/org_localtest
+        - link "Kart" [ref=f12e39] [cursor=pointer]:
+          - /url: /o/org_localtest/kart
+        - link "Oppgaver" [ref=f12e44] [cursor=pointer]:
+          - /url: /o/org_localtest/tasks
+        - link "Dokumenter" [ref=f12e50] [cursor=pointer]:
+          - /url: /o/org_localtest/documents
+        - link "Komponenter" [ref=f12e56] [cursor=pointer]:
+          - /url: /o/org_localtest/components
+        - link "Sider" [ref=f12e61] [cursor=pointer]:
+          - /url: /o/org_localtest/artifacts
+        - generic [ref=f12e69]:
+          - generic [ref=f12e70]: Mine sider
+          - generic [ref=f12e71]:
+            - link "Eiendomspuls – tilstand, oppgaver og dokumentasjon" [ref=f12e72] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mv17y53dob3xyaplek
+            - link "Leverandører" [ref=f12e80] [cursor=pointer]:
+              - /url: /o/org_localtest/artifacts/art_0mw4yuvtcloa0ijjfte
+      - generic [ref=f12e88]:
+        - generic [ref=f12e89]: Portefølje
+        - button "Legg til" [ref=f12e93]
+      - generic [ref=f12e95]:
+        - generic [ref=f12e96]:
+          - generic [ref=f12e97]:
+            - button "Skjul" [ref=f12e98]
+            - link "Elvebakken borettslag (demo)" [ref=f12e101] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y526q8hzz4oabu
+          - generic [ref=f12e108]:
+            - button "Vis" [ref=f12e109]
+            - link "Blokk 1" [ref=f12e112] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y5266xh2e21l0p
+        - generic [ref=f12e119]:
+          - generic [ref=f12e120]:
+            - button "Skjul" [ref=f12e121]
+            - link "Sagbruket kontorpark (demo)" [ref=f12e124] [cursor=pointer]:
+              - /url: /o/org_localtest/properties/prp_0mv17y525si45dvzten
+          - generic [ref=f12e131]:
+            - button "Vis" [ref=f12e132]
+            - link "Hovedbygg" [ref=f12e135] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+          - generic [ref=f12e143]:
+            - button "Vis" [ref=f12e144]
+            - link "Lagerhall" [ref=f12e147] [cursor=pointer]:
+              - /url: /o/org_localtest/buildings/bld_0mv17y525xfez0xmsi5
+      - button "AI-bruk 0 %" [ref=f12e156]:
+        - generic [ref=f12e157]: AI-bruk
+        - generic [ref=f12e158]: 0 %
+      - button "H Henrik" [ref=f12e162]:
+        - generic [ref=f12e163]: H
+        - generic [ref=f12e164]: Henrik
+  - main [ref=f12e165]:
+    - generic [ref=f12e166]:
+      - generic [ref=f12e168]:
+        - generic [ref=f12e169]:
+          - generic [ref=f12e170]: 3 komponenter har service på overtid
+          - generic [ref=f12e171]: Se hva som bør gjøres først.
+        - link "Se service" [ref=f12e172] [cursor=pointer]:
+          - /url: /o/org_localtest/components?forfalt=1
+      - generic [ref=f12e347]:
+        - generic [ref=f12e348]:
+          - navigation [ref=f12e349]:
+            - link "Komponenter" [ref=f12e351] [cursor=pointer]:
+              - /url: /o/org_localtest/components
+            - generic [ref=f12e352]:
+              - generic [ref=f12e353]: /
+              - link "Hovedbygg" [ref=f12e354] [cursor=pointer]:
+                - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+          - generic [ref=f12e355]:
+            - generic [ref=f12e360]:
+              - heading "Væske-vann varmepumpe VP01" [level=1] [ref=f12e361]
+              - generic [ref=f12e362]: Varmepro · VP-120 · =320.001
+            - generic [ref=f12e363]:
+              - button "Registrer service i dag" [ref=f12e364]
+              - button "Hva skal gjøres?" [ref=f12e368]
+              - button "Mer" [ref=f12e374]
+        - generic [ref=f12e379]:
+          - generic [ref=f12e380]:
+            - generic [ref=f12e381]:
+              - generic [ref=f12e382]:
+                - heading "Oppgaver" [level=2] [ref=f12e383]
+                - button "Ny oppgave" [ref=f12e384]
+              - generic [ref=f12e386]: Ingen oppgaver for komponenten.
+            - generic [ref=f12e387]:
+              - generic [ref=f12e388]:
+                - heading "Dokumentasjon" [level=2] [ref=f12e389]
+                - button "Last opp" [ref=f12e390]
+              - generic [ref=f12e394]:
+                - generic [ref=f12e395]: Ingen dokumentasjon knyttet til komponenten
+                - generic [ref=f12e396]: Last opp produktdatablad og bruks- og vedlikeholdsanvisning.
+          - generic [ref=f12e397]:
+            - generic [ref=f12e398]:
+              - heading "Service" [level=3] [ref=f12e400]
+              - generic [ref=f12e401]:
+                - generic [ref=f12e402]:
+                  - term [ref=f12e403]: Neste service
+                  - definition [ref=f12e404]:
+                    - generic [ref=f12e405]: 13 d over
+                - generic [ref=f12e407]:
+                  - term [ref=f12e408]: Siste service
+                  - definition [ref=f12e409]: 24. okt. 2025
+                - generic [ref=f12e410]:
+                  - term [ref=f12e411]: Intervall
+                  - definition [ref=f12e412]: Hver 12. måned
+                - generic [ref=f12e413]:
+                  - term [ref=f12e414]: Tilstand
+                  - definition [ref=f12e415]:
+                    - generic [ref=f12e416]: TG1
+            - generic [ref=f12e417]:
+              - heading "Detaljer" [level=3] [ref=f12e419]
+              - generic [ref=f12e420]:
+                - generic [ref=f12e421]:
+                  - term [ref=f12e422]: NS 3451
+                  - definition [ref=f12e423]: "32"
+                - generic [ref=f12e424]:
+                  - term [ref=f12e425]: TFM
+                  - definition [ref=f12e426]: =320.001
+                - generic [ref=f12e427]:
+                  - term [ref=f12e428]: Kategori
+                  - definition [ref=f12e429]: Varme
+                - generic [ref=f12e430]:
+                  - term [ref=f12e431]: Produsent
+                  - definition [ref=f12e432]: Varmepro
+                - generic [ref=f12e433]:
+                  - term [ref=f12e434]: Modell
+                  - definition [ref=f12e435]: VP-120
+                - generic [ref=f12e436]:
+                  - term [ref=f12e437]: Serienr.
+                  - definition [ref=f12e438]: –
+                - generic [ref=f12e439]:
+                  - term [ref=f12e440]: Leverandør
+                  - definition [ref=f12e441]: –
+                - generic [ref=f12e442]:
+                  - term [ref=f12e443]: Installert
+                  - definition [ref=f12e444]: 10. mai 2019
+                - generic [ref=f12e445]:
+                  - term [ref=f12e446]: Garanti til
+                  - definition [ref=f12e447]: –
+                - generic [ref=f12e448]:
+                  - term [ref=f12e449]: Plassering
+                  - definition [ref=f12e450]:
+                    - link "Hovedbygg › Kjeller (U1) › Teknisk rom ventilasjon" [ref=f12e451] [cursor=pointer]:
+                      - /url: /o/org_localtest/rooms/rom_0mv17y525heniyt8l64
+                - generic [ref=f12e452]:
+                  - term [ref=f12e453]: IFC GUID
+                  - definition [ref=f12e454]: –
+  - complementary [ref=f12e295]:
+    - generic [ref=f12e296]:
+      - button "Hjelp" [ref=f12e299]:
+        - generic "Gnisten" [ref=f12e300]
+      - button "Historikk" [ref=f12e311]
+      - button "Ny samtale" [ref=f12e316]
+      - button "Lukk panel (⌘J)" [ref=f12e318]
+    - generic [ref=f12e323]:
+      - generic [ref=f12e324]:
+        - generic "Gnisten" [ref=f12e325]
+        - generic [ref=f12e333]: Hjelp
+        - generic [ref=f12e334]: Forklarer hvordan Plank brukes, og holder hjelpesenteret oppdatert med skjermbilder.
+      - generic [ref=f12e335]:
+        - button "Hvordan laster jeg opp FDV-dokumentasjon?" [ref=f12e336]
+        - button "Hvordan registrerer jeg et avvik?" [ref=f12e337]
+        - button "Hvor ser jeg service som forfaller?" [ref=f12e338]
+    - generic [ref=f12e340]:
+      - generic [ref=f12e456]:
+        - generic [ref=f12e459]: Væske-vann varmepumpe VP01
+        - button "Fjern kontekst" [ref=f12e460]
+      - textbox "Spør Hjelp …" [ref=f12e341]
+      - generic [ref=f12e342]:
+        - generic [ref=f12e343]: Enter sender · Shift+Enter ny linje
+        - button "Send" [disabled] [ref=f12e344]

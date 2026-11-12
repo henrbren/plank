@@ -1,0 +1,31 @@
+- generic [ref=e62]:
+  - generic [ref=e63]: Plank
+  - list [ref=e70]:
+    - listitem [ref=e71]:
+      - generic [ref=e72]: "1"
+      - generic [ref=e73]: Virksomhet
+    - listitem [ref=e74]:
+      - generic [ref=e76]: "2"
+      - generic [ref=e77]: Bygg
+    - listitem [ref=e78]:
+      - generic [ref=e80]: "3"
+      - generic [ref=e81]: Dokumenter
+    - listitem [ref=e82]:
+      - generic [ref=e84]: "4"
+      - generic [ref=e85]: Videre
+  - generic [ref=e87]:
+    - paragraph [ref=e88]: Kom i gang
+    - heading "Hvilken virksomhet skal inn?" [level=1] [ref=e89]
+    - paragraph [ref=e90]: Skriv organisasjonsnummeret. Vi henter byggene fra Boligmappa, og deretter alle dokumentene. Du kan lukke nettleseren. Vi sender en e-post når overføringen er ferdig.
+    - generic [ref=e92] [cursor=pointer]:
+      - checkbox "Varsle meg når det kommer nye dokumenter E-post når Boligmappa får nye dokumenter etter den første overføringen. Vi sjekker omtrent én gang i døgnet. Den første e-posten sender vi uansett." [active] [ref=e93]
+      - generic [ref=e94]:
+        - generic [ref=e95]: Varsle meg når det kommer nye dokumenter
+        - generic [ref=e96]: E-post når Boligmappa får nye dokumenter etter den første overføringen. Vi sjekker omtrent én gang i døgnet. Den første e-posten sender vi uansett.
+    - generic [ref=e97]:
+      - text: Organisasjonsnummer
+      - textbox "Organisasjonsnummer" [ref=e99]:
+        - /placeholder: 123 456 789
+    - button "Hent byggene fra Boligmappa" [disabled] [ref=e100]
+    - paragraph [ref=e103]: Hentingen skjer i Plank, også om du lukker fanen.
+    - button "Avbryt" [ref=e104]

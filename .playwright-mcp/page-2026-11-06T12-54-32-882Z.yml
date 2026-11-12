@@ -1,0 +1,345 @@
+- generic [ref=f6e1]:
+  - generic [ref=f6e61]:
+    - complementary [ref=f6e62]:
+      - generic [ref=f6e63]:
+        - button "Test Plank" [ref=f6e67]:
+          - generic [ref=f6e74]:
+            - generic [ref=f6e75]: Test
+            - generic [ref=f6e76]: Plank
+        - button "Søk … ⌘K" [ref=f6e81]:
+          - generic [ref=f6e85]: Søk …
+          - generic [ref=f6e86]: ⌘K
+        - navigation [ref=f6e87]:
+          - link "Oversikt" [ref=f6e88] [cursor=pointer]:
+            - /url: /o/org_localtest
+          - link "Kart" [ref=f6e94] [cursor=pointer]:
+            - /url: /o/org_localtest/kart
+          - link "Oppgaver" [ref=f6e99] [cursor=pointer]:
+            - /url: /o/org_localtest/tasks
+          - link "Dokumenter" [ref=f6e105] [cursor=pointer]:
+            - /url: /o/org_localtest/documents
+          - link "FDV-register" [ref=f6e111] [cursor=pointer]:
+            - /url: /o/org_localtest/components
+          - link "Sider" [ref=f6e116] [cursor=pointer]:
+            - /url: /o/org_localtest/artifacts
+          - generic [ref=f6e124]:
+            - generic [ref=f6e125]: Mine sider
+            - generic [ref=f6e126]:
+              - link "Eiendomspuls – tilstand, oppgaver og dokumentasjon" [ref=f6e127] [cursor=pointer]:
+                - /url: /o/org_localtest/artifacts/art_0mv17y53dob3xyaplek
+              - link "Leverandører" [ref=f6e135] [cursor=pointer]:
+                - /url: /o/org_localtest/artifacts/art_0mw4yuvtcloa0ijjfte
+        - generic [ref=f6e143]:
+          - generic [ref=f6e144]: Portefølje
+          - button "Legg til" [ref=f6e148]
+        - generic [ref=f6e150]:
+          - generic [ref=f6e151]:
+            - generic [ref=f6e152]:
+              - button "Skjul" [ref=f6e153]
+              - link "Elvebakken borettslag (demo)" [ref=f6e156] [cursor=pointer]:
+                - /url: /o/org_localtest/properties/prp_0mv17y526q8hzz4oabu
+            - generic [ref=f6e163]:
+              - button "Vis" [ref=f6e164]
+              - link "Blokk 1" [ref=f6e167] [cursor=pointer]:
+                - /url: /o/org_localtest/buildings/bld_0mv17y5266xh2e21l0p
+          - generic [ref=f6e174]:
+            - generic [ref=f6e175]:
+              - button "Skjul" [ref=f6e176]
+              - link "Sagbruket kontorpark (demo)" [ref=f6e179] [cursor=pointer]:
+                - /url: /o/org_localtest/properties/prp_0mv17y525si45dvzten
+            - generic [ref=f6e186]:
+              - button "Vis" [ref=f6e187]
+              - link "Hovedbygg" [ref=f6e190] [cursor=pointer]:
+                - /url: /o/org_localtest/buildings/bld_0mv17y525l7h3i1tkhe
+            - generic [ref=f6e198]:
+              - button "Vis" [ref=f6e199]
+              - link "Lagerhall" [ref=f6e202] [cursor=pointer]:
+                - /url: /o/org_localtest/buildings/bld_0mv17y525xfez0xmsi5
+        - button "AI-bruk 0 %" [ref=f6e211]:
+          - generic [ref=f6e212]: AI-bruk
+          - generic [ref=f6e213]: 0 %
+        - button "H Henrik" [ref=f6e217]:
+          - generic [ref=f6e218]: H
+          - generic [ref=f6e219]: Henrik
+    - main [ref=f6e220]:
+      - generic [ref=f6e221]:
+        - generic [ref=f6e223]:
+          - generic [ref=f6e224]:
+            - generic [ref=f6e225]: 3 komponenter har service på overtid
+            - generic [ref=f6e226]: Se hva som bør gjøres først.
+          - link "Se service" [ref=f6e227] [cursor=pointer]:
+            - /url: /o/org_localtest/components?forfalt=1
+        - generic [ref=f6e230]:
+          - generic [ref=f6e232]:
+            - generic [ref=f6e234]:
+              - heading "Hei, Henrik" [level=1] [ref=f6e235]
+              - generic [ref=f6e236]: Test · fredag 6. november
+            - generic [ref=f6e237]:
+              - button "Last opp" [ref=f6e238]
+              - button "Hva bør jeg prioritere?" [ref=f6e242]
+          - generic [ref=f6e246]:
+            - generic [ref=f6e247]:
+              - generic [ref=f6e248]: Bygg
+              - generic [ref=f6e249]: "3"
+              - generic [ref=f6e250]: 2 eiendommer
+            - link "Åpne oppgaver 5" [ref=f6e251] [cursor=pointer]:
+              - /url: /o/org_localtest/tasks
+              - generic [ref=f6e252]: Åpne oppgaver
+              - generic [ref=f6e253]: "5"
+            - link "Service på overtid 3 4 innen 60 dager" [ref=f6e254] [cursor=pointer]:
+              - /url: /o/org_localtest/components
+              - generic [ref=f6e255]: Service på overtid
+              - generic [ref=f6e256]: "3"
+              - generic [ref=f6e257]: 4 innen 60 dager
+            - link "Dokumenter 5 7 komponenter" [ref=f6e258] [cursor=pointer]:
+              - /url: /o/org_localtest/documents
+              - generic [ref=f6e259]: Dokumenter
+              - generic [ref=f6e260]: "5"
+              - generic [ref=f6e261]: 7 komponenter
+          - generic [ref=f6e262]:
+            - generic [ref=f6e263]:
+              - heading "Lag med AI" [level=3] [ref=f6e264]
+              - link "Kart over eiendommene" [ref=f6e269] [cursor=pointer]:
+                - /url: /o/org_localtest/kart
+            - generic [ref=f6e272]:
+              - button "Leverandører Firma i dokumentene, med tabell og 3D" [ref=f6e273]:
+                - generic [ref=f6e274]: Leverandører
+                - generic [ref=f6e275]: Firma i dokumentene, med tabell og 3D
+              - button "Service og oppgaver Forfall og åpne oppgaver per bygg" [ref=f6e276]:
+                - generic [ref=f6e277]: Service og oppgaver
+                - generic [ref=f6e278]: Forfall og åpne oppgaver per bygg
+              - button "Tilstand Komponenter fordelt på tilstandsgrad" [ref=f6e279]:
+                - generic [ref=f6e280]: Tilstand
+                - generic [ref=f6e281]: Komponenter fordelt på tilstandsgrad
+          - generic [ref=f6e282]:
+            - generic [ref=f6e283]:
+              - generic [ref=f6e284]:
+                - generic [ref=f6e285]:
+                  - heading "Neste oppgaver" [level=3] [ref=f6e286]
+                  - link "Alle oppgaver" [ref=f6e291] [cursor=pointer]:
+                    - /url: /o/org_localtest/tasks
+                - list [ref=f6e292]:
+                  - listitem [ref=f6e293]:
+                    - link "Halvårlig service ventilasjonsaggregat VA01 Hovedbygg · Ventilasjonsaggregat VA01 Vedlikehold 25. sep. 2026(42 d over)" [ref=f6e294] [cursor=pointer]:
+                      - /url: /o/org_localtest/tasks/tsk_0mv17y526jswrgbt4ai
+                      - generic [ref=f6e295]:
+                        - generic [ref=f6e296]: Halvårlig service ventilasjonsaggregat VA01
+                        - generic [ref=f6e297]: Hovedbygg · Ventilasjonsaggregat VA01
+                      - generic [ref=f6e298]: Vedlikehold
+                      - generic "25. sep. 2026" [ref=f6e301]:
+                        - text: 25. sep. 2026
+                        - generic [ref=f6e302]: (42 d over)
+                  - listitem [ref=f6e303]:
+                    - link "Lekkasje under oppvaskkum i pantry 2. etg Hovedbygg Avvik 12. okt. 2026(25 d over)" [ref=f6e304] [cursor=pointer]:
+                      - /url: /o/org_localtest/tasks/tsk_0mv17y526tp55bafhb2
+                      - generic [ref=f6e305]:
+                        - generic [ref=f6e306]: Lekkasje under oppvaskkum i pantry 2. etg
+                        - generic [ref=f6e307]: Hovedbygg
+                      - generic [ref=f6e308]: Avvik
+                      - generic "12. okt. 2026" [ref=f6e311]:
+                        - text: 12. okt. 2026
+                        - generic [ref=f6e312]: (25 d over)
+                  - listitem [ref=f6e313]:
+                    - link "Årlig kontroll brannalarmanlegg Hovedbygg · Brannalarmsentral Kontroll 8. nov. 2026(om 2 d)" [ref=f6e314] [cursor=pointer]:
+                      - /url: /o/org_localtest/tasks/tsk_0mv17y5267htqy6hdcr
+                      - generic [ref=f6e315]:
+                        - generic [ref=f6e316]: Årlig kontroll brannalarmanlegg
+                        - generic [ref=f6e317]: Hovedbygg · Brannalarmsentral
+                      - generic [ref=f6e318]: Kontroll
+                      - generic "8. nov. 2026" [ref=f6e321]:
+                        - text: 8. nov. 2026
+                        - generic [ref=f6e322]: (om 2 d)
+                  - listitem [ref=f6e323]:
+                    - link "Mangler innreguleringsprotokoll for VA01 Hovedbygg · Ventilasjonsaggregat VA01 Dokumentasjon –" [ref=f6e324] [cursor=pointer]:
+                      - /url: /o/org_localtest/tasks/tsk_0mv17y526aqhsvli8ls
+                      - generic [ref=f6e325]:
+                        - generic [ref=f6e326]: Mangler innreguleringsprotokoll for VA01
+                        - generic [ref=f6e327]: Hovedbygg · Ventilasjonsaggregat VA01
+                      - generic [ref=f6e328]: Dokumentasjon
+                      - generic [ref=f6e330]: –
+                  - listitem [ref=f6e331]:
+                    - link "Test fra begrenset redigerer Hovedbygg Vedlikehold –" [ref=f6e332] [cursor=pointer]:
+                      - /url: /o/org_localtest/tasks/tsk_0mvl3hb2a4fnzu31a1b
+                      - generic [ref=f6e333]:
+                        - generic [ref=f6e334]: Test fra begrenset redigerer
+                        - generic [ref=f6e335]: Hovedbygg
+                      - generic [ref=f6e336]: Vedlikehold
+                      - generic [ref=f6e338]: –
+              - generic [ref=f6e339]:
+                - generic [ref=f6e340]:
+                  - heading "Service som forfaller" [level=3] [ref=f6e341]
+                  - link "FDV-register" [ref=f6e345] [cursor=pointer]:
+                    - /url: /o/org_localtest/components
+                - list [ref=f6e346]:
+                  - listitem [ref=f6e347]:
+                    - link "Ventilasjonsaggregat VA01 Hovedbygg · hver 6. mnd 44 d over" [ref=f6e348] [cursor=pointer]:
+                      - /url: /o/org_localtest/components/cmp_0mv17y526f28dm76g11
+                      - generic [ref=f6e349]:
+                        - generic [ref=f6e350]: Ventilasjonsaggregat VA01
+                        - generic [ref=f6e351]: Hovedbygg · hver 6. mnd
+                      - generic [ref=f6e352]: 44 d over
+                  - listitem [ref=f6e354]:
+                    - link "Væske-vann varmepumpe VP01 Hovedbygg · hver 12. mnd 13 d over" [ref=f6e355] [cursor=pointer]:
+                      - /url: /o/org_localtest/components/cmp_0mv17y5261o490yu59q
+                      - generic [ref=f6e356]:
+                        - generic [ref=f6e357]: Væske-vann varmepumpe VP01
+                        - generic [ref=f6e358]: Hovedbygg · hver 12. mnd
+                      - generic [ref=f6e359]: 13 d over
+                  - listitem [ref=f6e361]:
+                    - link "Personheis H1 Hovedbygg · hver 1. mnd 10 d over" [ref=f6e362] [cursor=pointer]:
+                      - /url: /o/org_localtest/components/cmp_0mv17y526uocgphq97n
+                      - generic [ref=f6e363]:
+                        - generic [ref=f6e364]: Personheis H1
+                        - generic [ref=f6e365]: Hovedbygg · hver 1. mnd
+                      - generic [ref=f6e366]: 10 d over
+                  - listitem [ref=f6e368]:
+                    - link "Brannalarmsentral Hovedbygg · hver 12. mnd Om 7 d" [ref=f6e369] [cursor=pointer]:
+                      - /url: /o/org_localtest/components/cmp_0mv17y5267hitusqxk7
+                      - generic [ref=f6e370]:
+                        - generic [ref=f6e371]: Brannalarmsentral
+                        - generic [ref=f6e372]: Hovedbygg · hver 12. mnd
+                      - generic [ref=f6e373]: Om 7 d
+              - generic [ref=f6e375]:
+                - generic [ref=f6e376]:
+                  - heading "Nylige dokumenter" [level=3] [ref=f6e377]
+                  - link "Alle dokumenter" [ref=f6e382] [cursor=pointer]:
+                    - /url: /o/org_localtest/documents
+                - list [ref=f6e383]:
+                  - listitem [ref=f6e384]:
+                    - link "Hovedbygg – arkitektmodell (IFC) 9. okt. 2026" [ref=f6e385] [cursor=pointer]:
+                      - /url: /o/org_localtest/models/doc_0mv17y53as43tr4wzeh
+                      - generic [ref=f6e389]: Hovedbygg – arkitektmodell (IFC)
+                      - generic [ref=f6e390]: 9. okt. 2026
+                  - listitem [ref=f6e391]:
+                    - link "Liftverk LV-630 – serviceavtale og periodisk kontroll 9. okt. 2026" [ref=f6e392] [cursor=pointer]:
+                      - /url: /o/org_localtest/documents/doc_0mv17y535diih4ctp85
+                      - generic [ref=f6e396]: Liftverk LV-630 – serviceavtale og periodisk kontroll
+                      - generic [ref=f6e397]: 9. okt. 2026
+                  - listitem [ref=f6e398]:
+                    - link "Tilstandsanalyse Sagbruket kontorpark 2025 (NS 3424) 9. okt. 2026" [ref=f6e399] [cursor=pointer]:
+                      - /url: /o/org_localtest/documents/doc_0mv17y532nwdizrylb5
+                      - generic [ref=f6e403]: Tilstandsanalyse Sagbruket kontorpark 2025 (NS 3424)
+                      - generic [ref=f6e404]: 9. okt. 2026
+                  - listitem [ref=f6e405]:
+                    - link "Brannalarmanlegg Hovedbygg – FDV-dokumentasjon 9. okt. 2026" [ref=f6e406] [cursor=pointer]:
+                      - /url: /o/org_localtest/documents/doc_0mv17y52z3bw7ldy8zc
+                      - generic [ref=f6e410]: Brannalarmanlegg Hovedbygg – FDV-dokumentasjon
+                      - generic [ref=f6e411]: 9. okt. 2026
+                  - listitem [ref=f6e412]:
+                    - link "Nordluft NL-4000 – drifts- og vedlikeholdsinstruks 9. okt. 2026" [ref=f6e413] [cursor=pointer]:
+                      - /url: /o/org_localtest/documents/doc_0mv17y52eu7me183y05
+                      - generic [ref=f6e417]: Nordluft NL-4000 – drifts- og vedlikeholdsinstruks
+                      - generic [ref=f6e418]: 9. okt. 2026
+            - generic [ref=f6e419]:
+              - generic [ref=f6e420]:
+                - generic [ref=f6e421]:
+                  - heading "Agenter" [level=3] [ref=f6e422]
+                  - link "Administrer" [ref=f6e427] [cursor=pointer]:
+                    - /url: /o/org_localtest/agents
+                - button "Hjelp Forklarer hvordan Plank brukes, og holder hjelpesenteret oppdatert med skjermbilder." [ref=f6e429]:
+                  - generic "Gnisten" [ref=f6e430]
+                  - generic [ref=f6e438]:
+                    - generic [ref=f6e439]: Hjelp
+                    - generic [ref=f6e440]: Forklarer hvordan Plank brukes, og holder hjelpesenteret oppdatert med skjermbilder.
+                - button "Ny agent" [ref=f6e441]
+              - generic [ref=f6e443]:
+                - heading "Festede sider" [level=3] [ref=f6e445]
+                - link "Eiendomspuls – tilstand, oppgaver og dokumentasjon Hovedbygg" [ref=f6e453] [cursor=pointer]:
+                  - /url: /o/org_localtest/artifacts/art_0mv17y53dob3xyaplek
+                  - generic [ref=f6e460]:
+                    - generic [ref=f6e461]: Eiendomspuls – tilstand, oppgaver og dokumentasjon
+                    - generic [ref=f6e462]: Hovedbygg
+              - generic [ref=f6e463]:
+                - heading "Aktivitet" [level=3] [ref=f6e465]
+                - list [ref=f6e469]:
+                  - listitem [ref=f6e470]:
+                    - generic [ref=f6e476]:
+                      - text: Henrik Leverandører
+                      - generic [ref=f6e477]: for 10 minutter siden
+                  - listitem [ref=f6e478]:
+                    - generic [ref=f6e484]:
+                      - text: Henrik Leverandører
+                      - generic [ref=f6e485]: for 10 minutter siden
+                  - listitem [ref=f6e486]:
+                    - generic [ref=f6e492]:
+                      - text: Henrik Leverandører
+                      - generic [ref=f6e493]: for 12 minutter siden
+                  - listitem [ref=f6e494]:
+                    - generic [ref=f6e500]:
+                      - text: Henrik Leverandører
+                      - generic [ref=f6e501]: for 12 minutter siden
+                  - listitem [ref=f6e502]:
+                    - generic [ref=f6e508]:
+                      - text: Henrik Endret tilgangen til styret@example.no (lese, 1 eiendom og 1 bygg, til 31. mars 2027)
+                      - generic [ref=f6e509]: 23. okt. 2026
+                  - listitem [ref=f6e510]:
+                    - generic [ref=f6e516]:
+                      - text: Henrik Endret tilgangen til styret@example.no (redigere, 1 eiendom og 1 bygg, til 31. mars 2027)
+                      - generic [ref=f6e517]: 23. okt. 2026
+                  - listitem [ref=f6e518]:
+                    - generic [ref=f6e524]:
+                      - text: Henrik Fjernet tilgangen til bygg-redigerer@example.no
+                      - generic [ref=f6e525]: 23. okt. 2026
+                  - listitem [ref=f6e526]:
+                    - generic [ref=f6e532]:
+                      - text: Henrik Endret tilgangen til styret@example.no (redigere, 1 bygg, til 31. mars 2027)
+                      - generic [ref=f6e533]: 23. okt. 2026
+                  - listitem [ref=f6e534]:
+                    - generic [ref=f6e540]:
+                      - text: bygg-redigerer@example.no Test fra begrenset redigerer
+                      - generic [ref=f6e541]: 23. okt. 2026
+                  - listitem [ref=f6e542]:
+                    - generic [ref=f6e548]:
+                      - text: Henrik Inviterte styret@example.no (lese, 1 eiendom)
+                      - generic [ref=f6e549]: 23. okt. 2026
+                  - listitem [ref=f6e550]:
+                    - generic [ref=f6e556]:
+                      - text: Henrik Inviterte leser@example.no (lese, hele porteføljen, til 31. desember 2026)
+                      - generic [ref=f6e557]: 23. okt. 2026
+                  - listitem [ref=f6e558]:
+                    - generic [ref=f6e564]:
+                      - text: Henrik Inviterte bygg-redigerer@example.no (redigere, 1 bygg)
+                      - generic [ref=f6e565]: 23. okt. 2026
+    - complementary [ref=f6e566]:
+      - generic [ref=f6e567]:
+        - button "Hjelp" [ref=f6e570]:
+          - generic "Gnisten" [ref=f6e571]
+        - button "Historikk" [ref=f6e582]
+        - button "Ny samtale" [ref=f6e587]
+        - button "Lukk panel (⌘J)" [ref=f6e589]
+      - generic [ref=f6e594]:
+        - generic [ref=f6e595]:
+          - generic "Gnisten" [ref=f6e596]
+          - generic [ref=f6e604]: Hjelp
+          - generic [ref=f6e605]: Forklarer hvordan Plank brukes, og holder hjelpesenteret oppdatert med skjermbilder.
+        - generic [ref=f6e606]:
+          - button "Hvordan laster jeg opp FDV-dokumentasjon?" [ref=f6e607]
+          - button "Hvordan registrerer jeg et avvik?" [ref=f6e608]
+          - button "Hvor ser jeg service som forfaller?" [ref=f6e609]
+      - generic [ref=f6e611]:
+        - textbox "Spør Hjelp …" [ref=f6e612]
+        - generic [ref=f6e613]:
+          - generic [ref=f6e614]: Enter sender · Shift+Enter ny linje
+          - button "Send" [disabled] [ref=f6e615]
+  - generic [ref=f6e620]:
+    - textbox "Søk i bygg, rom, komponenter, oppgaver og dokumenter …" [active] [ref=f6e625]
+    - generic [ref=f6e626]:
+      - button "Oversikt" [ref=f6e627]
+      - button "Kart Hvor eiendommene er" [ref=f6e634]:
+        - generic [ref=f6e638]:
+          - generic [ref=f6e639]: Kart
+          - generic [ref=f6e640]: Hvor eiendommene er
+      - button "Oppgaver" [ref=f6e641]
+      - button "Dokumenter" [ref=f6e648]
+      - button "FDV-register" [ref=f6e655]
+      - button "Agenter" [ref=f6e661]
+      - button "Sider" [ref=f6e668]
+      - button "Hjelp" [ref=f6e677]
+      - button "LAFT Datakilde" [ref=f6e684]:
+        - generic [ref=f6e690]:
+          - generic [ref=f6e691]: LAFT
+          - generic [ref=f6e692]: Datakilde
+      - button "Boligmappa Datakilde" [ref=f6e693]:
+        - generic [ref=f6e698]:
+          - generic [ref=f6e699]: Boligmappa
+          - generic [ref=f6e700]: Datakilde

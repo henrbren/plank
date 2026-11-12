@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { BRANDS, isLaftHost, resolveBrand, type Brand, type BrandId } from "@shared/brand";
+import { BRANDS, brandFromHost, isLaftHost, resolveBrand, type Brand, type BrandId } from "@shared/brand";
 
 const STORAGE_KEY = "plank-brand";
 
@@ -36,6 +36,7 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const choose = useCallback(
     (id: Exclude<BrandId, "plank" | "leie">) => {
       if (!laftHost) return;
+      if (id === "sameie" && brandFromHost(window.location.hostname).id !== "sameie") return;
       try {
         localStorage.setItem(STORAGE_KEY, id);
       } catch {

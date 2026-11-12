@@ -1,0 +1,32 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - generic [ref=e6]: Plank
+    - generic [ref=e13]: Plank
+  - list [ref=e14]:
+    - listitem [ref=e15]:
+      - generic [ref=e16]: "1"
+      - generic [ref=e17]: Virksomhet
+    - listitem [ref=e18]:
+      - generic [ref=e20]: "2"
+      - generic [ref=e21]: Bygg
+    - listitem [ref=e22]:
+      - generic [ref=e24]: "3"
+      - generic [ref=e25]: Dokumenter
+    - listitem [ref=e26]:
+      - generic [ref=e28]: "4"
+      - generic [ref=e29]: Videre
+  - generic [ref=e31]:
+    - paragraph [ref=e32]: Kom i gang
+    - heading "Hvilken virksomhet skal inn?" [level=1] [ref=e33]
+    - paragraph [ref=e34]: Skriv organisasjonsnummeret. Vi henter byggene fra Boligmappa, og deretter alle dokumentene. Du kan lukke nettleseren. Vi sender en e-post når overføringen er ferdig.
+    - generic [ref=e35]:
+      - text: Organisasjonsnummer
+      - textbox "Organisasjonsnummer" [active] [ref=e37]:
+        - /placeholder: 123 456 789
+        - text: 974 760 673
+    - generic [ref=e43]:
+      - generic [ref=e44]: REGISTERENHETEN I BRØNNØYSUND
+      - generic [ref=e45]: Organisasjonsledd · 974 760 673
+    - button "Hent byggene fra Boligmappa" [ref=e38]
+    - paragraph [ref=e41]: Hentingen skjer i Plank, også om du lukker fanen.
+    - button "Avbryt" [ref=e42]

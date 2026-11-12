@@ -200,7 +200,13 @@ export async function getProperty(env: Env, orgId: string, id: string) {
     `SELECT b.*,
        (SELECT COUNT(*) FROM floors f WHERE f.building_id = b.id) AS floor_count,
        (SELECT COUNT(*) FROM tasks t WHERE t.building_id = b.id AND t.status IN ('open','in_progress')) AS open_tasks,
-       (SELECT COUNT(*) FROM documents d WHERE d.building_id = b.id) AS document_count
+       (SELECT COUNT(*) FROM documents d WHERE d.building_id = b.id)
+       + (SELECT COUNT(*) FROM documents d WHERE d.org_id = b.org_id AND d.property_id = b.property_id AND d.building_id IS NULL)
+       + (SELECT COUNT(*) FROM bm_documents d WHERE d.org_id = b.org_id AND d.imported_document_id IS NULL AND d.error IS NULL AND d.owner_kind = 'building' AND d.owner_bmn = b.boligmappa_number)
+       + (SELECT COUNT(*) FROM bm_documents d WHERE d.org_id = b.org_id AND d.imported_document_id IS NULL AND d.error IS NULL AND d.owner_kind = 'unit' AND EXISTS (
+            SELECT 1 FROM bm_units u WHERE u.org_id = d.org_id AND u.bmn = d.owner_bmn
+            AND (u.building_bmn = b.boligmappa_number OR (b.building_number IS NOT NULL AND u.building_number = b.building_number))
+          )) AS document_count
      FROM buildings b WHERE b.property_id = ? AND b.org_id = ? AND ${blds.sql} ORDER BY b.name`,
     id,
     orgId,
@@ -208,7 +214,24 @@ export async function getProperty(env: Env, orgId: string, id: string) {
   );
   const docScope = scopeSql({ building: "building_id", property: "property_id" });
   const docs = await first<{ n: number }>(env.DB, `SELECT COUNT(*) AS n FROM documents WHERE property_id = ? AND org_id = ? AND ${docScope.sql}`, id, orgId, ...docScope.params);
-  return { ...withImage(property as Property & { image_key?: string | null }), buildings: buildings.map((b) => withImage(b)), document_count: docs?.n ?? 0 };
+  const pending = await first<{ n: number }>(
+    env.DB,
+    `SELECT COUNT(*) AS n FROM bm_documents d
+     WHERE d.org_id = ? AND d.imported_document_id IS NULL AND d.error IS NULL
+       AND (
+         (d.owner_kind = 'building' AND d.owner_bmn IN (SELECT boligmappa_number FROM buildings WHERE org_id = ? AND property_id = ? AND boligmappa_number IS NOT NULL))
+         OR (d.owner_kind = 'unit' AND EXISTS (
+           SELECT 1 FROM bm_units u JOIN buildings b ON b.org_id = u.org_id AND b.property_id = ?
+           WHERE u.org_id = d.org_id AND u.bmn = d.owner_bmn
+             AND (u.building_bmn = b.boligmappa_number OR (b.building_number IS NOT NULL AND u.building_number = b.building_number))
+         ))
+       )`,
+    orgId,
+    orgId,
+    id,
+    id,
+  );
+  return { ...withImage(property as Property & { image_key?: string | null }), buildings: buildings.map((b) => withImage(b)), document_count: (docs?.n ?? 0) + (pending?.n ?? 0) };
 }
 
 export async function createProperty(env: Env, orgId: string, input: z.infer<typeof propertySchema>) {
@@ -249,11 +272,18 @@ export async function getBuilding(env: Env, orgId: string, id: string) {
   const [stats] = await env.DB.batch<{ documents: number; components: number; open_tasks: number; artifacts: number; ifc_models: number }>([
     env.DB.prepare(
       `SELECT
-         (SELECT COUNT(*) FROM documents WHERE building_id = ?1) AS documents,
+         (SELECT COUNT(*) FROM documents WHERE building_id = ?1)
+         + (SELECT COUNT(*) FROM documents d WHERE d.org_id = b.org_id AND d.property_id = b.property_id AND d.building_id IS NULL)
+         + (SELECT COUNT(*) FROM bm_documents d WHERE d.org_id = b.org_id AND d.imported_document_id IS NULL AND d.error IS NULL AND d.owner_kind = 'building' AND d.owner_bmn = b.boligmappa_number)
+         + (SELECT COUNT(*) FROM bm_documents d WHERE d.org_id = b.org_id AND d.imported_document_id IS NULL AND d.error IS NULL AND d.owner_kind = 'unit' AND EXISTS (
+              SELECT 1 FROM bm_units u WHERE u.org_id = d.org_id AND u.bmn = d.owner_bmn
+              AND (u.building_bmn = b.boligmappa_number OR (b.building_number IS NOT NULL AND u.building_number = b.building_number))
+            )) AS documents,
          (SELECT COUNT(*) FROM components WHERE building_id = ?1) AS components,
          (SELECT COUNT(*) FROM tasks WHERE building_id = ?1 AND status IN ('open','in_progress')) AS open_tasks,
          (SELECT COUNT(*) FROM artifacts WHERE building_id = ?1) AS artifacts,
-         (SELECT COUNT(*) FROM documents WHERE building_id = ?1 AND kind = 'ifc') AS ifc_models`,
+         (SELECT COUNT(*) FROM documents WHERE building_id = ?1 AND kind = 'ifc') AS ifc_models
+       FROM buildings b WHERE b.id = ?1`,
     ).bind(id),
   ]);
   return { ...withImage(building as Building & { property_name: string; image_key?: string | null }), floors, stats: stats?.results?.[0] ?? null };

@@ -19,9 +19,9 @@
         else if (h === "mappa.laft.io" || h === "mappa2.laft.io" || h.indexOf("mappa.") === 0) b = "naeringsmappa";
         if (b) {
           var c = localStorage.getItem("plank-brand");
-          if (b !== "leie" && (c === "sameie" || c === "naeringsmappa")) b = c;
+          if (b !== "leie" && b !== "naeringsmappa" && (c === "sameie" || c === "naeringsmappa")) b = c;
           document.documentElement.dataset.brand = b;
-          document.title = b === "leie" ? "Leie" : b === "sameie" ? "LAFT Sameie" : "Næringsmappa";
+          document.title = b === "leie" ? "Leie" : b === "sameie" ? "LAFT Sameie & Borettslag" : "Næringsmappa";
           if (b === "leie") {
             var icon = document.querySelector('link[rel="icon"]');
             if (icon) icon.href = "/favicon-leie.svg";

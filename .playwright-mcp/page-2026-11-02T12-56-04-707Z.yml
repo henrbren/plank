@@ -1,0 +1,120 @@
+- generic [ref=f26e6]:
+  - complementary [ref=f26e7]:
+    - generic [ref=f26e8]:
+      - button "Demoportefølje Plank" [ref=f26e12]:
+        - generic [ref=f26e19]:
+          - generic [ref=f26e20]: Demoportefølje
+          - generic [ref=f26e21]: Plank
+      - button "Søk … ⌘K" [ref=f26e26]:
+        - generic [ref=f26e30]: Søk …
+        - generic [ref=f26e31]: ⌘K
+      - navigation [ref=f26e32]:
+        - link "Oversikt" [ref=f26e33] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl
+        - link "Oppgaver" [ref=f26e39] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/tasks
+        - link "Dokumenter" [ref=f26e45] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/documents
+        - link "FDV-register" [ref=f26e51] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/components
+        - link "Agenter" [ref=f26e56] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/agents
+        - link "Sider" [ref=f26e62] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/artifacts
+      - generic [ref=f26e70]:
+        - generic [ref=f26e71]: Portefølje
+        - button "Legg til" [ref=f26e75]
+      - generic [ref=f26e77]:
+        - generic [ref=f26e78]:
+          - generic [ref=f26e79]:
+            - button "Skjul" [ref=f26e80]
+            - link "Elvebakken borettslag (demo)" [ref=f26e83] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/properties/prp_0mv0wv3y6pg9b0kmuoy
+          - generic [ref=f26e90]:
+            - button "Vis" [ref=f26e91]
+            - link "Blokk 1" [ref=f26e94] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/buildings/bld_0mv0wv3y6of4orsomj4
+        - generic [ref=f26e101]:
+          - generic [ref=f26e102]:
+            - button "Skjul" [ref=f26e103]
+            - link "Sagbruket kontorpark (demo)" [ref=f26e106] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/properties/prp_0mv0wv3y43x7zv8zkoa
+          - generic [ref=f26e113]:
+            - button "Vis" [ref=f26e114]
+            - link "Hovedbygg" [ref=f26e117] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/buildings/bld_0mv0wv3y4koh2rdvf3u
+          - generic [ref=f26e125]:
+            - button "Vis" [ref=f26e126]
+            - link "Lagerhall" [ref=f26e129] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/buildings/bld_0mv0wv3y47v7eaehenl
+      - generic [ref=f26e137]:
+        - button "AI-bruk 0 %" [expanded] [active] [ref=f26e138]:
+          - generic [ref=f26e139]: AI-bruk
+          - generic [ref=f26e140]: 0 %
+        - generic [ref=f26e246]:
+          - generic [ref=f26e247]: Denne måneden
+          - generic [ref=f26e249]: 0 %
+          - paragraph [ref=f26e251]: 0 kr av 300 kr inkludert.
+          - paragraph [ref=f26e252]: Prøvebruk faktureres ikke. Et abonnement inkluderer AI-bruk hver måned.
+          - link "Abonnement og bruk" [ref=f26e253] [cursor=pointer]:
+            - /url: /o/org_0mv0wv3xoht8ih433dl/abonnement
+      - button "d demo.mottaker@example.com" [ref=f26e144]:
+        - generic [ref=f26e145]: d
+        - generic [ref=f26e146]: demo.mottaker@example.com
+  - main [ref=f26e147]:
+    - generic [ref=f26e149]:
+      - generic [ref=f26e151]:
+        - generic [ref=f26e152]:
+          - generic "Prikken" [ref=f26e154]
+          - generic [ref=f26e162]:
+            - heading "Agenter" [level=1] [ref=f26e163]
+            - generic [ref=f26e164]: Hver agent har sin egen form og farge. De jobber med dokumentene, registrene og BIM-modellene dine.
+        - button "Ny agent" [ref=f26e166]
+      - paragraph [ref=f26e168]:
+        - text: En planlagt agent kjører uten at noen sitter her. Abonnementet gir den AI-bruk å jobbe for hver måned.
+        - link "Se planene" [ref=f26e169] [cursor=pointer]:
+          - /url: /o/org_0mv0wv3xoht8ih433dl/abonnement
+      - generic [ref=f26e170]:
+        - generic [ref=f26e171]:
+          - generic [ref=f26e172]:
+            - generic "Gnisten" [ref=f26e173]
+            - generic [ref=f26e181]:
+              - link "FDV-assistent" [ref=f26e182] [cursor=pointer]:
+                - /url: /o/org_0mv0wv3xoht8ih433dl/agents/agt_0mv0wv3xou3182g2qto
+              - generic [ref=f26e183]: Claude Sonnet 5.5
+          - paragraph [ref=f26e184]: Allround-assistent som svarer på spørsmål om byggene, dokumentene og FDV-registeret.
+          - generic [ref=f26e185]: 6 verktøy
+          - generic [ref=f26e187]:
+            - button "Chat" [ref=f26e188]
+            - link "Innstillinger" [ref=f26e191] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/agents/agt_0mv0wv3xou3182g2qto
+        - generic [ref=f26e192]:
+          - generic [ref=f26e193]:
+            - generic "Firkant" [ref=f26e194]
+            - generic [ref=f26e202]:
+              - link "Dokumentkontrollør" [ref=f26e203] [cursor=pointer]:
+                - /url: /o/org_0mv0wv3xoht8ih433dl/agents/agt_0mv0wv3xo5kjujtghff
+              - generic [ref=f26e204]: Claude Sonnet 5.5
+          - paragraph [ref=f26e205]: Kontrollerer at FDV-dokumentasjonen er komplett og riktig klassifisert etter NS 3451.
+          - generic [ref=f26e206]: 6 verktøy
+          - generic [ref=f26e208]:
+            - button "Chat" [ref=f26e209]
+            - link "Innstillinger" [ref=f26e212] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/agents/agt_0mv0wv3xo5kjujtghff
+        - generic [ref=f26e213]:
+          - generic [ref=f26e214]:
+            - generic "Kløver" [ref=f26e215]
+            - generic [ref=f26e227]:
+              - link "Vedlikeholdsplanlegger" [ref=f26e228] [cursor=pointer]:
+                - /url: /o/org_0mv0wv3xoht8ih433dl/agents/agt_0mv0wv3xod16q6b0rtw
+              - generic [ref=f26e229]: Claude Sonnet 5.5
+          - paragraph [ref=f26e230]: Lager vedlikeholdsplaner fra produktdokumentasjon og følger opp service som forfaller.
+          - generic [ref=f26e231]: 7 verktøy
+          - generic [ref=f26e233]:
+            - button "Chat" [ref=f26e234]
+            - link "Innstillinger" [ref=f26e237] [cursor=pointer]:
+              - /url: /o/org_0mv0wv3xoht8ih433dl/agents/agt_0mv0wv3xod16q6b0rtw
+        - button "Ny agent" [ref=f26e238]
+  - button "Spør en agent ⌘J" [ref=f26e241]:
+    - text: Spør en agent
+    - generic [ref=f26e245]: ⌘J

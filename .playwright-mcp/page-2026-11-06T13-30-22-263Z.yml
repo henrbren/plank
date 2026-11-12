@@ -1,0 +1,60 @@
+- generic [ref=e62]:
+  - generic [ref=e63]: Plank
+  - list [ref=e70]:
+    - listitem [ref=e71]:
+      - generic [ref=e75]: Virksomhet
+    - listitem [ref=e76]:
+      - generic [ref=e81]: Bygg
+    - listitem [ref=e82]:
+      - generic [ref=e87]: Dokumenter
+    - listitem [ref=e88]:
+      - generic [ref=e90]: "4"
+      - generic [ref=e91]: Videre
+  - generic [ref=e92]:
+    - paragraph [ref=e93]: A. WESTRE AS
+    - heading "Dokumentene er overført" [level=1] [ref=e94]
+    - paragraph [ref=e95]: 70 dokumenter i 2 bygg ligger i arkivet.
+    - generic [ref=e97] [cursor=pointer]:
+      - checkbox "Varsle meg når det kommer nye dokumenter E-post når Boligmappa får nye dokumenter etter den første overføringen. Vi sjekker omtrent én gang i døgnet. Den første e-posten sender vi uansett." [ref=e98]
+      - generic [ref=e99]:
+        - generic [ref=e100]: Varsle meg når det kommer nye dokumenter
+        - generic [ref=e101]: E-post når Boligmappa får nye dokumenter etter den første overføringen. Vi sjekker omtrent én gang i døgnet. Den første e-posten sender vi uansett.
+    - generic [ref=e102]:
+      - generic [ref=e103]:
+        - generic [ref=e104]: Bygg
+        - generic [ref=e109]: "2"
+      - generic [ref=e110]:
+        - generic [ref=e111]: I arkivet
+        - generic [ref=e115]: "70"
+      - generic [ref=e116]:
+        - generic [ref=e117]: Igjen
+        - generic [ref=e121]: "0"
+    - generic [ref=e124]:
+      - generic [ref=e125]: Fra Boligmappa
+      - list [ref=e126]:
+        - listitem [ref=e127]:
+          - generic [ref=e133]:
+            - generic [ref=e134]: Boenheter
+            - generic [ref=e135]: Uten adresse · 1 bygg · 0 dokumenter
+        - listitem [ref=e138]:
+          - generic [ref=e144]:
+            - generic [ref=e145]: Industrivegen
+            - generic [ref=e146]: Industrivegen, ØRSTA · 1 bygg · 70 dokumenter
+          - generic [ref=e147]: Inne
+        - listitem [ref=e150]:
+          - generic [ref=e156]:
+            - generic [ref=e157]: Ukjent
+            - generic [ref=e158]: Uten adresse · 1 bygg · 0 dokumenter
+          - generic [ref=e159]: Inne
+    - generic [ref=e162]:
+      - generic [ref=e163]: Videre oppsett
+      - heading "La agenten ta neste steg" [level=2] [ref=e167]
+      - paragraph [ref=e168]: FDV-assistent kan lese byggene og dokumentene, og foreslå hva som bør settes opp.
+      - list [ref=e169]:
+        - listitem [ref=e170]: FDV-assistent
+        - listitem [ref=e171]: Dokumentkontrollør
+        - listitem [ref=e172]: Vedlikeholdsplanlegger
+      - button "Spør FDV-assistent" [ref=e174]
+      - paragraph [ref=e177]: Agentene har tilgang til Boligmappa.
+    - link "Gå til arbeidsflaten" [ref=e179] [cursor=pointer]:
+      - /url: /o/org_0mvkxg4zg6dm8sx56sq
